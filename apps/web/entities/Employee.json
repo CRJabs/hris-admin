@@ -1,0 +1,280 @@
+{
+  "name": "Employee",
+  "type": "object",
+  "properties": {
+    "employee_id": {
+      "type": "string",
+      "description": "Employee ID code"
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "middle_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "photo_url": {
+      "type": "string"
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "Male",
+        "Female"
+      ]
+    },
+    "birthdate": {
+      "type": "string",
+      "format": "date"
+    },
+    "civil_status": {
+      "type": "string",
+      "enum": [
+        "Single",
+        "Married",
+        "Widowed",
+        "Separated"
+      ]
+    },
+    "address": {
+      "type": "string"
+    },
+    "department": {
+      "type": "string"
+    },
+    "position": {
+      "type": "string"
+    },
+    "employment_status": {
+      "type": "string",
+      "enum": [
+        "Regular",
+        "Probationary",
+        "Contractual"
+      ]
+    },
+    "date_hired": {
+      "type": "string",
+      "format": "date"
+    },
+    "regularization_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "monthly_rate": {
+      "type": "number"
+    },
+    "daily_rate": {
+      "type": "number"
+    },
+    "rice_allowance": {
+      "type": "number"
+    },
+    "transportation_allowance": {
+      "type": "number"
+    },
+    "clothing_allowance": {
+      "type": "number"
+    },
+    "salary_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "bonuses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "date": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string"
+          },
+          "school": {
+            "type": "string"
+          },
+          "course": {
+            "type": "string"
+          },
+          "year_graduated": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "trainings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "hours": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "licenses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "expiry_date": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "performance_reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "number"
+          },
+          "remarks": {
+            "type": "string"
+          },
+          "reviewer": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "action_taken": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "leave_credits": {
+      "type": "object",
+      "properties": {
+        "vacation_total": {
+          "type": "number"
+        },
+        "vacation_used": {
+          "type": "number"
+        },
+        "sick_total": {
+          "type": "number"
+        },
+        "sick_used": {
+          "type": "number"
+        },
+        "emergency_total": {
+          "type": "number"
+        },
+        "emergency_used": {
+          "type": "number"
+        },
+        "maternity_paternity_total": {
+          "type": "number"
+        },
+        "maternity_paternity_used": {
+          "type": "number"
+        }
+      }
+    },
+    "employment_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "details": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "employee_id",
+    "first_name",
+    "last_name",
+    "department",
+    "position",
+    "employment_status"
+  ]
+}
