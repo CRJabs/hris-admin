@@ -1,46 +1,80 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  // 1. Create a fake HR Admin user
-  const mockHRUser = {
-    id: "admin-001",
-    first_name: "HR",
-    last_name: "Manager",
-    email: "hr@university.edu.ph",
-    role: "admin"
-  };
-
-  // 2. Force the state to be instantly authenticated
-  const [user, setUser] = useState(mockHRUser);
-  const [isAuthenticated, setIsAuthenticated] = useState(true); 
-  const [isLoadingAuth, setIsLoadingAuth] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); 
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
   const [authError, setAuthError] = useState(null);
-  const [appPublicSettings, setAppPublicSettings] = useState({});
+
+  const fetchUserProfile = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error("Error fetching user profile", err);
+      return null;
+    }
+  };
 
   useEffect(() => {
-    // 3. Skip the server check entirely for the prototype
-    console.log("Mock Authentication Initialized: Logged in as HR Admin");
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchUserProfile(session.user.id).then(profileData => {
+          setUser(profileData);
+          setIsAuthenticated(true);
+          setIsLoadingAuth(false);
+        });
+      } else {
+        setIsLoadingAuth(false);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          fetchUserProfile(session.user.id).then(profileData => {
+            setUser(profileData);
+            setIsAuthenticated(true);
+          });
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      }
+    );
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const checkAppState = async () => {
-    // Empty function so the app doesn't crash when it tries to check state
     return true;
   };
 
-  const logout = () => {
-    console.log("Mock Logout Clicked");
-    // Optionally toggle these to false if you want to test a logged-out state later
+  const logout = async () => {
+    setIsLoadingAuth(true);
+    await supabase.auth.signOut();
     setUser(null);
     setIsAuthenticated(false);
+    setIsLoadingAuth(false);
   };
 
   const navigateToLogin = () => {
-    console.log("Mock Login Clicked");
-    setUser(mockHRUser);
-    setIsAuthenticated(true);
+    // This function originally acted as the mock login trigger
+    // With real auth, the onAuthStateChange handles state updates, so this can be a no-op or removed if unneeded.
   };
 
   return (
@@ -50,7 +84,6 @@ export const AuthProvider = ({ children }) => {
       isLoadingAuth,
       isLoadingPublicSettings,
       authError,
-      appPublicSettings,
       logout,
       navigateToLogin,
       checkAppState
