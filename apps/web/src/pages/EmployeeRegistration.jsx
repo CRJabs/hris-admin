@@ -199,14 +199,23 @@ export default function EmployeeRegistration() {
     try {
       const generatedTempId = `EMP-${Math.floor(100000 + Math.random() * 900000)}`;
 
+      // Postgres/Supabase strict typing fix: convert empty strings to null
+      // This prevents "invalid input syntax for type date" errors
+      const sanitizedData = Object.fromEntries(
+        Object.entries(formData).map(([key, value]) => [
+          key, 
+          value === "" ? null : value
+        ])
+      );
+
       const { error } = await supabase
         .from('employees')
         .insert([{
-          ...formData,
+          ...sanitizedData,
           user_id: user?.id,
           employee_id: generatedTempId, // Auto generating
           is_active: true,
-          signature_url: signatureUrl
+          signature_url: signatureUrl || null
         }]);
 
       if (error) {

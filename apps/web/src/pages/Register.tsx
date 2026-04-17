@@ -40,6 +40,9 @@ export default function Register() {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/registration`,
+        },
       });
 
       if (authError) throw authError;
@@ -48,10 +51,10 @@ export default function Register() {
         throw new Error("Registration failed. Please try again.");
       }
 
-      toast.success("Account created successfully!");
+      toast.success("Verification email sent!");
       
-      // 2. Redirect to registration form
-      navigate("/registration");
+      // 2. Redirect to verification instructions page
+      navigate("/verify-email");
 
     } catch (error: any) {
       console.error("Signup error:", error);
