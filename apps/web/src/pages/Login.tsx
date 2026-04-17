@@ -9,14 +9,6 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -41,7 +33,7 @@ export default function Login() {
       if (authError) throw authError;
 
       // 2. Fetch the user's role from the user_profiles table
-      const { data: profile, error: profileError } = await supabase
+      const { error: profileError } = await supabase
         .from("user_profiles")
         .select("role")
         .eq("id", authData.user.id)
