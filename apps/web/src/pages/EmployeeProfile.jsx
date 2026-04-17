@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle } from "lucide-react";
+import { User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Zap, Shield } from "lucide-react";
 import PersonalDetailsTab from "@/components/employees/profile/PersonalDetailsTab";
 import EducationTab from "@/components/employees/profile/EducationTab";
 import TrainingDevTab from "@/components/employees/profile/TrainingDevTab";
 import EmploymentInfoTab from "@/components/employees/profile/EmploymentInfoTab";
 import LeaveTab from "@/components/employees/profile/LeaveTab";
+import SkillsTab from "@/components/employees/profile/SkillsTab";
+import CredentialsTab from "@/components/employees/profile/CredentialsTab";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -69,7 +71,15 @@ export default function EmployeeProfile() {
             </TabsTrigger>
             <TabsTrigger value="training" className="gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Award className="w-3.5 h-3.5" />
-              Training & Development
+              Trainings
+            </TabsTrigger>
+            <TabsTrigger value="skills" className="gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Zap className="w-3.5 h-3.5" />
+              Certification & Skills
+            </TabsTrigger>
+            <TabsTrigger value="credentials" className="gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Shield className="w-3.5 h-3.5" />
+              Credentials
             </TabsTrigger>
             <TabsTrigger value="employment" className="gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Briefcase className="w-3.5 h-3.5" />
@@ -90,6 +100,12 @@ export default function EmployeeProfile() {
           </TabsContent>
           <TabsContent value="training">
             <TrainingDevTab employee={employeeData} isReadOnly={false} />
+          </TabsContent>
+          <TabsContent value="skills">
+            <SkillsTab employee={employeeData} />
+          </TabsContent>
+          <TabsContent value="credentials">
+            <CredentialsTab employee={employeeData} />
           </TabsContent>
           <TabsContent value="employment">
             <EmploymentInfoTab employee={employeeData} isReadOnly={false} />

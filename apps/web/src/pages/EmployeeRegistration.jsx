@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { ChevronRight, FileText, Upload, Save, User, Briefcase, Users, Shield, Award, BookOpen, GraduationCap, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/AuthContext";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 
 // Grid Span Distribution has been meticulously upgraded to 24-sum layouts!
@@ -77,6 +78,7 @@ const trainCols = [
 
 export default function EmployeeRegistration() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("personal");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [certified, setCertified] = useState(false);
@@ -156,7 +158,8 @@ export default function EmployeeRegistration() {
       toast.success("E-signature uploaded successfully.");
     } catch (err) {
       console.error("Upload error:", err);
-      toast.error("Failed to upload signature. Ensure your storage buckets are properly configured.");
+      const msg = err.message || "Unknown storage error";
+      toast.error(`Signature Upload Failed: ${msg}. Check if your bucket is public and has INSERT policies.`);
     } finally {
       setIsUploadingSignature(false);
     }
@@ -164,15 +167,31 @@ export default function EmployeeRegistration() {
 
   const isSectionIncomplete = (id) => {
     switch (id) {
-      case "personal": return !formData.first_name || !formData.last_name || !formData.contact_phone;
+      case "personal": return !formData.first_name || !formData.last_name || !formData.birthdate;
+      case "family": return !formData.contact_phone;
       case "certify": return !certified || !signatureName || !signatureUrl;
-      default: return false; // Other tabs are optional
+      default: return false;
     }
   };
 
+  const validateFullForm = () => {
+    const missing = [];
+    if (!formData.first_name || !formData.last_name || !formData.birthdate) missing.push("Personal Data");
+    if (!formData.contact_phone) missing.push("Contact Phone");
+    if (!certified) missing.push("Electronic Waiver Agreement");
+    if (!signatureName) missing.push("Typed Signature Name");
+    if (!signatureUrl) missing.push("E-Signature Image Upload");
+    return missing;
+  };
+
   const submitRegistration = async () => {
-    if (!certified || !signatureName || !signatureUrl) {
-      toast.error("You must upload an e-signature and certify the document.");
+    const missingFields = validateFullForm();
+    if (missingFields.length > 0) {
+      toast.error(`Please complete the following: ${missingFields.join(", ")}`);
+      // Scroll to top or switch tab if needed, but the toast gives immediate direction
+      if (!formData.first_name || !formData.last_name) setActiveTab("personal");
+      else if (!formData.contact_phone) setActiveTab("family");
+      else setActiveTab("certify");
       return;
     }
 
@@ -184,6 +203,7 @@ export default function EmployeeRegistration() {
         .from('employees')
         .insert([{
           ...formData,
+          user_id: user?.id,
           employee_id: generatedTempId, // Auto generating
           is_active: true,
           signature_url: signatureUrl
@@ -195,11 +215,15 @@ export default function EmployeeRegistration() {
         throw error;
       }
 
-      toast.success("Successfully Registered Employee File.");
-      navigate("/employees");
+      toast.success("Profile registered successfully. Please log in to your account.");
+      
+      // Logout and return to login page to ensure clean session state
+      await logout();
+      navigate("/login");
 
     } catch (err) {
-      console.error(err);
+      console.error("Submission Error:", err);
+      toast.error(`Submission Failed: ${err.message || "An unexpected error occurred."}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -544,9 +568,17 @@ export default function EmployeeRegistration() {
                     </div>
 
                     <div className="pt-6 text-center">
-                      <Button onClick={submitRegistration} disabled={isSubmitting || !certified || !signatureName || !signatureUrl} className="w-full max-w-sm h-12 bg-[#0C005F] hover:bg-[#1900C5] text-white font-bold text-base shadow-md">
-                        {isSubmitting ? "Generating Registration Data..." : "Submit 201 Form"}
+                      <Button onClick={submitRegistration} disabled={isSubmitting || isUploadingSignature} className="w-full max-w-sm h-12 bg-[#0C005F] hover:bg-[#1900C5] text-white font-bold text-base shadow-md">
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Submitting 201 Form...
+                          </>
+                        ) : (
+                          "Submit 201 Form"
+                        )}
                       </Button>
+                      <p className="text-[10px] text-slate-400 mt-2 italic">Ensure all required sections are completed before submitting.</p>
                     </div>
                   </div>
                 </div>

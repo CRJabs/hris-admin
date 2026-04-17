@@ -19,11 +19,45 @@ export default function EducationTab({ employee, isReadOnly = false }) {
           )}
         </CardHeader>
         <CardContent>
-          <div className="border rounded-md border-dashed p-8 text-center text-muted-foreground flex flex-col items-center justify-center bg-muted/10">
-            <GraduationCap className="w-8 h-8 mb-2 opacity-20" />
-            <p className="text-sm font-medium">No educational records found.</p>
-            <p className="text-xs mt-1">Click "Add Record" to add education details.</p>
-          </div>
+          {employee.educational_record && employee.educational_record.length > 0 ? (
+            <div className="space-y-4">
+              {employee.educational_record.map((edu, i) => (
+                <div key={i} className="border rounded-lg p-4 bg-muted/20">
+                   <div className="flex justify-between items-start mb-2">
+                     <div>
+                       <p className="text-[10px] text-primary uppercase font-bold tracking-widest leading-none mb-1">{edu.level}</p>
+                       <h4 className="font-bold text-foreground text-sm uppercase">{edu.school}</h4>
+                       <p className="text-[11px] text-muted-foreground">{edu.address}</p>
+                     </div>
+                     <Badge variant="secondary" className="text-[10px]">{edu.inclusive}</Badge>
+                   </div>
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-border/50">
+                      <div>
+                        <p className="text-[11px] text-muted-foreground uppercase">Degree Earned</p>
+                        <p className="text-sm font-semibold">{edu.degree || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground uppercase">Units/GWA</p>
+                        <p className="text-sm font-semibold">Units: {edu.units} | GWA: {edu.gwa}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-[11px] text-muted-foreground uppercase">Thesis/Dissertation</p>
+                        <p className="text-xs font-medium italic">{edu.thesis || 'None'}</p>
+                      </div>
+                   </div>
+                   <div className="mt-2 text-[10px] text-muted-foreground flex justify-end">
+                      Graduation Year: <span className="font-bold ml-1">{edu.gradYear}</span>
+                   </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="border rounded-md border-dashed p-8 text-center text-muted-foreground flex flex-col items-center justify-center bg-muted/10">
+              <GraduationCap className="w-8 h-8 mb-2 opacity-20" />
+              <p className="text-sm font-medium">No educational records found.</p>
+              <p className="text-xs mt-1">Visit the registration portal to add education details.</p>
+            </div>
+          )}
 
           {/* Example Data Format */}
           {/* <div className="mt-4 space-y-4">

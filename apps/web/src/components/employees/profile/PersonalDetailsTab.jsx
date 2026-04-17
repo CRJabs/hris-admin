@@ -110,7 +110,10 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
               )}
             </div>
             <div className="flex items-center justify-center gap-2 mb-1">
-              <h3 className="text-xl font-bold">{employee.first_name} {employee.middle_name?.[0] ? employee.middle_name[0] + "." : ""} {employee.last_name}</h3>
+              <h3 className="text-xl font-bold">
+                {employee.first_name} {employee.middle_name?.[0] ? employee.middle_name[0] + "." : ""} {employee.last_name}
+                {employee.titles && <span className="text-sm font-normal text-muted-foreground ml-2">, {employee.titles}</span>}
+              </h3>
             </div>
             <p className="text-sm font-medium text-slate-800 mb-2">{employee.position || "Staff"} • {employee.department || "General Department"}</p>
             <p className="text-xs text-muted-foreground mb-3">Emp ID: {employee.employee_id || "Year-001"}</p>
@@ -153,22 +156,22 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
           <SectionBlock title="Personal Data" icon={User}>
             <div className="grid grid-cols-2 gap-4">
               <InfoRow label="Gender" value={employee.gender} />
-              <InfoRow label="Age" value="—" />
+              <InfoRow label="Age" value={employee.age} />
               <InfoRow label="Birth Date" value={employee.birthdate ? format(new Date(employee.birthdate), "MM/dd/yyyy") : "—"} />
-              <InfoRow label="Religion" value="—" />
+              <InfoRow label="Religion" value={employee.religion} />
               <InfoRow label="Civil Status" value={employee.civil_status} />
-              <InfoRow label="Nationality" value="Filipino" />
-              <InfoRow label="Place of Birth" value="—" className="col-span-2" />
+              <InfoRow label="Nationality" value={employee.nationality || "Filipino"} />
+              <InfoRow label="Place of Birth" value={employee.place_of_birth} className="col-span-2" />
             </div>
           </SectionBlock>
 
           {/* Physical Description */}
           <SectionBlock title="Physical Description" icon={User}>
             <div className="grid grid-cols-2 gap-4">
-              <InfoRow label="Height (cm)" value="—" />
-              <InfoRow label="Weight (lbs)" value="—" />
-              <InfoRow label="Blood Type" value="—" />
-              <InfoRow label="Distinguishing Marks" value="—" className="col-span-2" />
+              <InfoRow label="Height (cm)" value={employee.height} />
+              <InfoRow label="Weight (lbs)" value={employee.weight} />
+              <InfoRow label="Blood Type" value={employee.blood_type} />
+              <InfoRow label="Distinguishing Marks" value={employee.distinguishing_marks} className="col-span-2" />
             </div>
           </SectionBlock>
         </div>
@@ -178,19 +181,19 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
           <SectionBlock title="Parents Information" icon={Users}>
             <div className="space-y-2">
               <h4 className="text-xs font-semibold text-foreground border-b pb-1 mb-2">Father's Details</h4>
-              <InfoRow label="Name" value="—" />
-              <InfoRow label="Occupation" value="—" />
+              <InfoRow label="Name" value={employee.father_name} />
+              <InfoRow label="Occupation" value={employee.father_occupation} />
               <div className="flex items-center gap-2 mt-2">
-                <input type="checkbox" disabled className="rounded border-gray-300" />
+                <input type="checkbox" disabled checked={employee.father_status === "Deceased"} className="rounded border-gray-300" />
                 <span className="text-sm text-muted-foreground">Deceased</span>
               </div>
             </div>
             <div className="space-y-2 mt-6">
               <h4 className="text-xs font-semibold text-foreground border-b pb-1 mb-2">Mother's Details</h4>
-              <InfoRow label="Name" value="—" />
-              <InfoRow label="Occupation" value="—" />
+              <InfoRow label="Name" value={employee.mother_name} />
+              <InfoRow label="Occupation" value={employee.mother_occupation} />
               <div className="flex items-center gap-2 mt-2">
-                <input type="checkbox" disabled className="rounded border-gray-300" />
+                <input type="checkbox" disabled checked={employee.mother_status === "Deceased"} className="rounded border-gray-300" />
                 <span className="text-sm text-muted-foreground">Deceased</span>
               </div>
             </div>
@@ -199,12 +202,12 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
           {/* Benefits/Tax ID */}
           <SectionBlock title="Benefits & Tax IDs" icon={Shield}>
             <div className="space-y-2">
-              <InfoRow label="SSS Number" value="—" />
-              <InfoRow label="TIN" value="—" />
-              <InfoRow label="Philhealth" value="—" />
-              <InfoRow label="Pag-ibig" value="—" />
-              <InfoRow label="PERAA" value="—" />
-              <InfoRow label="Tax Status" value="Single" />
+              <InfoRow label="SSS Number" value={employee.sss} />
+              <InfoRow label="TIN" value={employee.tin} />
+              <InfoRow label="Philhealth" value={employee.philhealth} />
+              <InfoRow label="Pag-ibig" value={employee.pag_ibig} />
+              <InfoRow label="PERAA" value={employee.peraa} />
+              <InfoRow label="Tax Status" value={employee.tax_status} />
             </div>
           </SectionBlock>
         </div>
@@ -214,80 +217,119 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
           <SectionBlock title="Contact Information" icon={Phone}>
             <div className="space-y-2">
               <h4 className="text-xs font-semibold text-foreground border-b pb-1 mb-2 mt-1">Permanent Address</h4>
-              <InfoRow label="Street Address" value="—" />
-              <InfoRow label="Barangay" value="—" />
+              <InfoRow label="Street Address" value={employee.address_street} />
+              <InfoRow label="Barangay" value={employee.address_barangay} />
               <div className="grid grid-cols-2 gap-4">
-                <InfoRow label="City/Municipality" value="—" />
-                <InfoRow label="State/Province" value="—" />
+                <InfoRow label="City/Municipality" value={employee.address_city} />
+                <InfoRow label="State/Province" value={employee.address_province} />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <InfoRow label="Country" value="Philippines" />
-                <InfoRow label="Zip Code" value="—" />
+                <InfoRow label="Country" value={employee.address_country || "Philippines"} />
+                <InfoRow label="Zip Code" value={employee.address_zip} />
               </div>
-              <InfoRow label="Email Address" value={employee.email} />
-              <InfoRow label="Contact Nos" value={employee.phone} />
+              <InfoRow label="Email Address" value={employee.contact_email || employee.email} />
+              <InfoRow label="Contact Nos" value={employee.contact_phone || employee.phone} />
             </div>
           </SectionBlock>
 
           {/* Emergency Contact Information */}
           <SectionBlock title="Emergency Contact" icon={Heart}>
-            <div className="space-y-2">
-              <InfoRow label="Name" value="—" />
-              <InfoRow label="Relation" value="—" />
-              <InfoRow label="Mobile Number" value="—" />
-              <InfoRow label="Home Number" value="—" />
-              <InfoRow label="Office Number" value="—" />
-              <InfoRow label="Address" value="—" />
+            <div className="space-y-4">
+              {employee.emergency_contacts?.length > 0 ? (
+                employee.emergency_contacts.map((contact, i) => (
+                  <div key={i} className="p-3 bg-muted/20 rounded-md border text-sm space-y-1">
+                    <div className="flex justify-between font-bold">
+                       <span>{contact.name}</span>
+                       <Badge variant="outline" className="text-[10px]">{contact.relation}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{contact.address}</p>
+                    <div className="flex flex-wrap gap-x-4 pt-1 text-[11px]">
+                       <span>Mobile: {contact.mobile}</span>
+                       <span>Office/Home: {contact.office}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-muted-foreground italic py-2">No emergency contacts listed.</div>
+              )}
             </div>
           </SectionBlock>
         </div>
 
         {/* Dependent's Information */}
         <SectionBlock 
-          title="Dependent's Information" 
+          title="Spousal & Dependent's Information" 
           icon={Users}
         >
-          <div className="text-sm text-muted-foreground italic py-4 text-center border rounded-md border-dashed">
-            No dependents added yet.
-          </div>
-          {/* Example of how it would look with data */}
-          {/* <div className="border rounded-md p-3 mb-3 bg-muted/20">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-               <InfoRow label="Name" value="Jane Doe" />
-               <InfoRow label="Relation" value="Spouse" />
-               <InfoRow label="Date of Birth" value="01/01/1990" />
-               <InfoRow label="Gender" value="Female" />
+          {employee.spouse_name && (
+             <div className="mb-6 bg-muted/20 p-4 rounded-lg border">
+                <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-widest">Spouse Details</h4>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                   <InfoRow label="Name" value={employee.spouse_name} />
+                   <InfoRow label="Gender" value={employee.spouse_gender} />
+                   <InfoRow label="Date of Birth" value={employee.spouse_birthdate} />
+                   <InfoRow label="Age" value={employee.spouse_age} />
+                </div>
+                <div className="mt-3 pt-3 border-t grid grid-cols-1 md:grid-cols-3 gap-4">
+                   <InfoRow label="Employer" value={employee.spouse_employer} />
+                   <InfoRow label="Position" value={employee.spouse_position} />
+                   <InfoRow label="Employment Status" value={employee.spouse_employment_status} />
+                </div>
+             </div>
+          )}
+
+          <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-widest">Children Records</h4>
+          {employee.spouse_children?.length > 0 ? (
+            <div className="grid grid-cols-1 gap-3">
+               {employee.spouse_children.map((child, i) => (
+                  <div key={i} className="border rounded-md p-3 bg-muted/10">
+                    <div className="flex justify-between mb-2">
+                       <p className="text-sm font-bold">{child.name}</p>
+                       <Badge variant="outline" className="text-[10px]">{child.gender}</Badge>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                       <span>Born: {child.birthdate} ({child.age} yrs)</span>
+                       <span className="col-span-2">Enrolled: {child.enrolled} ({child.course})</span>
+                    </div>
+                  </div>
+               ))}
             </div>
-            <div className="mt-3 pt-3 border-t grid grid-cols-1 md:grid-cols-3 gap-4">
-               <InfoRow label="Employer" value="Company XYZ" />
-               <InfoRow label="Position" value="Manager" />
-               <InfoRow label="Employment Status" value="Full-time" />
+          ) : (
+            <div className="text-sm text-muted-foreground italic py-4 text-center border rounded-md border-dashed">
+              No dependents / children added yet.
             </div>
-          </div> */}
+          )}
         </SectionBlock>
 
         <div className="grid grid-cols-1 gap-6">
           {/* Languages */}
-          <SectionBlock title="Languages" icon={Globe}>
-             <div className="overflow-x-auto">
-               <table className="w-full text-sm text-left">
-                 <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b">
-                   <tr>
-                     <th className="px-3 py-2 font-medium">Language</th>
-                     <th className="px-3 py-2 font-medium">Fluency</th>
-                     <th className="px-3 py-2 font-medium">Skills</th>
-                   </tr>
-                 </thead>
-                 <tbody>
-                   <tr className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                      <td className="px-3 py-2">English</td>
-                      <td className="px-3 py-2">Fluent</td>
-                      <td className="px-3 py-2">Read, Write, Speak</td>
-                   </tr>
-                 </tbody>
-               </table>
-             </div>
-          </SectionBlock>
+        <SectionBlock title="Attachments & E-Signatures" icon={Shield}>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                 <p className="text-[11px] text-muted-foreground uppercase tracking-widest">Employee Certification Signature</p>
+                 {employee.signature_url ? (
+                   <div className="border rounded-xl p-4 bg-white shadow-sm flex items-center justify-center min-h-[140px]">
+                      <img src={employee.signature_url} alt="E-signature" className="max-h-24 w-auto object-contain mix-blend-multiply" />
+                   </div>
+                 ) : (
+                   <div className="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-muted-foreground bg-muted/5">
+                      <Shield className="w-8 h-8 mb-2 opacity-20" />
+                      <p className="text-xs">No e-signature uploaded.</p>
+                   </div>
+                 )}
+              </div>
+              <div className="space-y-4">
+                 <p className="text-[11px] text-muted-foreground uppercase tracking-widest">Document Status</p>
+                 <div className="p-4 bg-[#0C005F]/5 rounded-xl border border-[#0C005F]/10">
+                    <div className="flex items-center gap-3 mb-2">
+                       <Shield className="w-5 h-5 text-[#0C005F]" />
+                       <span className="text-sm font-bold text-[#0C005F]">Official HR Digitized File</span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed"> This electronic record represents the certified Personnel Information Form (201) and is legally binding within the University HRIS framework.</p>
+                 </div>
+              </div>
+           </div>
+        </SectionBlock>
         </div>
 
       </div>

@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
-import { Loader2, Building2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 // shadcn/ui components (adjust imports if your paths differ)
 import { Button } from "@/components/ui/button";
@@ -158,10 +158,16 @@ export default function Login() {
                 </Button>
               </div>
 
-              <div className="text-center pt-2">
-                <Link to="/forgot-password" className="text-sm text-[#0C005F] hover:underline opacity-80">
+              <div className="text-center pt-2 flex flex-col gap-2">
+                <Link to="/forgot-password" title="forgot password?" className="text-sm text-[#0C005F] hover:underline opacity-80">
                   forgot password?
                 </Link>
+                <div className="text-sm text-slate-500">
+                  Don't have an account?{" "}
+                  <Link to="/register" className="text-[#0C005F] font-bold hover:underline">
+                    Register here!
+                  </Link>
+                </div>
               </div>
             </form>
           </div>

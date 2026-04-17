@@ -65,27 +65,29 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false }) {
           )}
         </CardHeader>
         <CardContent className="p-4 pt-4">
-          <div className="space-y-0">
-            {employee.employment_history && employee.employment_history.length > 0 ? (
-               employee.employment_history.map((item, i) => (
-                 <div key={i} className="flex gap-3 relative">
-                   <div className="flex flex-col items-center">
-                     <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0 mt-1.5" />
-                     {i < employee.employment_history.length - 1 && (
-                       <div className="w-px flex-1 bg-border" />
-                     )}
-                   </div>
-                   <div className="pb-6">
-                     <p className="text-xs text-muted-foreground">{item.date}</p>
-                     <p className="text-sm font-medium">{item.event}</p>
-                     <p className="text-xs text-muted-foreground mt-1 bg-muted/30 p-2 rounded">{item.details}</p>
-                   </div>
+          <div className="space-y-4">
+            {employee.previous_employment && employee.previous_employment.length > 0 ? (
+               employee.previous_employment.map((item, i) => (
+                 <div key={i} className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                    <div className="flex justify-between items-start">
+                       <div>
+                          <h4 className="font-bold text-sm uppercase">{item.company}</h4>
+                          <p className="text-xs text-primary font-medium">{item.position} • {item.status}</p>
+                       </div>
+                       <Badge variant="outline" className="text-[10px] bg-white">{item.start} — {item.end}</Badge>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 py-2 border-y border-border/50 text-[11px]">
+                       <div><p className="text-muted-foreground uppercase">Department</p><p className="font-medium">{item.dept}</p></div>
+                       <div><p className="text-muted-foreground uppercase">Monthly Salary</p><p className="font-medium">{item.salary}</p></div>
+                       <div className="col-span-2"><p className="text-muted-foreground uppercase">Responsibility</p><p className="font-medium italic">{item.resp}</p></div>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Reason for Leaving: <span className="text-foreground">{item.reason}</span></p>
                  </div>
                ))
             ) : (
                <div className="border rounded-md border-dashed py-8 text-center text-muted-foreground flex flex-col items-center justify-center bg-muted/10">
                  <CalendarClock className="w-8 h-8 mb-2 opacity-20" />
-                 <p className="text-sm font-medium">No employment history recorded.</p>
+                 <p className="text-sm font-medium">No previous employment records.</p>
                </div>
             )}
           </div>
