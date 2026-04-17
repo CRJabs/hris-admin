@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { Building2, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 
@@ -8,19 +8,19 @@ export default function EmployeeLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="bg-white border-b border-border sticky top-0 z-30 h-16 px-6 flex items-center justify-between">
+      <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 sticky top-0 z-30">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 bg-primary rounded-md flex items-center justify-center shrink-0">
-            <Building2 className="text-primary-foreground h-4 w-4" />
-          </div>
-          <h1 className="font-bold text-lg hidden sm:block">UBHRIS Employee Portal</h1>
+          <img
+            src="/assets/ub-hris-logo.png"
+            alt="University of Bohol HRIS Logo"
+            className="h-10 object-contain"
+            onError={(e) => {
+              e.currentTarget.src = "https://via.placeholder.com/150x40?text=Logo+Placeholder";
+            }}
+          />
         </div>
         
         <div className="flex items-center gap-4">
-           <div className="text-right hidden sm:block">
-             <p className="text-sm font-medium">{user?.first_name} {user?.last_name}</p>
-             <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
-           </div>
            <Button variant="ghost" size="icon" onClick={logout} title="Log out">
              <LogOut className="h-5 w-5" />
            </Button>
@@ -28,7 +28,7 @@ export default function EmployeeLayout() {
       </header>
       
       <main className="flex-1 overflow-auto p-4 md:p-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <Outlet />
         </div>
       </main>

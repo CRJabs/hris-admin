@@ -3,9 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
-import { User, Heart, MapPin, Phone, Mail, Calendar, Briefcase, Plus, Users, Shield, Globe, Award } from "lucide-react";
+import { User, Heart, MapPin, Phone, Mail, Calendar, Briefcase, Plus, Users, Shield, Globe, Award, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import EditProfileDialog from "./EditProfileDialog";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
 function SectionBlock({ title, icon: Icon, children, action }) {
   return (
@@ -33,56 +36,113 @@ function InfoRow({ label, value, className = "" }) {
   );
 }
 
-export default function BasicProfilingTab({ employee, onToggleActive, isReadOnly = false }) {
+export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnly = false }) {
+  const { toast } = useToast();
   const statusColor = {
     Regular: "bg-green-50 text-green-700 border-green-200",
     Probationary: "bg-amber-50 text-amber-700 border-amber-200",
     Contractual: "bg-blue-50 text-blue-700 border-blue-200",
   };
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !employee?.id) return;
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${employee.id}_${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      const { error: updateError } = await supabase
+        .from('employees')
+        .update({ photo_url: publicUrl })
+        .eq('id', employee.id);
+
+      if (updateError) throw updateError;
+      
+      toast({ title: "Profile picture updated successfully!" });
+      window.location.reload(); 
+    } catch(err) {
+      console.error(err);
+      toast({ title: "Failed to upload photo", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://your-project.supabase.co";
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <div className="space-y-4">
+      {!isReadOnly && (
+        <div className="flex justify-between items-center bg-muted/30 p-3 rounded-lg border border-muted">
+           <p className="text-sm text-muted-foreground flex items-center gap-2">
+             <Shield className="w-4 h-4 text-primary" />
+             Update your personal records below. Some changes may require admin approval.
+           </p>
+           <EditProfileDialog employee={employee} />
+        </div>
+      )}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
       {/* Profile Overview Card */}
       <div className="xl:col-span-1 space-y-6">
         <Card className="shadow-none border-muted bg-muted/30 text-center">
           <CardContent className="p-6">
-            <Avatar className="w-32 h-32 mx-auto ring-4 ring-primary/10 mb-4">
-              <AvatarImage src={employee.photo_url} alt={employee.first_name} className="object-cover" />
-              <AvatarFallback className="text-3xl bg-primary/10 text-primary font-bold">
-                {employee.first_name?.[0]}{employee.last_name?.[0]}
-              </AvatarFallback>
-            </Avatar>
-            <h3 className="text-xl font-bold">{employee.first_name} {employee.middle_name?.[0] ? employee.middle_name[0] + "." : ""} {employee.last_name}</h3>
-            <p className="text-sm text-muted-foreground mb-2">Emp ID: {employee.employee_id || "Year-001"}</p>
+            <div className="relative w-32 h-32 mx-auto mb-4 group">
+              <Avatar className="w-full h-full ring-4 ring-primary/10">
+                <AvatarImage src={employee.photo_url} alt={employee.first_name} className="object-cover" />
+                <AvatarFallback className="text-3xl bg-primary/10 text-primary font-bold">
+                  {employee.first_name?.[0]}{employee.last_name?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              {!isReadOnly && (
+                <label className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                   <p className="text-xs text-white font-medium flex items-center gap-1">Change</p>
+                   <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+                </label>
+              )}
+            </div>
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <h3 className="text-xl font-bold">{employee.first_name} {employee.middle_name?.[0] ? employee.middle_name[0] + "." : ""} {employee.last_name}</h3>
+            </div>
+            <p className="text-sm font-medium text-slate-800 mb-2">{employee.position || "Staff"} • {employee.department || "General Department"}</p>
+            <p className="text-xs text-muted-foreground mb-3">Emp ID: {employee.employee_id || "Year-001"}</p>
             <Badge variant="outline" className={`mb-4 ${statusColor[employee.employment_status] || "bg-gray-50 text-gray-700 border-gray-200"}`}>
               {employee.employment_status || "Regular"}
             </Badge>
-            <div className="pt-4 border-t border-border flex items-center justify-between">
-              <Label htmlFor="active-toggle" className="text-sm font-medium flex items-center gap-2">
-                Status: {employee.is_active ? <span className="text-green-600">Active</span> : <span className="text-red-500">Inactive</span>}
-              </Label>
-              {!isReadOnly && (
-                <Switch
-                  id="active-toggle"
-                  checked={employee.is_active}
-                  onCheckedChange={() => onToggleActive(employee)}
-                />
-              )}
-            </div>
           </CardContent>
         </Card>
 
-        {/* Benefits/Tax ID */}
-        <SectionBlock title="Benefits & Tax IDs" icon={Shield}>
-          <div className="space-y-2">
-            <InfoRow label="SSS Number" value="—" />
-            <InfoRow label="TIN" value="—" />
-            <InfoRow label="Philhealth" value="—" />
-            <InfoRow label="Pag-ibig" value="—" />
-            <InfoRow label="PERAA" value="—" />
-            <InfoRow label="Tax Status" value="Single" />
-          </div>
-        </SectionBlock>
+        {/* Department Logo Placeholder */}
+        <Card className="shadow-none border-muted bg-muted/10">
+          <CardContent className="p-6 flex flex-col items-center justify-center text-center">
+            <div className="w-24 h-24 bg-white border border-border rounded-xl flex items-center justify-center mb-4 overflow-hidden shadow-sm">
+               {employee.department ? (
+                 <img 
+                   src={`${supabaseUrl}/storage/v1/object/public/department-logos/${encodeURIComponent(employee.department)}.png`} 
+                   alt={employee.department} 
+                   className="w-full h-full object-contain p-2"
+                   onError={(e) => { 
+                     e.currentTarget.style.display = 'none'; 
+                     e.currentTarget.nextSibling.style.display = 'flex';
+                   }}
+                 />
+               ) : null}
+               <div className="w-full h-full items-center justify-center" style={{ display: employee.department ? 'none' : 'flex' }}>
+                  <MapPin className="w-8 h-8 text-muted-foreground opacity-20" />
+               </div>
+            </div>
+            <h4 className="font-semibold text-sm">{employee.department || "General Department"}</h4>
+            <p className="text-xs text-muted-foreground mt-1">Official Department Logo</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Main Profiling Content */}
@@ -113,9 +173,9 @@ export default function BasicProfilingTab({ employee, onToggleActive, isReadOnly
           </SectionBlock>
         </div>
 
-        {/* Parents Information */}
-        <SectionBlock title="Parents Information" icon={Users}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Parents Information */}
+          <SectionBlock title="Parents Information" icon={Users}>
             <div className="space-y-2">
               <h4 className="text-xs font-semibold text-foreground border-b pb-1 mb-2">Father's Details</h4>
               <InfoRow label="Name" value="—" />
@@ -125,7 +185,7 @@ export default function BasicProfilingTab({ employee, onToggleActive, isReadOnly
                 <span className="text-sm text-muted-foreground">Deceased</span>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 mt-6">
               <h4 className="text-xs font-semibold text-foreground border-b pb-1 mb-2">Mother's Details</h4>
               <InfoRow label="Name" value="—" />
               <InfoRow label="Occupation" value="—" />
@@ -134,8 +194,20 @@ export default function BasicProfilingTab({ employee, onToggleActive, isReadOnly
                 <span className="text-sm text-muted-foreground">Deceased</span>
               </div>
             </div>
-          </div>
-        </SectionBlock>
+          </SectionBlock>
+
+          {/* Benefits/Tax ID */}
+          <SectionBlock title="Benefits & Tax IDs" icon={Shield}>
+            <div className="space-y-2">
+              <InfoRow label="SSS Number" value="—" />
+              <InfoRow label="TIN" value="—" />
+              <InfoRow label="Philhealth" value="—" />
+              <InfoRow label="Pag-ibig" value="—" />
+              <InfoRow label="PERAA" value="—" />
+              <InfoRow label="Tax Status" value="Single" />
+            </div>
+          </SectionBlock>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
            {/* Contact Information */}
@@ -174,7 +246,6 @@ export default function BasicProfilingTab({ employee, onToggleActive, isReadOnly
         <SectionBlock 
           title="Dependent's Information" 
           icon={Users}
-          action={!isReadOnly && <Button variant="ghost" size="sm" className="h-8 gap-1"><Plus className="w-3.5 h-3.5"/> Add</Button>}
         >
           <div className="text-sm text-muted-foreground italic py-4 text-center border rounded-md border-dashed">
             No dependents added yet.
@@ -195,7 +266,7 @@ export default function BasicProfilingTab({ employee, onToggleActive, isReadOnly
           </div> */}
         </SectionBlock>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {/* Languages */}
           <SectionBlock title="Languages" icon={Globe}>
              <div className="overflow-x-auto">
@@ -217,26 +288,10 @@ export default function BasicProfilingTab({ employee, onToggleActive, isReadOnly
                </table>
              </div>
           </SectionBlock>
-
-          {/* Previous Employment */}
-          <SectionBlock title="Previous Employment" icon={Briefcase}>
-            <div className="text-sm text-muted-foreground italic py-4 text-center border rounded-md border-dashed">
-               No previous employment records.
-            </div>
-            {/* Example item */}
-            {/* <div className="border-b last:border-0 pb-3 mb-3 shrink-0">
-               <h4 className="font-semibold text-sm">TechCorp Inc.</h4>
-               <p className="text-xs text-muted-foreground">Software Engineer • IT Dept</p>
-               <div className="grid grid-cols-2 gap-2 mt-2">
-                 <InfoRow label="Date of Employment" value="Jan 2018 - Dec 2021" />
-                 <InfoRow label="Salary" value="₱50,000" />
-                 <InfoRow label="Reason for Leaving" value="Career Growth" className="col-span-2" />
-               </div>
-            </div> */}
-          </SectionBlock>
         </div>
 
       </div>
+    </div>
     </div>
   );
 }

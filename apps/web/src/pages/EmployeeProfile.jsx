@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle } from "lucide-react";
-import BasicProfilingTab from "@/components/employees/profile/BasicProfilingTab";
+import PersonalDetailsTab from "@/components/employees/profile/PersonalDetailsTab";
 import EducationTab from "@/components/employees/profile/EducationTab";
 import TrainingDevTab from "@/components/employees/profile/TrainingDevTab";
 import EmploymentInfoTab from "@/components/employees/profile/EmploymentInfoTab";
@@ -22,7 +22,7 @@ export default function EmployeeProfile() {
         const { data, error } = await supabase
           .from("employees")
           .select("*")
-          .eq("id", user.id)
+          .eq("user_id", user.id)
           .single();
         
         if (error) throw error;
@@ -54,17 +54,14 @@ export default function EmployeeProfile() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">My Personal E201 Profile</h1>
-        <p className="text-muted-foreground text-sm mt-1">View and request updates to your employee information.</p>
-      </div>
+      {/* Title header removed as requested. Profile updates are requested via individual tabs. */}
 
       <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
         <Tabs defaultValue="profiling" className="p-6">
           <TabsList className="w-full justify-start bg-muted/50 h-auto flex-wrap gap-1 p-1 mb-6">
             <TabsTrigger value="profiling" className="gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <User className="w-3.5 h-3.5" />
-              Basic Profiling
+              Personal Details
             </TabsTrigger>
             <TabsTrigger value="education" className="gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <GraduationCap className="w-3.5 h-3.5" />
@@ -86,7 +83,7 @@ export default function EmployeeProfile() {
 
           {/* isReadOnly is false here so they can request edits. The actual saving logic would be wired to the buttons in the tabs to insert into profile_update_requests */}
           <TabsContent value="profiling">
-            <BasicProfilingTab employee={employeeData} onToggleActive={() => {}} isReadOnly={false} />
+            <PersonalDetailsTab employee={employeeData} onToggleActive={() => {}} isReadOnly={false} />
           </TabsContent>
           <TabsContent value="education">
             <EducationTab employee={employeeData} isReadOnly={false} />

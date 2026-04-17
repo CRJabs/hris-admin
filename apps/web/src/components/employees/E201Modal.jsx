@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, GraduationCap, Award, Briefcase, CalendarDays } from "lucide-react";
-import BasicProfilingTab from "./profile/BasicProfilingTab";
+import PersonalDetailsTab from "./profile/PersonalDetailsTab";
 import EducationTab from "./profile/EducationTab";
 import TrainingDevTab from "./profile/TrainingDevTab";
 import EmploymentInfoTab from "./profile/EmploymentInfoTab";
@@ -47,7 +47,7 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
           </TabsList>
 
           <TabsContent value="profiling" className="mt-4">
-            <BasicProfilingTab employee={employee} onToggleActive={onToggleActive} isReadOnly={true} />
+            <PersonalDetailsTab employee={employee} onToggleActive={onToggleActive} isReadOnly={true} />
           </TabsContent>
           <TabsContent value="education" className="mt-4">
             <EducationTab employee={employee} isReadOnly={true} />

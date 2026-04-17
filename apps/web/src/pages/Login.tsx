@@ -40,9 +40,9 @@ export default function Login() {
 
       if (authError) throw authError;
 
-      // 2. Fetch the user's role from the employees table
+      // 2. Fetch the user's role from the user_profiles table
       const { data: profile, error: profileError } = await supabase
-        .from("employees")
+        .from("user_profiles")
         .select("role")
         .eq("id", authData.user.id)
         .single();

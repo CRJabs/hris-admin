@@ -35,18 +35,17 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false }) {
              <InfoRow 
                label="Date of Employment" 
                value={employee.date_hired ? format(new Date(employee.date_hired), "MMMM d, yyyy") : "—"} 
-               action 
-               isReadOnly={isReadOnly}
+               isReadOnly={true}
              />
-             <InfoRow label="Employment Status" value={employee.employment_status || "Full time"} action isReadOnly={isReadOnly} />
-             <InfoRow label="Employment Tenure" value={employee.employment_status || "Regular"} action isReadOnly={isReadOnly} />
-             <InfoRow label="Classification" value="New" action isReadOnly={isReadOnly} />
-             <InfoRow label="Position" value={employee.position} action isReadOnly={isReadOnly} />
-             <InfoRow label="Employee Classification" value="Teaching" action isReadOnly={isReadOnly} />
-             <InfoRow label="College/Department" value={employee.department} action isReadOnly={isReadOnly} />
-             <InfoRow label="Present Rank" value="—" action isReadOnly={isReadOnly} />
-             <InfoRow label="Active Dates" value="—" action isReadOnly={isReadOnly} />
-             <InfoRow label="Last Date of Employment" value="—" action isReadOnly={isReadOnly} />
+             <InfoRow label="Employment Status" value={employee.employment_status || "Full time"} isReadOnly={true} />
+             <InfoRow label="Employment Tenure" value={employee.employment_status || "Regular"} isReadOnly={true} />
+             <InfoRow label="Classification" value="New" isReadOnly={true} />
+             <InfoRow label="Position" value={employee.position} isReadOnly={true} />
+             <InfoRow label="Employee Classification" value="Teaching" isReadOnly={true} />
+             <InfoRow label="College/Department" value={employee.department} isReadOnly={true} />
+             <InfoRow label="Present Rank" value="—" isReadOnly={true} />
+             <InfoRow label="Active Dates" value="—" isReadOnly={true} />
+             <InfoRow label="Last Date of Employment" value="—" isReadOnly={true} />
           </div>
         </CardContent>
       </Card>

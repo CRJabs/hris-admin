@@ -44,8 +44,8 @@ export default function LeaveTab({ employee, isReadOnly = false }) {
            V.I. Leave Credits Breakdown
          </h3>
          {!isReadOnly && (
-           <Button size="sm" variant="outline" className="gap-1 h-8">
-              <Plus className="w-3.5 h-3.5" /> Add New Leave
+           <Button size="sm" variant="default" className="gap-1 h-8 bg-primary">
+              <Plus className="w-3.5 h-3.5" /> File Leave
            </Button>
          )}
       </div>
