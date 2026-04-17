@@ -7,21 +7,30 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AppLayout from '@/components/layout/AppLayout';
 import EmployeeLayout from '@/components/layout/EmployeeLayout';
-import Dashboard from '@/pages/Dashboard';
-import Employees from '@/pages/Employees';
-import Payroll from '@/pages/Payroll';
-import Reports from '@/pages/Reports';
-import Settings from '@/pages/Settings';
-import Approvals from '@/pages/Approvals';
-import EmployeeProfile from '@/pages/EmployeeProfile';
-import Login from '@/pages/Login';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
-import EmployeeRegistration from '@/pages/EmployeeRegistration';
-import Register from '@/pages/Register';
-import VerifyEmail from '@/pages/VerifyEmail';
+
+// Lazy load pages for performance
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Employees = lazy(() => import('@/pages/Employees'));
+const Payroll = lazy(() => import('@/pages/Payroll'));
+const Reports = lazy(() => import('@/pages/Reports'));
+const Settings = lazy(() => import('@/pages/Settings'));
+const Approvals = lazy(() => import('@/pages/Approvals'));
+const EmployeeProfile = lazy(() => import('@/pages/EmployeeProfile'));
+const Login = lazy(() => import('@/pages/Login'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
+const EmployeeRegistration = lazy(() => import('@/pages/EmployeeRegistration'));
+const Register = lazy(() => import('@/pages/Register'));
+const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
+
+// Loading component
+const PageLoader = () => (
+  <div className="fixed inset-0 flex items-center justify-center bg-slate-50/50 backdrop-blur-sm z-50">
+    <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+  </div>
+);
 
 const AuthenticatedApp = () => {
   const { user, isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -80,15 +89,17 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/registration" element={<EmployeeRegistration />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/*" element={<AuthenticatedApp />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/registration" element={<EmployeeRegistration />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/*" element={<AuthenticatedApp />} />
+            </Routes>
+          </Suspense>
         </Router>
         <Toaster />
       </QueryClientProvider>
