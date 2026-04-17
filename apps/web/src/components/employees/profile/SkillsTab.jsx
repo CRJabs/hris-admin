@@ -1,15 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Award, Globe, Zap, Users, ShieldAlert } from "lucide-react";
+import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 
-function SectionBlock({ title, icon: Icon, children }) {
+function SectionBlock({ title, icon: Icon, children, isEditing }) {
   return (
     <Card className="shadow-none border-muted">
-      <CardHeader className="p-4 pb-2">
+      <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 bg-[#0C005F]/5">
         <CardTitle className="text-sm font-bold flex items-center gap-2">
           <Icon className="w-4 h-4 text-primary" />
           {title}
         </CardTitle>
+        {isEditing && <Badge variant="secondary" className="animate-pulse">Editing</Badge>}
       </CardHeader>
       <CardContent className="p-4 pt-2">
         {children}
@@ -26,69 +28,125 @@ function EmptyState({ title }) {
   );
 }
 
-export default function SkillsTab({ employee }) {
+export default function SkillsTab({ employee, isEditing = false, onUpdate }) {
+  const skillsCols = [
+    { key: 'skill', label: 'Skill', span: 6 }, { key: 'years', label: 'Years of Use', span: 2 },
+    { key: 'level', label: 'Level of Expertise', span: 4, placeholder: 'Beginner/Intermediate/Advance/Expert' }
+  ];
+  const langCols = [
+    { key: 'language', label: 'Language', span: 4 }, { key: 'literacy', label: 'Literacy (Speak/Read/Write)', span: 4 },
+    { key: 'fluency', label: 'Fluency Scale', span: 4, placeholder: 'Beginner/Intermediate/Advance/Expert' }
+  ];
+  const affiliationCols = [
+    { key: 'org', label: 'Organization', span: 4 }, { key: 'place', label: 'Place/Station', span: 3 },
+    { key: 'position', label: 'Position', span: 3 }, { key: 'dates', label: 'Inclusive Dates', span: 2 }
+  ];
+  const awardsCols = [
+    { key: 'type', label: 'Reward Type', span: 4 }, { key: 'name', label: 'Reward Name', span: 8 },
+    { key: 'agency', label: 'Granting Agency/Org', span: 4 }, { key: 'date', label: 'Date Given', type: 'date', span: 3 },
+    { key: 'place', label: 'Place Given', span: 3 }, { key: 'remarks', label: 'Remarks', span: 2 }
+  ];
+  const extraCols = [
+    { key: 'type', label: 'Service/Activity Type', span: 4 }, { key: 'nature_act', label: 'Nature of Activity/Project', span: 8 },
+    { key: 'nature_part', label: 'Nature of Participation', span: 5 }, { key: 'date', label: 'Date', type: 'date', span: 3 },
+    { key: 'remarks', label: 'Remarks', span: 4 }
+  ];
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="space-y-6">
         {/* Skills */}
-        <SectionBlock title="Specialized Skills" icon={Zap}>
+        <SectionBlock title="Specialized Skills" icon={Zap} isEditing={isEditing}>
           <div className="space-y-3">
-            {employee.skills?.length > 0 ? (
-              <div className="grid grid-cols-1 gap-3">
-                {employee.skills.map((skill, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 bg-muted/20 rounded-md border">
-                    <div>
-                      <p className="text-sm font-semibold">{skill.skill}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase">{skill.level || 'Not specified'}</p>
-                    </div>
-                    <Badge variant="secondary" className="text-[10px]">{skill.years} Years</Badge>
-                  </div>
-                ))}
-              </div>
+            {isEditing ? (
+              <DynamicGrid 
+                title="Skills" 
+                columns={skillsCols} 
+                data={employee.skills || []} 
+                onChange={(newData) => onUpdate('skills', newData)} 
+              />
             ) : (
-              <EmptyState title="skills" />
+              <>
+                {employee.skills?.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-3">
+                    {employee.skills.map((skill, i) => (
+                      <div key={i} className="flex items-center justify-between p-2 bg-muted/20 rounded-md border">
+                        <div>
+                          <p className="text-sm font-semibold">{skill.skill}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">{skill.level || 'Not specified'}</p>
+                        </div>
+                        <Badge variant="secondary" className="text-[10px]">{skill.years} Years</Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState title="skills" />
+                )}
+              </>
             )}
           </div>
         </SectionBlock>
 
         {/* Languages */}
-        <SectionBlock title="Languages & Literacy" icon={Globe}>
+        <SectionBlock title="Languages & Literacy" icon={Globe} isEditing={isEditing}>
           <div className="space-y-3">
-            {employee.languages?.length > 0 ? (
-              <div className="grid grid-cols-1 gap-3">
-                {employee.languages.map((lang, i) => (
-                  <div key={i} className="p-3 bg-muted/20 rounded-md border">
-                    <div className="flex justify-between mb-1">
-                      <p className="text-sm font-bold">{lang.language}</p>
-                      <Badge variant="outline" className="text-[10px]">{lang.fluency}</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground italic">{lang.literacy}</p>
-                  </div>
-                ))}
-              </div>
+            {isEditing ? (
+              <DynamicGrid 
+                title="Languages" 
+                columns={langCols} 
+                data={employee.languages || []} 
+                onChange={(newData) => onUpdate('languages', newData)} 
+              />
             ) : (
-              <EmptyState title="languages" />
+              <>
+                {employee.languages?.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-3">
+                    {employee.languages.map((lang, i) => (
+                      <div key={i} className="p-3 bg-muted/20 rounded-md border">
+                        <div className="flex justify-between mb-1">
+                          <p className="text-sm font-bold">{lang.language}</p>
+                          <Badge variant="outline" className="text-[10px]">{lang.fluency}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground italic">{lang.literacy}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState title="languages" />
+                )}
+              </>
             )}
           </div>
         </SectionBlock>
 
         {/* Group Affiliations */}
-        <SectionBlock title="Professional Affiliations" icon={Users}>
+        <SectionBlock title="Professional Affiliations" icon={Users} isEditing={isEditing}>
           <div className="space-y-3">
-            {employee.group_affiliations?.length > 0 ? (
-              <div className="grid grid-cols-1 gap-2">
-                {employee.group_affiliations.map((org, i) => (
-                  <div key={i} className="p-3 bg-muted/20 rounded-md border space-y-1">
-                    <p className="text-sm font-bold">{org.org}</p>
-                    <div className="flex justify-between text-[11px] text-muted-foreground">
-                      <span>{org.position} • {org.place}</span>
-                      <span className="font-medium">{org.dates}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {isEditing ? (
+              <DynamicGrid 
+                title="Affiliations" 
+                columns={affiliationCols} 
+                data={employee.group_affiliations || []} 
+                onChange={(newData) => onUpdate('group_affiliations', newData)} 
+              />
             ) : (
-              <EmptyState title="affiliations" />
+              <>
+                {employee.group_affiliations?.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    {employee.group_affiliations.map((org, i) => (
+                      <div key={i} className="p-3 bg-muted/20 rounded-md border space-y-1">
+                        <p className="text-sm font-bold">{org.org}</p>
+                        <div className="flex justify-between text-[11px] text-muted-foreground">
+                          <span>{org.position} • {org.place}</span>
+                          <span className="font-medium">{org.dates}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState title="affiliations" />
+                )}
+              </>
             )}
           </div>
         </SectionBlock>
@@ -96,54 +154,76 @@ export default function SkillsTab({ employee }) {
 
       <div className="space-y-6">
         {/* Awards */}
-        <SectionBlock title="Awards & Citations" icon={Award}>
+        <SectionBlock title="Awards & Citations" icon={Award} isEditing={isEditing}>
           <div className="space-y-3">
-            {employee.awards_citations?.length > 0 ? (
-              <div className="grid grid-cols-1 gap-3">
-                {employee.awards_citations.map((award, i) => (
-                  <div key={i} className="p-3 bg-muted/20 rounded-md border space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div className="max-w-[70%]">
-                        <p className="text-[10px] text-primary uppercase font-bold tracking-tighter">{award.type}</p>
-                        <p className="text-sm font-bold leading-tight">{award.name}</p>
-                      </div>
-                      <Badge className="text-[10px] bg-[#0C005F]">{award.date}</Badge>
-                    </div>
-                    <div className="flex flex-col text-[11px] text-muted-foreground">
-                      <span>{award.agency}</span>
-                      <span className="italic">{award.place}</span>
-                    </div>
-                    {award.remarks && <p className="text-[10px] pt-1 mt-1 border-t italic">Note: {award.remarks}</p>}
-                  </div>
-                ))}
-              </div>
+            {isEditing ? (
+              <DynamicGrid 
+                title="Awards" 
+                columns={awardsCols} 
+                data={employee.awards_citations || []} 
+                onChange={(newData) => onUpdate('awards_citations', newData)} 
+              />
             ) : (
-              <EmptyState title="awards" />
+              <>
+                {employee.awards_citations?.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-3">
+                    {employee.awards_citations.map((award, i) => (
+                      <div key={i} className="p-3 bg-muted/20 rounded-md border space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div className="max-w-[70%]">
+                            <p className="text-[10px] text-primary uppercase font-bold tracking-tighter">{award.type}</p>
+                            <p className="text-sm font-bold leading-tight">{award.name}</p>
+                          </div>
+                          <Badge className="text-[10px] bg-[#0C005F]">{award.date}</Badge>
+                        </div>
+                        <div className="flex flex-col text-[11px] text-muted-foreground">
+                          <span>{award.agency}</span>
+                          <span className="italic">{award.place}</span>
+                        </div>
+                        {award.remarks && <p className="text-[10px] pt-1 mt-1 border-t italic">Note: {award.remarks}</p>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState title="awards" />
+                )}
+              </>
             )}
           </div>
         </SectionBlock>
 
         {/* Extra Activities */}
-        <SectionBlock title="Extra Activities & Community Services" icon={ShieldAlert}>
+        <SectionBlock title="Extra Activities & Community Services" icon={ShieldAlert} isEditing={isEditing}>
           <div className="space-y-3">
-            {employee.extra_activities?.length > 0 ? (
-              <div className="grid grid-cols-1 gap-3">
-                {employee.extra_activities.map((act, i) => (
-                  <div key={i} className="p-3 bg-muted/20 rounded-md border space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div className="max-w-[75%]">
-                        <p className="text-[10px] text-primary uppercase font-bold">{act.type}</p>
-                        <p className="text-sm font-bold leading-tight">{act.nature_act}</p>
-                      </div>
-                      <span className="text-[11px] text-muted-foreground">{act.date}</span>
-                    </div>
-                    <p className="text-[11px]">Role: <span className="font-medium">{act.nature_part}</span></p>
-                    {act.remarks && <p className="text-[10px] italic text-muted-foreground">{act.remarks}</p>}
-                  </div>
-                ))}
-              </div>
+            {isEditing ? (
+              <DynamicGrid 
+                title="Extra Activities" 
+                columns={extraCols} 
+                data={employee.extra_activities || []} 
+                onChange={(newData) => onUpdate('extra_activities', newData)} 
+              />
             ) : (
-              <EmptyState title="activities" />
+              <>
+                {employee.extra_activities?.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-3">
+                    {employee.extra_activities.map((act, i) => (
+                      <div key={i} className="p-3 bg-muted/20 rounded-md border space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div className="max-w-[75%]">
+                            <p className="text-[10px] text-primary uppercase font-bold">{act.type}</p>
+                            <p className="text-sm font-bold leading-tight">{act.nature_act}</p>
+                          </div>
+                          <span className="text-[11px] text-muted-foreground">{act.date}</span>
+                        </div>
+                        <p className="text-[11px]">Role: <span className="font-medium">{act.nature_part}</span></p>
+                        {act.remarks && <p className="text-[10px] italic text-muted-foreground">{act.remarks}</p>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState title="activities" />
+                )}
+              </>
             )}
           </div>
         </SectionBlock>

@@ -41,7 +41,7 @@ export default function LeaveTab({ employee, isReadOnly = false }) {
       <div className="flex items-center justify-between">
          <h3 className="text-lg font-bold flex items-center gap-2">
            <CalendarDays className="w-5 h-5 text-primary" />
-           V.I. Leave Credits Breakdown
+           Leave Credits Breakdown
          </h3>
          {!isReadOnly && (
            <Button size="sm" variant="default" className="gap-1 h-8 bg-primary">
