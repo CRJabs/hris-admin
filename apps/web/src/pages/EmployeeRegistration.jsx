@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,6 +90,7 @@ export default function EmployeeRegistration() {
   const [signatureName, setSignatureName] = useState("");
   const [signatureUrl, setSignatureUrl] = useState("");
   const [isUploadingSignature, setIsUploadingSignature] = useState(false);
+  const [isDiscarding, setIsDiscarding] = useState(false);
 
   // Flat State Dictionary carrying ALL elements
   const [formData, setFormData] = useState({
@@ -244,6 +245,58 @@ export default function EmployeeRegistration() {
     }
   };
 
+  const handleDiscardRegistration = async () => {
+    if (isDiscarding) return;
+
+    const shouldDiscard = window.confirm(
+      "Discard your registration and permanently delete this account?"
+    );
+    if (!shouldDiscard) return;
+
+    setIsDiscarding(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        await logout();
+        navigate("/login");
+        return;
+      }
+
+      const response = await fetch("/api/delete-auth-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error(
+            "Your session expired. Please log in again, then discard your registration."
+          );
+        }
+        if (response.status === 500) {
+          throw new Error(
+            "Could not delete your account right now. Please try again in a few moments or contact HR support."
+          );
+        }
+        throw new Error(result?.error || "Unable to discard registration.");
+      }
+
+      toast.success("Registration discarded. Account deleted.");
+      await logout();
+      navigate("/login");
+    } catch (err) {
+      toast.error(err.message || "Failed to discard registration.");
+      toast.info("If this keeps happening, log out and back in, then try Discard again.");
+    } finally {
+      setIsDiscarding(false);
+    }
+  };
+
   const tabs = [
     { id: "personal", label: "Personal Data", icon: User },
     { id: "family", label: "Family & Contacts", icon: Users },
@@ -276,9 +329,21 @@ export default function EmployeeRegistration() {
           </div>
         </div>
         <div className="flex gap-4 items-center">
-          <div className="bg-red-500 hover:bg-red-600 rounded-md transition-colors">
-            <Link to="/employees" className="text-sm font-bold text-white px-4 py-2 flex items-center h-10 rounded-md">Discard</Link>
-          </div>
+          <Button
+            type="button"
+            onClick={handleDiscardRegistration}
+            disabled={isDiscarding}
+            className="bg-red-500 hover:bg-red-600 text-white h-10 font-bold"
+          >
+            {isDiscarding ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Discarding...
+              </>
+            ) : (
+              "Discard"
+            )}
+          </Button>
           <Button onClick={() => setActiveTab("certify")} className="bg-white text-[#0C005F] hover:bg-white/90 h-10 font-bold">
             Go to Submit
           </Button>

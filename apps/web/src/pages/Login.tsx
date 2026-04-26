@@ -18,10 +18,14 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [inlineError, setInlineError] = useState("");
+  const [inlineHint, setInlineHint] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setInlineError("");
+    setInlineHint("");
 
     try {
       // 1. Authenticate with Supabase
@@ -54,7 +58,30 @@ export default function Login() {
       // which will happen after the root auth listener fetches the profile from Supabase.
 
     } catch (error: any) {
-      toast.error(error.message || "Failed to log in. Please check your credentials.");
+      const code = error?.code;
+      const message = error?.message || "";
+
+      if (code === "email_not_confirmed") {
+        toast.error("Please verify your email before logging in.");
+        toast.info("Check your inbox (and spam folder) for the verification link.");
+        setInlineError("Your email is not verified yet.");
+        setInlineHint("Open your verification email, then return and sign in.");
+      } else if (code === "invalid_credentials") {
+        toast.error("Invalid email or password.");
+        toast.info("Double-check your credentials or use 'forgot password?'.");
+        setInlineError("Invalid email or password.");
+        setInlineHint("Check your credentials or reset your password.");
+      } else if (message.toLowerCase().includes("network")) {
+        toast.error("Network error while signing in.");
+        toast.info("Please check your internet connection and try again.");
+        setInlineError("Network error while signing in.");
+        setInlineHint("Check your internet connection and retry.");
+      } else {
+        toast.error("Unable to log in right now.");
+        toast.info(message || "Please try again in a few moments.");
+        setInlineError("Unable to log in right now.");
+        setInlineHint(message || "Please try again in a few moments.");
+      }
       setIsLoading(false);
     }
   };
@@ -102,7 +129,13 @@ export default function Login() {
                   type="email"
                   placeholder="example@gmail.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (inlineError) {
+                      setInlineError("");
+                      setInlineHint("");
+                    }
+                  }}
                   required
                   disabled={isLoading}
                   className="rounded-md border-slate-300 focus-visible:ring-[#0C005F]"
@@ -117,7 +150,13 @@ export default function Login() {
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (inlineError) {
+                        setInlineError("");
+                        setInlineHint("");
+                      }
+                    }}
                     required
                     disabled={isLoading}
                     className="rounded-md border-slate-300 focus-visible:ring-[#0C005F] pr-10"
@@ -149,6 +188,13 @@ export default function Login() {
                   )}
                 </Button>
               </div>
+
+              {inlineError && (
+                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-left">
+                  <p className="text-xs font-semibold text-red-700">{inlineError}</p>
+                  {inlineHint && <p className="mt-0.5 text-xs text-red-600">{inlineHint}</p>}
+                </div>
+              )}
 
               <div className="text-center pt-2 flex flex-col gap-2">
                 <Link to="/forgot-password" title="forgot password?" className="text-sm text-[#0C005F] hover:underline opacity-80">
