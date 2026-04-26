@@ -63,20 +63,37 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || !employee?.id) return;
+    const ownerId = employee.user_id || employee.id;
+    const acceptedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+
+    if (!acceptedTypes.includes(file.type)) {
+      toast({ title: "Invalid file type", description: "Please upload a PNG or JPG image.", variant: "destructive" });
+      return;
+    }
+
+    const maxSizeBytes = 5 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      toast({ title: "File too large", description: "Please upload an image under 5MB.", variant: "destructive" });
+      return;
+    }
     
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${employee.id}_${Date.now()}.${fileExt}`;
+      const fileExt = (file.name.split('.').pop() || "png").toLowerCase();
+      const objectPath = `${ownerId}/photos/profile_${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file);
+        .upload(objectPath, file, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: file.type,
+        });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
-        .getPublicUrl(fileName);
+        .getPublicUrl(objectPath);
 
       const { error: updateError } = await supabase
         .from('employees')
@@ -89,7 +106,12 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
       window.location.reload(); 
     } catch(err) {
       console.error(err);
-      toast({ title: "Failed to upload photo", description: err.message, variant: "destructive" });
+      const msg = err?.message || "Upload failed";
+      if (msg.toLowerCase().includes("row-level security")) {
+        toast({ title: "Upload blocked", description: "Storage policy denied this upload. Please check bucket permissions.", variant: "destructive" });
+      } else {
+        toast({ title: "Failed to upload photo", description: msg, variant: "destructive" });
+      }
     }
   };
 

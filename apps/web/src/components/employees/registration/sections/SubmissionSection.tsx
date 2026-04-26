@@ -11,6 +11,7 @@ interface SubmissionSectionProps {
   signatureName: string;
   setSignatureName: (val: string) => void;
   signatureUrl: string;
+  signaturePreviewUrl?: string;
   handleSignatureUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isUploadingSignature: boolean;
   submitRegistration: () => void;
@@ -23,11 +24,14 @@ export const SubmissionSection: React.FC<SubmissionSectionProps> = ({
   signatureName, 
   setSignatureName, 
   signatureUrl, 
+  signaturePreviewUrl,
   handleSignatureUpload, 
   isUploadingSignature, 
   submitRegistration, 
   isSubmitting 
 }) => {
+  const displaySignatureUrl = signaturePreviewUrl || signatureUrl;
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto mt-12">
       <div className="bg-white p-10 rounded-2xl border shadow-xl text-center">
@@ -44,7 +48,7 @@ export const SubmissionSection: React.FC<SubmissionSectionProps> = ({
 
         <div className="space-y-6 text-left border-t pt-8">
           <div className="flex items-center space-x-3 mb-6 bg-blue-50/50 p-4 border border-blue-100 rounded-md">
-            <Checkbox id="terms" checked={certified} onCheckedChange={setCertified} />
+            <Checkbox id="terms" checked={certified} onCheckedChange={(checked) => setCertified(checked === true)} />
             <label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[#0C005F]">
               I agree to the electronic waiver and statements above.
             </label>
@@ -56,9 +60,9 @@ export const SubmissionSection: React.FC<SubmissionSectionProps> = ({
 
             <div className="pt-2">
               <Label className="text-center block mb-2">E-Signature Attachment (PNG/JPG) *</Label>
-              {signatureUrl ? (
+              {displaySignatureUrl ? (
                 <div className="border rounded-md overflow-hidden bg-slate-50 relative group">
-                  <img src={signatureUrl} alt="E-signature" className="h-24 w-full object-contain mix-blend-multiply" />
+                  <img src={displaySignatureUrl} alt="E-signature" className="h-24 w-full object-contain mix-blend-multiply" />
                   <label className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center cursor-pointer transition-all">
                     <span className="text-white text-xs font-bold flex items-center gap-1"><Upload className="w-3 h-3" /> Re-upload</span>
                     <input type="file" className="hidden" accept="image/*" onChange={handleSignatureUpload} disabled={isUploadingSignature} />

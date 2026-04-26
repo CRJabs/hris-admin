@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,8 +89,17 @@ export default function EmployeeRegistration() {
   const [certified, setCertified] = useState(false);
   const [signatureName, setSignatureName] = useState("");
   const [signatureUrl, setSignatureUrl] = useState("");
+  const [signaturePreviewUrl, setSignaturePreviewUrl] = useState("");
   const [isUploadingSignature, setIsUploadingSignature] = useState(false);
   const [isDiscarding, setIsDiscarding] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (signaturePreviewUrl) {
+        URL.revokeObjectURL(signaturePreviewUrl);
+      }
+    };
+  }, [signaturePreviewUrl]);
 
   // Flat State Dictionary carrying ALL elements
   const [formData, setFormData] = useState({
@@ -144,28 +153,60 @@ export default function EmployeeRegistration() {
   const handleSignatureUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (!user?.id) {
+      toast.error("Your session is missing. Please log in again.");
+      return;
+    }
+
+    const acceptedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    if (!acceptedTypes.includes(file.type)) {
+      toast.error("Invalid file type. Please upload a PNG or JPG image.");
+      return;
+    }
+
+    const maxSizeBytes = 5 * 1024 * 1024; // 5 MB
+    if (file.size > maxSizeBytes) {
+      toast.error("Signature file is too large. Please upload a file under 5MB.");
+      return;
+    }
 
     setIsUploadingSignature(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `sig_${Date.now()}.${fileExt}`;
+      const fileExt = (file.name.split('.').pop() || "png").toLowerCase();
+      const objectPath = `${user.id}/signatures/sig_${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file);
+        .upload(objectPath, file, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: file.type,
+        });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
-        .getPublicUrl(fileName);
+        .getPublicUrl(objectPath);
 
+      if (!publicUrl) {
+        throw new Error("Signature upload succeeded but file URL was not generated.");
+      }
+
+      if (signaturePreviewUrl) {
+        URL.revokeObjectURL(signaturePreviewUrl);
+      }
+      setSignaturePreviewUrl(URL.createObjectURL(file));
       setSignatureUrl(publicUrl);
       toast.success("E-signature uploaded successfully.");
     } catch (err) {
       console.error("Upload error:", err);
       const msg = err.message || "Unknown storage error";
-      toast.error(`Signature Upload Failed: ${msg}. Check if your bucket is public and has INSERT policies.`);
+      if (msg.toLowerCase().includes("row-level security")) {
+        toast.error("Upload blocked by storage policy. Please ensure the 'avatars' bucket allows uploads to your user folder.");
+      } else {
+        toast.error(`Signature upload failed: ${msg}`);
+      }
     } finally {
       setIsUploadingSignature(false);
     }
@@ -191,6 +232,12 @@ export default function EmployeeRegistration() {
   };
 
   const submitRegistration = async () => {
+    if (!user?.id) {
+      toast.error("Your session expired. Please log in again.");
+      navigate("/login");
+      return;
+    }
+
     const missingFields = validateFullForm();
     if (missingFields.length > 0) {
       toast.error(`Please complete the following: ${missingFields.join(", ")}`);
@@ -428,6 +475,7 @@ export default function EmployeeRegistration() {
                 signatureName={signatureName} 
                 setSignatureName={setSignatureName} 
                 signatureUrl={signatureUrl} 
+                signaturePreviewUrl={signaturePreviewUrl}
                 handleSignatureUpload={handleSignatureUpload} 
                 isUploadingSignature={isUploadingSignature} 
                 submitRegistration={submitRegistration} 
