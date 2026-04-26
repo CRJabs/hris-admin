@@ -1,19 +1,44 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { useMemo } from "react";
+import { format, subMonths } from "date-fns";
 
-const data = [
-  { month: "Jul", headcount: 82 },
-  { month: "Aug", headcount: 85 },
-  { month: "Sep", headcount: 88 },
-  { month: "Oct", headcount: 91 },
-  { month: "Nov", headcount: 89 },
-  { month: "Dec", headcount: 93 },
-  { month: "Jan", headcount: 96 },
-  { month: "Feb", headcount: 98 },
-  { month: "Mar", headcount: 102 },
-];
+export default function HeadcountChart({ employees = [] }) {
+  const data = useMemo(() => {
+    if (!employees || employees.length === 0) return [];
+    
+    const months = [];
+    for (let i = 8; i >= 0; i--) {
+      months.push(subMonths(new Date(), i));
+    }
+    
+    return months.map(month => {
+      const endOfMonthDate = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+      
+      let count = 0;
+      employees.forEach(emp => {
+        // Skip pending registrations
+        if (emp.employment_status === 'Pending') return;
+        
+        const createdDate = new Date(emp.created_at || new Date());
+        if (createdDate <= endOfMonthDate) {
+           if (!emp.is_active && emp.updated_at) {
+              const separatedDate = emp.separation_date ? new Date(emp.separation_date) : new Date(emp.updated_at);
+              if (separatedDate <= endOfMonthDate) {
+                 return; 
+              }
+           }
+           count++;
+        }
+      });
+      
+      return {
+        month: format(month, 'MMM'),
+        headcount: count
+      };
+    });
+  }, [employees]);
 
-export default function HeadcountChart() {
   return (
     <Card>
       <CardHeader className="pb-2">

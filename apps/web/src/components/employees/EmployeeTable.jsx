@@ -2,7 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Eye, Archive, UserCheck } from "lucide-react";
+import { MoreHorizontal, Eye, Archive, UserCheck, AlertCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const statusStyles = {
@@ -11,7 +11,7 @@ const statusStyles = {
   Contractual: "bg-blue-50 text-blue-700 border-blue-200",
 };
 
-export default function EmployeeTable({ employees, onViewE201, onToggleActive }) {
+export default function EmployeeTable({ employees, onViewE201, onToggleActive, isLoading }) {
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
       <Table>
@@ -27,7 +27,13 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive })
           </TableRow>
         </TableHeader>
         <TableBody>
-          {employees.length === 0 ? (
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                Loading employees...
+              </TableCell>
+            </TableRow>
+          ) : employees.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                 No employees found matching your criteria.
@@ -40,7 +46,15 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive })
                 className="cursor-pointer hover:bg-muted/30 transition-colors"
                 onClick={() => onViewE201(emp)}
               >
-                <TableCell className="font-mono text-xs text-muted-foreground">{emp.employee_id}</TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">
+                  {emp.employee_id}
+                  {emp.pendingRequests?.length > 0 && (
+                    <div className="mt-1 flex items-center gap-1 text-amber-600 font-medium" title="Pending profile updates">
+                       <AlertCircle className="w-3 h-3" />
+                       <span className="text-[9px] uppercase tracking-wider">Updates</span>
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="w-8 h-8">

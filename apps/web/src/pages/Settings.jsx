@@ -10,14 +10,6 @@ import { toast } from "sonner";
 export default function Settings() {
   return (
     <div className="p-6 space-y-6 max-w-225 mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <SettingsIcon className="w-6 h-6 text-primary" />
-          Settings
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Configure your HRIS preferences</p>
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold flex items-center gap-2">

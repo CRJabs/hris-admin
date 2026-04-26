@@ -4,12 +4,23 @@ import { Plus, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 
-export default function EducationTab({ employee, isReadOnly = false, isEditing = false, onUpdate }) {
+export default function EducationTab({ employee, isReadOnly = false, isEditing = false, onUpdate, requestedChanges = null }) {
   const eduCols = [
     { key: 'level', label: 'Level', span: 3 }, { key: 'school', label: 'Name of School', span: 5 }, { key: 'address', label: 'School Address', span: 4 },
     { key: 'degree', label: 'Degree Earned', span: 3 }, { key: 'gradYear', label: 'Grad Year', span: 2 }, { key: 'units', label: 'Units Completed', span: 2 },
     { key: 'thesis', label: 'Thesis/Dissertation', span: 2 }, { key: 'gwa', label: 'GWA', span: 1 }, { key: 'inclusive', label: 'Inclusive Dates', span: 2 }
   ];
+
+  const checkUpdated = (name) => {
+    if (!requestedChanges) return false;
+    if (requestedChanges[name] !== undefined && JSON.stringify(requestedChanges[name]) !== JSON.stringify(employee[name])) {
+      return true;
+    }
+    return false;
+  };
+
+  const isListUpdated = checkUpdated('educational_record');
+
   return (
     <div className="space-y-6">
       <Card className="shadow-none border-muted">
@@ -18,6 +29,7 @@ export default function EducationTab({ employee, isReadOnly = false, isEditing =
             <GraduationCap className="w-5 h-5 text-primary" />
             Educational Record
           </CardTitle>
+          {isListUpdated && <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">Updated</Badge>}
           {isEditing && <Badge variant="secondary" className="animate-pulse">Editing</Badge>}
         </CardHeader>
         <CardContent className="p-4">
@@ -33,7 +45,7 @@ export default function EducationTab({ employee, isReadOnly = false, isEditing =
               {employee.educational_record && employee.educational_record.length > 0 ? (
                 <div className="space-y-4">
                   {employee.educational_record.map((edu, i) => (
-                    <div key={i} className="border rounded-lg p-4 bg-muted/20">
+                    <div key={i} className={`border rounded-lg p-4 transition-colors ${isListUpdated ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
                        <div className="flex justify-between items-start mb-2">
                          <div>
                            <p className="text-[10px] text-primary uppercase font-bold tracking-widest leading-none mb-1">{edu.level}</p>

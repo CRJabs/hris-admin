@@ -30,14 +30,6 @@ const reportCards = [
 export default function Reports() {
   return (
     <div className="p-6 space-y-6 max-w-350 mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <BarChart3 className="w-6 h-6 text-primary" />
-          Reports
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Generate and export HR analytics reports</p>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {reportCards.map((r) => (
           <Card key={r.title} className="hover:shadow-md transition-shadow cursor-pointer group">

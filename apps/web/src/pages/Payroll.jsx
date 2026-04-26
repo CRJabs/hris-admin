@@ -15,14 +15,6 @@ const avgSalary = totalPayroll / activeEmployees.length;
 export default function Payroll() {
   return (
     <div className="p-6 space-y-6 max-w-350 mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <DollarSign className="w-6 h-6 text-primary" />
-          Payroll & Bonuses
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Monthly payroll overview and bonus tracking</p>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-5">

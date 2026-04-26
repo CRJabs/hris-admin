@@ -2,24 +2,46 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Briefcase, CalendarClock, PenTool } from "lucide-react";
 import { format } from "date-fns";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
-function InfoRow({ label, value, action, isReadOnly }) {
+function InfoRow({ label, value, name, onChange, isReadOnly, type = "text", isUpdated = false }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b last:border-0">
-      <div>
-        <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{label}</p>
-        <p className="text-sm font-medium mt-0.5">{value || "—"}</p>
+    <div className={`flex items-center justify-between py-2 px-2 rounded-md transition-colors ${isUpdated ? 'bg-amber-50 border border-amber-200/50 shadow-sm' : 'border-b last:border-0'}`}>
+      <div className="w-full pr-4">
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{label}</p>
+          {isUpdated && (
+            <Badge variant="outline" className="h-3.5 text-[8px] px-1 bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">
+              Updated
+            </Badge>
+          )}
+        </div>
+        {!isReadOnly ? (
+          <Input 
+            type={type}
+            name={name}
+            value={value || ""} 
+            onChange={(e) => onChange(name, e.target.value)}
+            className="h-8 text-sm mt-1 w-full max-w-sm"
+          />
+        ) : (
+          <p className="text-sm font-medium mt-0.5">{value || "—"}</p>
+        )}
       </div>
-      {action && !isReadOnly && (
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-primary">
-          <PenTool className="w-3.5 h-3.5" />
-        </Button>
-      )}
     </div>
   );
 }
 
-export default function EmploymentInfoTab({ employee, isReadOnly = false }) {
+export default function EmploymentInfoTab({ employee, isReadOnly = false, onChange, requestedChanges = null }) {
+  const checkUpdated = (name) => {
+    if (!requestedChanges) return false;
+    if (requestedChanges[name] !== undefined && requestedChanges[name] !== employee[name]) {
+      return true;
+    }
+    return false;
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Active Employment Information */}
@@ -33,19 +55,27 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false }) {
         <CardContent className="p-4 pt-2">
           <div className="space-y-1 mt-2">
              <InfoRow 
-               label="Date of Employment" 
-               value={employee.date_hired ? format(new Date(employee.date_hired), "MMMM d, yyyy") : "—"} 
-               isReadOnly={true}
+               label="Employee ID" 
+               value={employee.employee_id} 
+               name="employee_id"
+               onChange={onChange}
+               isReadOnly={isReadOnly}
+               isUpdated={checkUpdated('employee_id')}
              />
-             <InfoRow label="Employment Status" value={employee.employment_status || "Full time"} isReadOnly={true} />
-             <InfoRow label="Employment Tenure" value={employee.employment_status || "Regular"} isReadOnly={true} />
-             <InfoRow label="Classification" value="New" isReadOnly={true} />
-             <InfoRow label="Position" value={employee.position} isReadOnly={true} />
-             <InfoRow label="Employee Classification" value="Teaching" isReadOnly={true} />
-             <InfoRow label="College/Department" value={employee.department} isReadOnly={true} />
-             <InfoRow label="Present Rank" value="—" isReadOnly={true} />
-             <InfoRow label="Active Dates" value="—" isReadOnly={true} />
-             <InfoRow label="Last Date of Employment" value="—" isReadOnly={true} />
+             <InfoRow 
+               label="Date of Employment" 
+               value={isReadOnly ? (employee.date_hired ? format(new Date(employee.date_hired), "MMMM d, yyyy") : "—") : employee.date_hired} 
+               name="date_hired"
+               type="date"
+               onChange={onChange}
+               isReadOnly={isReadOnly}
+               isUpdated={checkUpdated('date_hired')}
+             />
+             <InfoRow label="Employment Status" value={employee.employment_status || "Full time"} name="employment_status" onChange={onChange} isReadOnly={isReadOnly} isUpdated={checkUpdated('employment_status')} />
+             <InfoRow label="Classification" value={employee.classification || "New"} name="classification" onChange={onChange} isReadOnly={isReadOnly} isUpdated={checkUpdated('classification')} />
+             <InfoRow label="Position" value={employee.position} name="position" onChange={onChange} isReadOnly={isReadOnly} isUpdated={checkUpdated('position')} />
+             <InfoRow label="College/Department" value={employee.department} name="department" onChange={onChange} isReadOnly={isReadOnly} isUpdated={checkUpdated('department')} />
+             <InfoRow label="Employee Status" value={employee.is_active ? "Active" : "Inactive"} isReadOnly={true} />
           </div>
         </CardContent>
       </Card>
@@ -57,6 +87,9 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false }) {
             <CalendarClock className="w-5 h-5 text-primary" />
             Employment History
           </CardTitle>
+          {checkUpdated('previous_employment') && (
+            <Badge variant="outline" className="h-4 text-[9px] bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">Updated</Badge>
+          )}
           {!isReadOnly && (
             <Button variant="outline" size="sm" className="h-8 gap-1">
               <Plus className="w-3.5 h-3.5" />
@@ -68,7 +101,7 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false }) {
           <div className="space-y-4">
             {employee.previous_employment && employee.previous_employment.length > 0 ? (
                employee.previous_employment.map((item, i) => (
-                 <div key={i} className="border rounded-lg p-4 bg-muted/20 space-y-3">
+                 <div key={i} className={`border rounded-lg p-4 transition-colors ${checkUpdated('previous_employment') ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'} space-y-3`}>
                     <div className="flex justify-between items-start">
                        <div>
                           <h4 className="font-bold text-sm uppercase">{item.company}</h4>

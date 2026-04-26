@@ -26,10 +26,17 @@ function SectionBlock({ title, icon: Icon, children, action }) {
   );
 }
 
-function InfoRow({ label, value, name, onChange, isEditing, type = "text", className = "" }) {
+function InfoRow({ label, value, name, onChange, isEditing, type = "text", className = "", isUpdated = false }) {
   return (
-    <div className={`py-1.5 ${className}`}>
-      <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{label}</p>
+    <div className={`py-1.5 px-2 rounded-md transition-colors ${isUpdated ? 'bg-amber-50 border border-amber-200/50 shadow-sm' : ''} ${className}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{label}</p>
+        {isUpdated && (
+          <Badge variant="outline" className="h-3.5 text-[8px] px-1 bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">
+            Updated
+          </Badge>
+        )}
+      </div>
       {isEditing ? (
         <Input 
           type={type}
@@ -45,7 +52,7 @@ function InfoRow({ label, value, name, onChange, isEditing, type = "text", class
   );
 }
 
-export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnly = false, showPhotoUpload = false, onChange }) {
+export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnly = false, showPhotoUpload = false, onChange, isEditMode = false, requestedChanges = null }) {
   const { toast } = useToast();
   const statusColor = {
     Regular: "bg-green-50 text-green-700 border-green-200",
@@ -101,6 +108,15 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
     { key: 'enrolled', label: 'Enrolled At', span: 4 }, { key: 'course', label: 'Course & YR', span: 3 }
   ];
 
+  const checkUpdated = (name) => {
+    if (!requestedChanges) return false;
+    // Basic field comparison
+    if (requestedChanges[name] !== undefined && requestedChanges[name] !== employee[name]) {
+      return true;
+    }
+    return false;
+  };
+
   return (
     <div className="space-y-4">
       {isEditing && (
@@ -124,7 +140,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                     {employee.first_name?.[0]}{employee.last_name?.[0]}
                   </AvatarFallback>
                 </Avatar>
-                {(showPhotoUpload || isEditing) && (
+                {(showPhotoUpload || isEditing || isEditMode) && (
                   <label className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                      <p className="text-xs text-white font-medium flex items-center gap-1">Change</p>
                      <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
@@ -137,10 +153,55 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                   {employee.titles && <span className="text-sm font-normal text-muted-foreground ml-2">, {employee.titles}</span>}
                 </h3>
               </div>
-              <p className="text-sm font-medium text-slate-800 mb-2">{employee.position || "Employee"} • {employee.department || "University of Bohol"}</p>
-              <Badge variant="outline" className={`mb-4 ${statusColor[employee.employment_status] || "bg-gray-50 text-gray-700 border-gray-200"}`}>
-                {employee.employment_status || "Regular"}
-              </Badge>
+              
+              {isEditMode ? (
+                <div className="flex flex-col items-center gap-1 mb-2">
+                  <Input 
+                    className="h-7 text-sm text-center w-3/4 mb-1"
+                    value={employee.position || ""}
+                    placeholder="Position"
+                    onChange={(e) => onChange('position', e.target.value)}
+                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-800">•</span>
+                    <select 
+                      className="h-7 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
+                      value={employee.department || "Engineering"}
+                      onChange={(e) => onChange('department', e.target.value)}
+                    >
+                      <option value="Engineering">Engineering</option>
+                      <option value="Human Resources">Human Resources</option>
+                      <option value="Finance">Finance</option>
+                      <option value="Marketing">Marketing</option>
+                      <option value="Operations">Operations</option>
+                      <option value="Legal">Legal</option>
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm font-medium text-slate-800 mb-2">{employee.position || "Employee"} • {employee.department || "University of Bohol"}</p>
+              )}
+              
+              {isEditMode ? (
+                <div className="mt-4 flex flex-col items-center gap-2 max-w-[200px] mx-auto">
+                  <div className="w-full text-left">
+                    <Label className="text-xs text-muted-foreground">Status</Label>
+                    <select 
+                      className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 mt-1"
+                      value={employee.employment_status || "Regular"}
+                      onChange={(e) => onChange('employment_status', e.target.value)}
+                    >
+                      <option value="Regular">Regular</option>
+                      <option value="Probationary">Probationary</option>
+                      <option value="Contractual">Contractual</option>
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <Badge variant="outline" className={`mb-4 ${statusColor[employee.employment_status] || "bg-gray-50 text-gray-700 border-gray-200"}`}>
+                  {employee.employment_status || "Regular"}
+                </Badge>
+              )}
             </CardContent>
           </Card>
 
@@ -159,8 +220,16 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                  }}
                />
             </div>
-            <h4 className="font-semibold text-sm">{employee.department || "University of Bohol"}</h4>
-            <p className="text-xs text-muted-foreground mt-1 uppercase tracking-widest opacity-50 font-bold">Official Department</p>
+            {isEditMode ? (
+              <div className="mt-2 text-center">
+                <p className="text-xs text-muted-foreground uppercase tracking-widest opacity-50 font-bold">Department Logo</p>
+              </div>
+            ) : (
+              <>
+                <h4 className="font-semibold text-sm">{employee.department || "University of Bohol"}</h4>
+                <p className="text-xs text-muted-foreground mt-1 uppercase tracking-widest opacity-50 font-bold">Official Department</p>
+              </>
+            )}
           </div>
         </div>
 
@@ -170,8 +239,8 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-12">
               <div className="space-y-1">
                 <div className="grid grid-cols-2 gap-4">
-                  <InfoRow label="Gender" value={employee.gender} name="gender" onChange={onChange} isEditing={isEditing} />
-                  <InfoRow label="Age" value={employee.age} name="age" onChange={onChange} isEditing={isEditing} />
+                  <InfoRow label="Gender" value={employee.gender} name="gender" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('gender')} />
+                  <InfoRow label="Age" value={employee.age} name="age" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('age')} />
                   <InfoRow 
                     label="Birth Date" 
                     value={isEditing ? employee.birthdate : (employee.birthdate ? format(new Date(employee.birthdate), "MMMM dd, yyyy") : "—")} 
@@ -179,34 +248,35 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                     type="date"
                     onChange={onChange} 
                     isEditing={isEditing} 
+                    isUpdated={checkUpdated('birthdate')}
                   />
-                  <InfoRow label="Civil Status" value={employee.civil_status} name="civil_status" onChange={onChange} isEditing={isEditing} />
-                  <InfoRow label="Nationality" value={employee.nationality || "Filipino"} name="nationality" onChange={onChange} isEditing={isEditing} />
-                  <InfoRow label="Religion" value={employee.religion} name="religion" onChange={onChange} isEditing={isEditing} />
+                  <InfoRow label="Civil Status" value={employee.civil_status} name="civil_status" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('civil_status')} />
+                  <InfoRow label="Nationality" value={employee.nationality || "Filipino"} name="nationality" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('nationality')} />
+                  <InfoRow label="Religion" value={employee.religion} name="religion" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('religion')} />
                 </div>
-                <InfoRow label="Place of Birth" value={employee.place_of_birth} name="place_of_birth" onChange={onChange} isEditing={isEditing} />
+                <InfoRow label="Place of Birth" value={employee.place_of_birth} name="place_of_birth" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('place_of_birth')} />
               </div>
 
               <div className="space-y-1">
                 <div className="grid grid-cols-2 gap-4">
-                  <InfoRow label="Height (cm)" value={employee.height} name="height" onChange={onChange} isEditing={isEditing} />
-                  <InfoRow label="Weight (lbs)" value={employee.weight} name="weight" onChange={onChange} isEditing={isEditing} />
-                  <InfoRow label="Blood Type" value={employee.blood_type} name="blood_type" onChange={onChange} isEditing={isEditing} />
-                  <InfoRow label="Phone" value={employee.contact_phone || employee.phone} name="contact_phone" onChange={onChange} isEditing={isEditing} />
+                  <InfoRow label="Height (cm)" value={employee.height} name="height" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('height')} />
+                  <InfoRow label="Weight (lbs)" value={employee.weight} name="weight" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('weight')} />
+                  <InfoRow label="Blood Type" value={employee.blood_type} name="blood_type" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('blood_type')} />
+                  <InfoRow label="Phone" value={employee.contact_phone || employee.phone} name="contact_phone" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('contact_phone') || checkUpdated('phone')} />
                 </div>
-                <InfoRow label="Email" value={employee.contact_email || employee.email} name="contact_email" onChange={onChange} isEditing={isEditing} />
-                <InfoRow label="Distinguishing Marks" value={employee.distinguishing_marks} name="distinguishing_marks" onChange={onChange} isEditing={isEditing} />
+                <InfoRow label="Email" value={employee.contact_email || employee.email} name="contact_email" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('contact_email') || checkUpdated('email')} />
+                <InfoRow label="Distinguishing Marks" value={employee.distinguishing_marks} name="distinguishing_marks" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('distinguishing_marks')} />
               </div>
 
               <div className="space-y-1">
-                <InfoRow label="Street" value={employee.address_street} name="address_street" onChange={onChange} isEditing={isEditing} />
+                <InfoRow label="Street" value={employee.address_street} name="address_street" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('address_street')} />
                 <div className="grid grid-cols-2 gap-4">
-                   <InfoRow label="Barangay" value={employee.address_barangay} name="address_barangay" onChange={onChange} isEditing={isEditing} />
-                   <InfoRow label="City" value={employee.address_city} name="address_city" onChange={onChange} isEditing={isEditing} />
+                   <InfoRow label="Barangay" value={employee.address_barangay} name="address_barangay" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('address_barangay')} />
+                   <InfoRow label="City" value={employee.address_city} name="address_city" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('address_city')} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <InfoRow label="Province" value={employee.address_province} name="address_province" onChange={onChange} isEditing={isEditing} />
-                  <InfoRow label="Zip" value={employee.address_zip} name="address_zip" onChange={onChange} isEditing={isEditing} />
+                  <InfoRow label="Province" value={employee.address_province} name="address_province" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('address_province')} />
+                  <InfoRow label="Zip" value={employee.address_zip} name="address_zip" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('address_zip')} />
                 </div>
               </div>
             </div>
@@ -244,10 +314,10 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
              {isEditing ? (
                <div className="space-y-8">
                   <div className="grid grid-cols-4 gap-4 pb-6 border-b">
-                    <InfoRow label="Spouse Name" value={employee.spouse_name} name="spouse_name" onChange={onChange} isEditing={isEditing} />
-                    <InfoRow label="Spouse Birthdate" value={employee.spouse_birthdate} name="spouse_birthdate" type="date" onChange={onChange} isEditing={isEditing} />
-                    <InfoRow label="Spouse Employer" value={employee.spouse_employer} name="spouse_employer" onChange={onChange} isEditing={isEditing} />
-                    <InfoRow label="Spouse Position" value={employee.spouse_position} name="spouse_position" onChange={onChange} isEditing={isEditing} />
+                    <InfoRow label="Spouse Name" value={employee.spouse_name} name="spouse_name" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_name')} />
+                    <InfoRow label="Spouse Birthdate" value={employee.spouse_birthdate} name="spouse_birthdate" type="date" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_birthdate')} />
+                    <InfoRow label="Spouse Employer" value={employee.spouse_employer} name="spouse_employer" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_employer')} />
+                    <InfoRow label="Spouse Position" value={employee.spouse_position} name="spouse_position" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_position')} />
                   </div>
                   <DynamicGrid 
                     title="Children Records" 
@@ -259,24 +329,45 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
              ) : (
                <>
                  {employee.spouse_name && (
-                   <div className="mb-6 bg-muted/20 p-4 rounded-lg border">
+                   <div className={`mb-6 p-4 rounded-lg border transition-colors ${
+                     checkUpdated('spouse_name') ||
+                     checkUpdated('spouse_birthdate') ||
+                     checkUpdated('spouse_employer') ||
+                     checkUpdated('spouse_position')
+                       ? 'bg-amber-50/50 border-amber-200'
+                       : 'bg-muted/20'
+                   }`}>
                       <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-widest">Spouse Details</h4>
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                         <InfoRow label="Name" value={employee.spouse_name} />
-                         <InfoRow label="Birthdate" value={employee.spouse_birthdate} />
-                         <InfoRow label="Employer" value={employee.spouse_employer} />
-                         <InfoRow label="Position" value={employee.spouse_position} />
+                         <InfoRow label="Name" value={employee.spouse_name} isUpdated={checkUpdated('spouse_name')} />
+                         <InfoRow label="Birthdate" value={employee.spouse_birthdate} isUpdated={checkUpdated('spouse_birthdate')} />
+                         <InfoRow label="Employer" value={employee.spouse_employer} isUpdated={checkUpdated('spouse_employer')} />
+                         <InfoRow label="Position" value={employee.spouse_position} isUpdated={checkUpdated('spouse_position')} />
                       </div>
                    </div>
                  )}
-                 <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-widest">Children Records</h4>
+                 <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Children Records</h4>
                  {employee.spouse_children?.length > 0 ? (
                     <div className="grid grid-cols-1 gap-3">
                        {employee.spouse_children.map((child, i) => (
-                          <div key={i} className="border rounded-md p-3 bg-muted/10">
+                          <div
+                            key={i}
+                            className={`border rounded-md p-3 transition-colors ${
+                              checkUpdated('spouse_children')
+                                ? 'bg-amber-50/50 border-amber-200'
+                                : 'bg-muted/10'
+                            }`}
+                          >
                             <div className="flex justify-between mb-2">
                                <p className="text-sm font-bold">{child.name}</p>
-                               <Badge variant="outline" className="text-[10px]">{child.gender}</Badge>
+                               <div className="flex items-center gap-1.5">
+                                 {checkUpdated('spouse_children') && (
+                                   <Badge variant="outline" className="h-3.5 text-[8px] px-1 bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">
+                                     Updated
+                                   </Badge>
+                                 )}
+                                 <Badge variant="outline" className="text-[10px]">{child.gender}</Badge>
+                               </div>
                             </div>
                             <p className="text-xs">Born: {child.birthdate} ({child.age} yrs) | Enrolled: {child.enrolled}</p>
                           </div>

@@ -219,7 +219,8 @@ export default function EmployeeRegistration() {
           ...sanitizedData,
           user_id: user?.id,
           employee_id: generatedTempId, // Auto generating
-          is_active: true,
+          is_active: false,
+          employment_status: "Pending",
           signature_url: signatureUrl || null
         }]);
 

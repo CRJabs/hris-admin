@@ -28,7 +28,15 @@ function EmptyState({ title }) {
   );
 }
 
-export default function SkillsTab({ employee, isEditing = false, onUpdate }) {
+export default function SkillsTab({ employee, isEditing = false, onUpdate, requestedChanges = null }) {
+  const checkUpdated = (name) => {
+    if (!requestedChanges) return false;
+    if (requestedChanges[name] !== undefined && JSON.stringify(requestedChanges[name]) !== JSON.stringify(employee[name])) {
+      return true;
+    }
+    return false;
+  };
+
   const skillsCols = [
     { key: 'skill', label: 'Skill', span: 6 }, { key: 'years', label: 'Years of Use', span: 2 },
     { key: 'level', label: 'Level of Expertise', span: 4, placeholder: 'Beginner/Intermediate/Advance/Expert' }
@@ -57,6 +65,9 @@ export default function SkillsTab({ employee, isEditing = false, onUpdate }) {
       <div className="space-y-6">
         {/* Skills */}
         <SectionBlock title="Specialized Skills" icon={Zap} isEditing={isEditing}>
+          {checkUpdated('skills') && (
+            <Badge variant="outline" className="mb-2 h-4 text-[9px] bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">List Updated</Badge>
+          )}
           <div className="space-y-3">
             {isEditing ? (
               <DynamicGrid 
@@ -70,7 +81,7 @@ export default function SkillsTab({ employee, isEditing = false, onUpdate }) {
                 {employee.skills?.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
                     {employee.skills.map((skill, i) => (
-                      <div key={i} className="flex items-center justify-between p-2 bg-muted/20 rounded-md border">
+                      <div key={i} className={`flex items-center justify-between p-2 rounded-md border transition-colors ${checkUpdated('skills') ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
                         <div>
                           <p className="text-sm font-semibold">{skill.skill}</p>
                           <p className="text-[10px] text-muted-foreground uppercase">{skill.level || 'Not specified'}</p>
@@ -89,6 +100,9 @@ export default function SkillsTab({ employee, isEditing = false, onUpdate }) {
 
         {/* Languages */}
         <SectionBlock title="Languages & Literacy" icon={Globe} isEditing={isEditing}>
+          {checkUpdated('languages') && (
+            <Badge variant="outline" className="mb-2 h-4 text-[9px] bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">List Updated</Badge>
+          )}
           <div className="space-y-3">
             {isEditing ? (
               <DynamicGrid 
@@ -102,7 +116,7 @@ export default function SkillsTab({ employee, isEditing = false, onUpdate }) {
                 {employee.languages?.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
                     {employee.languages.map((lang, i) => (
-                      <div key={i} className="p-3 bg-muted/20 rounded-md border">
+                      <div key={i} className={`p-3 rounded-md border transition-colors ${checkUpdated('languages') ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
                         <div className="flex justify-between mb-1">
                           <p className="text-sm font-bold">{lang.language}</p>
                           <Badge variant="outline" className="text-[10px]">{lang.fluency}</Badge>
@@ -121,6 +135,9 @@ export default function SkillsTab({ employee, isEditing = false, onUpdate }) {
 
         {/* Group Affiliations */}
         <SectionBlock title="Professional Affiliations" icon={Users} isEditing={isEditing}>
+          {checkUpdated('group_affiliations') && (
+            <Badge variant="outline" className="mb-2 h-4 text-[9px] bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">List Updated</Badge>
+          )}
           <div className="space-y-3">
             {isEditing ? (
               <DynamicGrid 
@@ -134,7 +151,7 @@ export default function SkillsTab({ employee, isEditing = false, onUpdate }) {
                 {employee.group_affiliations?.length > 0 ? (
                   <div className="grid grid-cols-1 gap-2">
                     {employee.group_affiliations.map((org, i) => (
-                      <div key={i} className="p-3 bg-muted/20 rounded-md border space-y-1">
+                      <div key={i} className={`p-3 rounded-md border space-y-1 transition-colors ${checkUpdated('group_affiliations') ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
                         <p className="text-sm font-bold">{org.org}</p>
                         <div className="flex justify-between text-[11px] text-muted-foreground">
                           <span>{org.position} • {org.place}</span>
@@ -155,6 +172,9 @@ export default function SkillsTab({ employee, isEditing = false, onUpdate }) {
       <div className="space-y-6">
         {/* Awards */}
         <SectionBlock title="Awards & Citations" icon={Award} isEditing={isEditing}>
+          {checkUpdated('awards_citations') && (
+            <Badge variant="outline" className="mb-2 h-4 text-[9px] bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">List Updated</Badge>
+          )}
           <div className="space-y-3">
             {isEditing ? (
               <DynamicGrid 
@@ -168,7 +188,7 @@ export default function SkillsTab({ employee, isEditing = false, onUpdate }) {
                 {employee.awards_citations?.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
                     {employee.awards_citations.map((award, i) => (
-                      <div key={i} className="p-3 bg-muted/20 rounded-md border space-y-2">
+                      <div key={i} className={`p-3 rounded-md border space-y-2 transition-colors ${checkUpdated('awards_citations') ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
                         <div className="flex justify-between items-start">
                           <div className="max-w-[70%]">
                             <p className="text-[10px] text-primary uppercase font-bold tracking-tighter">{award.type}</p>
@@ -194,6 +214,9 @@ export default function SkillsTab({ employee, isEditing = false, onUpdate }) {
 
         {/* Extra Activities */}
         <SectionBlock title="Extra Activities & Community Services" icon={ShieldAlert} isEditing={isEditing}>
+          {checkUpdated('extra_activities') && (
+            <Badge variant="outline" className="mb-2 h-4 text-[9px] bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">List Updated</Badge>
+          )}
           <div className="space-y-3">
             {isEditing ? (
               <DynamicGrid 
@@ -207,7 +230,7 @@ export default function SkillsTab({ employee, isEditing = false, onUpdate }) {
                 {employee.extra_activities?.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
                     {employee.extra_activities.map((act, i) => (
-                      <div key={i} className="p-3 bg-muted/20 rounded-md border space-y-2">
+                      <div key={i} className={`p-3 rounded-md border space-y-2 transition-colors ${checkUpdated('extra_activities') ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
                         <div className="flex justify-between items-start">
                           <div className="max-w-[75%]">
                             <p className="text-[10px] text-primary uppercase font-bold">{act.type}</p>

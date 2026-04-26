@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Zap, Shield, FileText, Loader2, Info, LogOut } from "lucide-react";
@@ -29,9 +29,36 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Check, X } from "lucide-react";
 
+const hasValueChanged = (oldValue, newValue) => {
+  if (oldValue === newValue) return false;
+
+  const oldIsObj = oldValue !== null && typeof oldValue === "object";
+  const newIsObj = newValue !== null && typeof newValue === "object";
+  if (oldIsObj || newIsObj) {
+    return JSON.stringify(oldValue ?? null) !== JSON.stringify(newValue ?? null);
+  }
+
+  return true;
+};
+
+const buildRequestedChanges = (originalData, updatedData) => {
+  if (!originalData || !updatedData) return {};
+
+  const changedEntries = Object.keys(updatedData).reduce((acc, key) => {
+    if (hasValueChanged(originalData[key], updatedData[key])) {
+      acc[key] = updatedData[key];
+    }
+    return acc;
+  }, {});
+
+  return changedEntries;
+};
+
 export default function EmployeeProfile() {
   const { user, logout } = useAuth();
   const { toast } = useToast();
+  const hasBootstrappedRequestStatuses = useRef(false);
+  const knownRequestStatuses = useRef(new Map());
   const [employeeData, setEmployeeData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -59,7 +86,96 @@ export default function EmployeeProfile() {
       }
     }
     loadProfile();
+
+    // Set up realtime subscription for this employee's record
+    let sub = null;
+    if (user?.id) {
+      sub = supabase
+        .channel(`employee_profile_${user.id}`)
+        .on('postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'employees',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log("Profile updated in realtime", payload);
+            setEmployeeData(payload.new);
+          }
+        )
+        .subscribe();
+    }
+
+    return () => {
+      if (sub) sub.unsubscribe();
+    };
   }, [user]);
+
+  useEffect(() => {
+    if (!employeeData?.id) return;
+
+    let statusSubscription = null;
+    let isMounted = true;
+
+    const fetchAndNotifyRequestStatuses = async () => {
+      const { data, error } = await supabase
+        .from("employee_update_requests")
+        .select("id, status, reviewed_at")
+        .eq("employee_id", employeeData.id)
+        .order("created_at", { ascending: false });
+
+      if (error || !isMounted || !data) return;
+
+      if (hasBootstrappedRequestStatuses.current) {
+        data.forEach((req) => {
+          const previous = knownRequestStatuses.current.get(req.id);
+          const hasStatusChanged = previous !== undefined && previous !== req.status;
+          const isReviewOutcome = req.status === "approved" || req.status === "rejected";
+          if (hasStatusChanged && isReviewOutcome) {
+            toast({
+              title: req.status === "approved" ? "Profile Update Approved" : "Profile Update Rejected",
+              description:
+                req.status === "approved"
+                  ? "HR approved your submitted profile changes."
+                  : "HR rejected your submitted profile changes.",
+              variant: req.status === "rejected" ? "destructive" : "default",
+              duration: 10000,
+            });
+          }
+        });
+      } else {
+        hasBootstrappedRequestStatuses.current = true;
+      }
+
+      const statusMap = new Map();
+      data.forEach((req) => {
+        statusMap.set(req.id, req.status);
+      });
+      knownRequestStatuses.current = statusMap;
+    };
+
+    fetchAndNotifyRequestStatuses();
+
+    statusSubscription = supabase
+      .channel(`employee_request_status_${employeeData.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "employee_update_requests",
+          filter: `employee_id=eq.${employeeData.id}`,
+        },
+        fetchAndNotifyRequestStatuses
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      if (statusSubscription) statusSubscription.unsubscribe();
+    };
+  }, [employeeData?.id, toast]);
 
   const handleStartEdit = () => {
     setEditedData(JSON.parse(JSON.stringify(employeeData))); // Deep clone
@@ -89,12 +205,21 @@ export default function EmployeeProfile() {
   const confirmSave = async () => {
     setIsSaving(true);
     try {
+      const requestedChanges = buildRequestedChanges(employeeData, editedData);
+      if (Object.keys(requestedChanges).length === 0) {
+        toast({
+          title: "No changes to submit",
+          description: "Update at least one field before submitting for approval.",
+        });
+        return;
+      }
+
       // Create update request in supabase
       const { error } = await supabase
         .from('employee_update_requests')
         .insert({
           employee_id: employeeData.id,
-          requested_changes: editedData,
+          requested_changes: requestedChanges,
           status: 'pending'
         });
 
@@ -162,7 +287,7 @@ export default function EmployeeProfile() {
 
         <div className="flex items-center gap-4">
           {!isEditing ? (
-            <Button 
+            <Button
               onClick={handleStartEdit}
               className="bg-white text-[#0C005F] hover:bg-white/90 font-bold gap-2"
             >
@@ -174,11 +299,11 @@ export default function EmployeeProfile() {
               Editing Mode
             </div>
           )}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={logout} 
-            title="Log out" 
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={logout}
+            title="Log out"
             className="text-white/70 hover:text-white hover:bg-white/10"
           >
             <LogOut className="h-5 w-5" />
@@ -218,38 +343,38 @@ export default function EmployeeProfile() {
 
             <ScrollArea className="flex-1 pr-4">
               <TabsContent value="profiling" className="m-0 space-y-6">
-                <PersonalDetailsTab 
-                  employee={isEditing ? editedData : employeeData} 
-                  isReadOnly={!isEditing} 
-                  showPhotoUpload={true} 
+                <PersonalDetailsTab
+                  employee={isEditing ? editedData : employeeData}
+                  isReadOnly={!isEditing}
+                  showPhotoUpload={true}
                   onChange={handleFieldChange}
                 />
               </TabsContent>
               <TabsContent value="education" className="m-0 space-y-6">
-                <EducationTab 
-                  employee={isEditing ? editedData : employeeData} 
-                  isReadOnly={!isEditing} 
+                <EducationTab
+                  employee={isEditing ? editedData : employeeData}
+                  isReadOnly={!isEditing}
                   isEditing={isEditing}
                   onUpdate={(newData) => handleFieldChange('educational_record', newData)}
                 />
               </TabsContent>
               <TabsContent value="training" className="m-0 space-y-6">
-                <TrainingDevTab 
-                  employee={isEditing ? editedData : employeeData} 
-                  isReadOnly={!isEditing} 
+                <TrainingDevTab
+                  employee={isEditing ? editedData : employeeData}
+                  isReadOnly={!isEditing}
                   isEditing={isEditing}
                   onUpdate={(field, newData) => handleFieldChange(field, newData)}
                 />
               </TabsContent>
               <TabsContent value="credentials" className="m-0 space-y-6">
                 <div className="grid grid-cols-1 gap-6">
-                  <CredentialsTab 
-                    employee={isEditing ? editedData : employeeData} 
+                  <CredentialsTab
+                    employee={isEditing ? editedData : employeeData}
                     isEditing={isEditing}
                     onUpdate={(field, newData) => handleFieldChange(field, newData)}
                   />
-                  <SkillsTab 
-                    employee={isEditing ? editedData : employeeData} 
+                  <SkillsTab
+                    employee={isEditing ? editedData : employeeData}
                     isEditing={isEditing}
                     onUpdate={(field, newData) => handleFieldChange(field, newData)}
                   />
@@ -275,15 +400,15 @@ export default function EmployeeProfile() {
               <p className="text-xs font-medium">Unsaved changes will be lost on discard</p>
             </div>
             <div className="flex items-center gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleDiscard}
                 className="gap-2 border-slate-200 hover:bg-slate-50"
               >
                 <X className="w-4 h-4" />
                 Discard
               </Button>
-              <Button 
+              <Button
                 onClick={handleSave}
                 disabled={isSaving}
                 className="bg-[#0C005F] text-white hover:bg-[#0C005F]/90 gap-2 px-8 shadow-lg shadow-[#0C005F]/20"

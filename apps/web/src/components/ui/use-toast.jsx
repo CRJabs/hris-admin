@@ -110,7 +110,7 @@ function dispatch(action) {
   });
 }
 
-function toast({ ...props }) {
+function toast({ duration = 30000, ...props }) {
   const id = genId();
 
   const update = (props) =>
@@ -134,6 +134,12 @@ function toast({ ...props }) {
     },
   });
 
+  if (duration !== Infinity) {
+    setTimeout(() => {
+      dismiss();
+    }, duration);
+  }
+
   return {
     id,
     dismiss,
@@ -152,7 +158,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []);
 
   return {
     ...state,
@@ -161,4 +167,8 @@ function useToast() {
   };
 }
 
-export { useToast, toast }; 
+const dismissAllToasts = () => {
+  dispatch({ type: actionTypes.DISMISS_TOAST });
+};
+
+export { useToast, toast, dismissAllToasts };

@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { dismissAllToasts } from '@/components/ui/use-toast';
 
 const AuthContext = createContext();
 
@@ -72,6 +73,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     setIsLoadingAuth(true);
     try {
+      dismissAllToasts();
       await supabase.auth.signOut();
       setUser(null);
       setIsAuthenticated(false);

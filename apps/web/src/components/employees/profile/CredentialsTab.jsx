@@ -28,7 +28,15 @@ function EmptyState({ title }) {
   );
 }
 
-export default function CredentialsTab({ employee, isEditing = false, onUpdate }) {
+export default function CredentialsTab({ employee, isEditing = false, onUpdate, requestedChanges = null }) {
+  const checkUpdated = (name) => {
+    if (!requestedChanges) return false;
+    if (requestedChanges[name] !== undefined && JSON.stringify(requestedChanges[name]) !== JSON.stringify(employee[name])) {
+      return true;
+    }
+    return false;
+  };
+
   const licenseCols = [
     { key: 'name', label: 'License Name', span: 3 }, { key: 'number', label: 'License No.', span: 2 },
     { key: 'issued', label: 'Issued Date', type: 'date', span: 2 }, { key: 'expiry', label: 'Expiry Date', type: 'date', span: 2 },
@@ -50,6 +58,9 @@ export default function CredentialsTab({ employee, isEditing = false, onUpdate }
       <div className="space-y-6">
         {/* Licenses */}
         <SectionBlock title="Professional Licenses" icon={Shield} isEditing={isEditing}>
+          {checkUpdated('licenses') && (
+            <Badge variant="outline" className="mb-2 h-4 text-[9px] bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">List Updated</Badge>
+          )}
           <div className="space-y-4">
             {isEditing ? (
               <DynamicGrid 
@@ -63,7 +74,7 @@ export default function CredentialsTab({ employee, isEditing = false, onUpdate }
                 {employee.licenses?.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
                     {employee.licenses.map((lic, i) => (
-                      <div key={i} className="p-3 bg-muted/20 rounded-md border space-y-2">
+                      <div key={i} className={`p-3 rounded-md border space-y-2 transition-colors ${checkUpdated('licenses') ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
                         <div className="flex justify-between items-start">
                           <div className="max-w-[70%]">
                             <p className="text-sm font-bold leading-tight">{lic.name}</p>
@@ -89,6 +100,9 @@ export default function CredentialsTab({ employee, isEditing = false, onUpdate }
 
         {/* Exams */}
         <SectionBlock title="Government & Board Examinations" icon={FileText} isEditing={isEditing}>
+          {checkUpdated('exams_taken') && (
+            <Badge variant="outline" className="mb-2 h-4 text-[9px] bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">List Updated</Badge>
+          )}
           <div className="space-y-4">
             {isEditing ? (
               <DynamicGrid 
@@ -102,7 +116,7 @@ export default function CredentialsTab({ employee, isEditing = false, onUpdate }
                 {employee.exams_taken?.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
                     {employee.exams_taken.map((exam, i) => (
-                      <div key={i} className="p-3 bg-muted/20 rounded-md border space-y-2">
+                      <div key={i} className={`p-3 rounded-md border space-y-2 transition-colors ${checkUpdated('exams_taken') ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
                         <div className="flex justify-between items-start">
                           <div className="max-w-[70%]">
                             <p className="text-sm font-bold leading-tight">{exam.title}</p>
@@ -134,6 +148,9 @@ export default function CredentialsTab({ employee, isEditing = false, onUpdate }
       <div className="space-y-6">
         {/* Scholarships / Research */}
         <SectionBlock title="Scholarships & Research Work" icon={BookOpen} isEditing={isEditing}>
+          {checkUpdated('scholarships_research') && (
+            <Badge variant="outline" className="mb-2 h-4 text-[9px] bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">List Updated</Badge>
+          )}
           <div className="space-y-4">
             {isEditing ? (
               <DynamicGrid 
@@ -147,7 +164,7 @@ export default function CredentialsTab({ employee, isEditing = false, onUpdate }
                 {employee.scholarships_research?.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
                     {employee.scholarships_research.map((work, i) => (
-                      <div key={i} className="p-3 bg-muted/20 rounded-md border space-y-2">
+                      <div key={i} className={`p-3 rounded-md border space-y-2 transition-colors ${checkUpdated('scholarships_research') ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
                         <div className="flex justify-between items-start">
                           <div className="max-w-[75%]">
                             <p className="text-[10px] text-primary uppercase font-bold tracking-tighter">{work.type} • {work.status}</p>

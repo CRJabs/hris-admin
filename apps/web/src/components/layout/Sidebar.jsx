@@ -21,25 +21,27 @@ export default function Sidebar() {
   return (
     <aside 
       className={cn(
-        "h-screen bg-sidebar text-sidebar-foreground flex flex-col transition-all duration-300 sticky top-0 z-50",
-        collapsed ? "w-17" : "w-60 absolute md:relative"
+        "h-screen bg-[#0C005F] text-white flex flex-col transition-all duration-300 sticky top-0 z-50",
+        collapsed ? "w-17" : "w-64 absolute md:relative"
       )}
       onMouseEnter={() => setCollapsed(false)}
       onMouseLeave={() => setCollapsed(true)}
     >
-      <div className="p-4 flex items-center gap-3 border-b border-sidebar-border">
-        <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
-          <span className="text-sidebar-primary-foreground font-bold text-sm">HR</span>
+      <div className="p-4 flex items-center justify-center border-b border-white/10 h-16 overflow-hidden">
+        <div className={cn("flex items-center justify-center shrink-0 transition-all duration-300", collapsed ? "w-8 h-8" : "w-auto h-8")}>
+          <img 
+            src={collapsed ? "/assets/ub.png" : "/assets/ub-hris-logo-white.png"} 
+            alt="UB HRIS" 
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.parentElement.innerHTML = collapsed ? '<span class="text-xs font-bold text-white">UB</span>' : '<span class="text-lg font-bold text-white tracking-widest">HRIS</span>';
+            }}
+          />
         </div>
-        {!collapsed && (
-          <div className="overflow-hidden">
-            <h1 className="font-semibold text-sm text-white truncate">PeopleCore HRIS</h1>
-            <p className="text-[11px] text-sidebar-foreground/60 truncate">Human Resources System</p>
-          </div>
-        )}
       </div>
 
-      <nav className="flex-1 py-3 px-2 space-y-1">
+      <nav className="flex-1 py-3 px-2 space-y-1 mt-2">
         {navItems.map(({ label, icon: Icon, path }) => {
           const isActive = location.pathname === path || location.pathname.startsWith(`${path}/`);
           return (
@@ -49,8 +51,8 @@ export default function Sidebar() {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-primary/20"
-                  : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                  ? "bg-white/20 text-white shadow-md"
+                  : "text-white/70 hover:text-white hover:bg-white/10"
               )}
             >
               <Icon className="w-4.5 h-4.5 shrink-0" />
@@ -60,11 +62,11 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="p-3 border-t border-sidebar-border mt-auto">
+      <div className="p-3 border-t border-white/10 mt-auto">
          <button
            onClick={logout}
            className={cn(
-             "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:text-red-400 hover:bg-sidebar-accent transition-all duration-200",
+             "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/70 hover:text-red-400 hover:bg-white/10 transition-all duration-200",
              collapsed && "justify-center px-0"
            )}
            title="Sign out"
