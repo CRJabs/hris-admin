@@ -250,10 +250,21 @@ export default function EmployeeRegistration() {
 
     setIsSubmitting(true);
     try {
-      const generatedTempId = `EMP-${Math.floor(100000 + Math.random() * 900000)}`;
+      // Calculate next EMP ID standard: [year] - 001
+      const year = new Date().getFullYear();
+      
+      // Query to find the count of employees with ID starting with the current year
+      const { count, error: countError } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true })
+        .filter('employee_id', 'ilike', `${year} - %`);
+      
+      if (countError) throw countError;
+      
+      const nextIdNumber = (count || 0) + 1;
+      const generatedTempId = `${year} - ${String(nextIdNumber).padStart(3, '0')}`;
 
       // Postgres/Supabase strict typing fix: convert empty strings to null
-      // This prevents "invalid input syntax for type date" errors
       const sanitizedData = Object.fromEntries(
         Object.entries(formData).map(([key, value]) => [
           key, 
@@ -266,7 +277,7 @@ export default function EmployeeRegistration() {
         .insert([{
           ...sanitizedData,
           user_id: user?.id,
-          employee_id: generatedTempId, // Auto generating
+          employee_id: generatedTempId,
           is_active: false,
           employment_status: "Pending",
           signature_url: signatureUrl || null

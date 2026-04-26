@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
+import { DEPARTMENTS, EMPLOYMENT_CLASSIFICATIONS } from "@/lib/constants";
 
 function SectionBlock({ title, icon: Icon, children, action }) {
   return (
@@ -188,20 +189,32 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                     <span className="text-sm font-medium text-slate-800">•</span>
                     <select 
                       className="h-7 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
-                      value={employee.department || "Engineering"}
+                      value={employee.department || DEPARTMENTS[0]}
                       onChange={(e) => onChange('department', e.target.value)}
                     >
-                      <option value="Engineering">Engineering</option>
-                      <option value="Human Resources">Human Resources</option>
-                      <option value="Finance">Finance</option>
-                      <option value="Marketing">Marketing</option>
-                      <option value="Operations">Operations</option>
-                      <option value="Legal">Legal</option>
+                      {DEPARTMENTS.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm font-medium text-slate-800">•</span>
+                    <select 
+                      className="h-7 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
+                      value={employee.employment_classification || EMPLOYMENT_CLASSIFICATIONS[0]}
+                      onChange={(e) => onChange('employment_classification', e.target.value)}
+                    >
+                      {EMPLOYMENT_CLASSIFICATIONS.map(cls => (
+                        <option key={cls} value={cls}>{cls}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
               ) : (
-                <p className="text-sm font-medium text-slate-800 mb-2">{employee.position || "Employee"} • {employee.department || "University of Bohol"}</p>
+                <p className="text-sm font-medium text-slate-800 mb-2">
+                  {employee.position || "Employee"} • {employee.department || "University of Bohol"}
+                  {employee.employment_classification && ` • ${employee.employment_classification}`}
+                </p>
               )}
               
               {isEditMode ? (
@@ -301,6 +314,17 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                   <InfoRow label="Zip" value={employee.address_zip} name="address_zip" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('address_zip')} />
                 </div>
               </div>
+            </div>
+          </SectionBlock>
+
+          <SectionBlock title="Government ID's" icon={Shield}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-12">
+              <InfoRow label="SSS No." value={employee.sss} name="sss" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('sss')} />
+              <InfoRow label="TIN No." value={employee.tin} name="tin" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('tin')} />
+              <InfoRow label="Philhealth No." value={employee.philhealth} name="philhealth" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('philhealth')} />
+              <InfoRow label="PAG-IBIG No." value={employee.pag_ibig} name="pag_ibig" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('pag_ibig')} />
+              <InfoRow label="PERAA" value={employee.peraa} name="peraa" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('peraa')} />
+              <InfoRow label="Tax Status" value={employee.tax_status} name="tax_status" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('tax_status')} />
             </div>
           </SectionBlock>
 

@@ -5,7 +5,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
-const departments = ["Engineering", "Finance", "Human Resources", "Marketing", "Operations", "Legal"];
+import { DEPARTMENTS } from "@/lib/constants";
+
+const departments = DEPARTMENTS;
 const statuses = ["Regular", "Probationary", "Contractual"];
 const activeStatuses = ["Active", "Inactive"];
 

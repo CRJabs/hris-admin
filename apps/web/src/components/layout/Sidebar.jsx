@@ -8,9 +8,9 @@ const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Pending Approvals", icon: CheckSquare, path: "/approvals" },
   { label: "Employee Masterlist", icon: Users, path: "/employees" },
-  { label: "Payroll & Bonuses", icon: DollarSign, path: "/payroll" },
-  { label: "Reports", icon: BarChart3, path: "/reports" },
-  { label: "Settings", icon: Settings, path: "/settings" },
+  // { label: "Payroll & Bonuses", icon: DollarSign, path: "/payroll" },
+  // { label: "Reports", icon: BarChart3, path: "/reports" },
+  // { label: "Settings", icon: Settings, path: "/settings" },
 ];
 
 export default function Sidebar() {

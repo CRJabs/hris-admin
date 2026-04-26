@@ -4,6 +4,7 @@ import { Plus, Briefcase, CalendarClock, PenTool } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { EMPLOYMENT_CLASSIFICATIONS } from "@/lib/constants";
 
 function InfoRow({ label, value, name, onChange, isReadOnly, type = "text", isUpdated = false }) {
   return (
@@ -72,7 +73,31 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, onChan
                isUpdated={checkUpdated('date_hired')}
              />
              <InfoRow label="Employment Status" value={employee.employment_status || "Full time"} name="employment_status" onChange={onChange} isReadOnly={isReadOnly} isUpdated={checkUpdated('employment_status')} />
-             <InfoRow label="Classification" value={employee.classification || "New"} name="classification" onChange={onChange} isReadOnly={isReadOnly} isUpdated={checkUpdated('classification')} />
+             <div className={`flex items-center justify-between py-2 px-2 rounded-md transition-colors ${checkUpdated('employment_classification') ? 'bg-amber-50 border border-amber-200/50 shadow-sm' : 'border-b last:border-0'}`}>
+               <div className="w-full pr-4">
+                 <div className="flex items-center justify-between">
+                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Classification</p>
+                   {checkUpdated('employment_classification') && (
+                     <Badge variant="outline" className="h-3.5 text-[8px] px-1 bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">
+                       Updated
+                     </Badge>
+                   )}
+                 </div>
+                 {!isReadOnly ? (
+                   <select 
+                     className="flex h-8 w-full max-w-sm items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 mt-1"
+                     value={employee.employment_classification || EMPLOYMENT_CLASSIFICATIONS[0]}
+                     onChange={(e) => onChange('employment_classification', e.target.value)}
+                   >
+                     {EMPLOYMENT_CLASSIFICATIONS.map(cls => (
+                       <option key={cls} value={cls}>{cls}</option>
+                     ))}
+                   </select>
+                 ) : (
+                   <p className="text-sm font-medium mt-0.5">{employee.employment_classification || "—"}</p>
+                 )}
+               </div>
+             </div>
              <InfoRow label="Position" value={employee.position} name="position" onChange={onChange} isReadOnly={isReadOnly} isUpdated={checkUpdated('position')} />
              <InfoRow label="College/Department" value={employee.department} name="department" onChange={onChange} isReadOnly={isReadOnly} isUpdated={checkUpdated('department')} />
              <InfoRow label="Employee Status" value={employee.is_active ? "Active" : "Inactive"} isReadOnly={true} />
