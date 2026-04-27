@@ -9,10 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 import { DEPARTMENTS, EMPLOYMENT_CLASSIFICATIONS } from "@/lib/constants";
+import { Checkbox } from "@/components/ui/checkbox";
 
 function SectionBlock({ title, icon: Icon, children, action }) {
   return (
-    <Card className="shadow-none border-muted">
+    <Card className="shadow-sm border-slate-300">
       <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-bold flex items-center gap-2">
           {Icon && <Icon className="w-4 h-4 text-primary" />}
@@ -26,6 +27,30 @@ function SectionBlock({ title, icon: Icon, children, action }) {
     </Card>
   );
 }
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+const getDepartmentLogo = (dept) => {
+  const mapping = {
+    "College of Engineering, Technology, Architecture, and Fine Arts": "cetafa.png",
+    "College of Allied Health Sciences": "cahs.png",
+    "College of Arts, Sciences, and Education": "case.png",
+    "College of Business and Accountancy": "cba.png",
+    "College of Criminal Justice": "ccj.png",
+    "College of Hospitality Management, Tourism, and Nutrition": "chmtn.png",
+    "College of Law": "col.png",
+    "College of Pharmacy": "cop.png",
+    "College of Physical Therapy and Occupational Therapy": "cptot.png",
+    "Graduate School": "gsps.png",
+    "UBVDTALC Junior High School": "vdtjhs.png",
+    "UBVDTALC Senior High School": "vdtshs.png",
+    "UB Junior High School": "ubjhs.png",
+    "UB Grade School": "ubgs.png"
+  };
+
+  const filename = mapping[dept] || "ub.png";
+  return `${supabaseUrl}/storage/v1/object/public/department-logos/${filename}`;
+};
 
 function InfoRow({ label, value, name, onChange, isEditing, type = "text", className = "", isUpdated = false, isError = false }) {
   return (
@@ -53,7 +78,7 @@ function InfoRow({ label, value, name, onChange, isEditing, type = "text", class
   );
 }
 
-export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnly = false, showPhotoUpload = false, onChange, isEditMode = false, requestedChanges = null, errors = {} }) {
+export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnly = false, showPhotoUpload = false, onChange, isEditMode = false, isAdminView = false, requestedChanges = null, errors = {} }) {
   const { toast } = useToast();
   const statusColor = {
     Regular: "bg-green-50 text-green-700 border-green-200",
@@ -130,6 +155,10 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
     { key: 'age', label: 'Age', span: 2 }, { key: 'gender', label: 'Gender', span: 3 },
     { key: 'enrolled', label: 'Enrolled At', span: 4 }, { key: 'course', label: 'Course & YR', span: 3 }
   ];
+  const langCols = [
+    { key: 'language', label: 'Language', span: 4 }, { key: 'literacy', label: 'Literacy (Speak/Read/Write)', span: 4 },
+    { key: 'fluency', label: 'Fluency Scale', span: 4, placeholder: 'Beginner/Intermediate/Advance/Expert' }
+  ];
 
   const checkUpdated = (name) => {
     if (!requestedChanges) return false;
@@ -163,7 +192,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                     {employee.first_name?.[0]}{employee.last_name?.[0]}
                   </AvatarFallback>
                 </Avatar>
-                {(showPhotoUpload || isEditing || isEditMode) && (
+                {(showPhotoUpload || isEditMode) && (
                   <label className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                      <p className="text-xs text-white font-medium flex items-center gap-1">Change</p>
                      <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
@@ -208,7 +237,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                 </div>
               )}
               
-              {isEditMode ? (
+              {isEditMode && isAdminView ? (
                 <div className="flex flex-col items-center gap-1 mb-2">
                   <Input 
                     className="h-7 text-sm text-center w-3/4 mb-1"
@@ -240,45 +269,40 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                       ))}
                     </select>
                   </div>
-                </div>
-              ) : (
-                <p className="text-sm font-medium text-slate-800 mb-2">
-                  {employee.position || "Employee"} • {employee.department || "University of Bohol"}
-                  {employee.employment_classification && ` • ${employee.employment_classification}`}
-                </p>
-              )}
-              
-              {isEditMode ? (
-                <div className="mt-4 flex flex-col items-center gap-2 max-w-[200px] mx-auto">
-                  <div className="w-full text-left">
-                    <Label className="text-xs text-muted-foreground">Status</Label>
-                    <select 
-                      className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 mt-1"
-                      value={employee.employment_status || "Regular"}
-                      onChange={(e) => onChange('employment_status', e.target.value)}
-                    >
-                      <option value="Regular">Regular</option>
-                      <option value="Probationary">Probationary</option>
-                      <option value="Contractual">Contractual</option>
-                    </select>
+                  <div className="mt-4 flex flex-col items-center gap-2 max-w-[200px] mx-auto">
+                    <div className="w-full text-left">
+                      <Label className="text-xs text-muted-foreground">Status</Label>
+                      <select 
+                        className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 mt-1"
+                        value={employee.employment_status || "Regular"}
+                        onChange={(e) => onChange('employment_status', e.target.value)}
+                      >
+                        <option value="Regular">Regular</option>
+                        <option value="Probationary">Probationary</option>
+                        <option value="Contractual">Contractual</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <Badge variant="outline" className={`mb-4 ${statusColor[employee.employment_status] || "bg-gray-50 text-gray-700 border-gray-200"}`}>
-                  {employee.employment_status || "Regular"}
-                </Badge>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-slate-800 mb-2">
+                    {employee.position || "Employee"} • {employee.department || "University of Bohol"}
+                    {employee.employment_classification && ` • ${employee.employment_classification}`}
+                  </p>
+                  <Badge variant="outline" className={`mb-4 ${statusColor[employee.employment_status] || "bg-gray-50 text-gray-700 border-gray-200"}`}>
+                    {employee.employment_status || "Regular"}
+                  </Badge>
+                </div>
               )}
             </CardContent>
           </Card>
 
           {/* Department Logo Placeholder */}
           <div className="flex flex-col items-center justify-center text-center p-6">
-            <div className="w-24 h-24 flex items-center justify-center mb-4 overflow-hidden border rounded-lg bg-white/50 shadow-sm">
+            <div className="w-48 h-48 flex items-center justify-center mb-4 overflow-hidden bg-transparent">
                <img 
-                 src={employee.department 
-                   ? `${supabaseUrl}/storage/v1/object/public/department-logos/${encodeURIComponent(employee.department)}.png`
-                   : `${supabaseUrl}/storage/v1/object/public/department-logos/ub.png`
-                 } 
+                 src={getDepartmentLogo(employee.department)} 
                  alt={employee.department || "University of Bohol"} 
                  className="w-full h-full object-contain p-2"
                  onError={(e) => { 
@@ -291,10 +315,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                 <p className="text-xs text-muted-foreground uppercase tracking-widest opacity-50 font-bold">Department Logo</p>
               </div>
             ) : (
-              <>
-                <h4 className="font-semibold text-sm">{employee.department || "University of Bohol"}</h4>
-                <p className="text-xs text-muted-foreground mt-1 uppercase tracking-widest opacity-50 font-bold">Official Department</p>
-              </>
+              <h4 className="font-semibold text-sm">{employee.department || "University of Bohol"}</h4>
             )}
           </div>
         </div>
@@ -474,6 +495,83 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                  )}
                </>
              )}
+          </SectionBlock>
+
+          <SectionBlock title="Parents Information" icon={Users}>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                <div className="space-y-4">
+                  <InfoRow label="Father's Full Name" value={employee.father_name} name="father_name" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('father_name')} />
+                  <div className="flex items-center gap-6 px-2">
+                    <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                      <Checkbox 
+                        checked={employee.father_status === "Living"} 
+                        onCheckedChange={(checked) => isEditing && onChange('father_status', checked ? 'Living' : 'Deceased')}
+                        disabled={!isEditing}
+                      />
+                      Living
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                      <Checkbox 
+                        checked={employee.father_status === "Deceased"} 
+                        onCheckedChange={(checked) => isEditing && onChange('father_status', checked ? 'Deceased' : 'Living')}
+                        disabled={!isEditing}
+                      />
+                      Deceased
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <InfoRow label="Mother's Maiden Name" value={employee.mother_maiden_name} name="mother_maiden_name" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('mother_maiden_name')} />
+                  <div className="flex items-center gap-6 px-2">
+                    <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                      <Checkbox 
+                        checked={employee.mother_status === "Living"} 
+                        onCheckedChange={(checked) => isEditing && onChange('mother_status', checked ? 'Living' : 'Deceased')}
+                        disabled={!isEditing}
+                      />
+                      Living
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                      <Checkbox 
+                        checked={employee.mother_status === "Deceased"} 
+                        onCheckedChange={(checked) => isEditing && onChange('mother_status', checked ? 'Deceased' : 'Living')}
+                        disabled={!isEditing}
+                      />
+                      Deceased
+                    </label>
+                  </div>
+                </div>
+             </div>
+          </SectionBlock>
+
+          <SectionBlock title="Languages & Literacy" icon={User}>
+            {isEditing ? (
+              <DynamicGrid 
+                title="Languages" 
+                columns={langCols} 
+                data={employee.languages || []} 
+                onChange={(newData) => onChange('languages', newData)} 
+              />
+            ) : (
+              <div className="space-y-3">
+                {employee.languages?.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {employee.languages.map((lang, i) => (
+                      <div key={i} className={`p-3 rounded-md border transition-colors ${checkUpdated('languages') ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
+                        <div className="flex justify-between mb-1">
+                          <p className="text-sm font-bold">{lang.language}</p>
+                          <Badge variant="outline" className="text-[10px]">{lang.fluency}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground italic">{lang.literacy}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground italic py-2">No languages recorded.</div>
+                )}
+              </div>
+            )}
           </SectionBlock>
 
           <SectionBlock title="Attachments & E-Signatures" icon={Shield}>

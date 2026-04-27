@@ -1,19 +1,17 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 
 interface FamilySectionProps {
   formData: any;
   handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleSelect: (name: string, value: string) => void;
   handleGrid: (key: string, data: any[]) => void;
   emergencyCols: any[];
   childrenCols: any[];
 }
 
-export const FamilySection: React.FC<FamilySectionProps> = ({ formData, handleChange, handleSelect, handleGrid, emergencyCols, childrenCols }) => {
+export const FamilySection: React.FC<FamilySectionProps> = ({ formData, handleChange, handleGrid, emergencyCols, childrenCols }) => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="bg-white p-6 rounded-xl border shadow-sm">
@@ -47,28 +45,6 @@ export const FamilySection: React.FC<FamilySectionProps> = ({ formData, handleCh
 
       <div className="bg-white rounded-xl border shadow-sm">
         <DynamicGrid title="Children Profiles" columns={childrenCols} data={formData.spouse_children} onChange={(d: any) => handleGrid('spouse_children', d)} />
-      </div>
-
-      <div className="bg-white p-6 rounded-xl border shadow-sm">
-        <h2 className="text-xl font-bold mb-6 text-slate-800 border-b pb-2">Parent's Details</h2>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-          <div className="space-y-4 border-r pr-8">
-            <div className="space-y-1"><Label>Father's Name</Label><Input name="father_name" value={formData.father_name} onChange={handleChange} /></div>
-            <div className="space-y-1"><Label>Occupation (If Living)</Label><Input name="father_occupation" value={formData.father_occupation} onChange={handleChange} /></div>
-            <div className="flex gap-4 pt-2">
-              <label className="flex items-center gap-2 text-sm"><Checkbox checked={formData.father_status === "Living"} onCheckedChange={() => handleSelect("father_status", "Living")} /> Living</label>
-              <label className="flex items-center gap-2 text-sm"><Checkbox checked={formData.father_status === "Deceased"} onCheckedChange={() => handleSelect("father_status", "Deceased")} /> Deceased</label>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div className="space-y-1"><Label>Mother's Name</Label><Input name="mother_name" value={formData.mother_name} onChange={handleChange} /></div>
-            <div className="space-y-1"><Label>Occupation (If Living)</Label><Input name="mother_occupation" value={formData.mother_occupation} onChange={handleChange} /></div>
-            <div className="flex gap-4 pt-2">
-              <label className="flex items-center gap-2 text-sm"><Checkbox checked={formData.mother_status === "Living"} onCheckedChange={() => handleSelect("mother_status", "Living")} /> Living</label>
-              <label className="flex items-center gap-2 text-sm"><Checkbox checked={formData.mother_status === "Deceased"} onCheckedChange={() => handleSelect("mother_status", "Deceased")} /> Deceased</label>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

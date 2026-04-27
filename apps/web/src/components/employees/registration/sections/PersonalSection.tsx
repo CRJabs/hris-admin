@@ -2,14 +2,18 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 
 interface PersonalDataProps {
   formData: any;
   handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSelect: (name: string, value: string) => void;
+  handleGrid: (key: string, data: any[]) => void;
+  langCols: any[];
 }
 
-export const PersonalSection: React.FC<PersonalDataProps> = ({ formData, handleChange, handleSelect }) => {
+export const PersonalSection: React.FC<PersonalDataProps> = ({ formData, handleChange, handleSelect, handleGrid, langCols }) => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="bg-white p-6 rounded-xl border shadow-sm">
@@ -57,6 +61,60 @@ export const PersonalSection: React.FC<PersonalDataProps> = ({ formData, handleC
           <div className="space-y-1"><Label>Blood Type</Label><Input name="blood_type" value={formData.blood_type} onChange={handleChange} /></div>
           <div className="space-y-1"><Label>Distinguishing Marks</Label><Input name="distinguishing_marks" value={formData.distinguishing_marks} onChange={handleChange} /></div>
         </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border shadow-sm">
+        <h2 className="text-xl font-bold mb-6 text-slate-800 border-b pb-2">Parents Information</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <div className="space-y-1"><Label>Father's Full Name</Label><Input name="father_name" value={formData.father_name} onChange={handleChange} /></div>
+            <div className="flex items-center gap-6 px-1">
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <Checkbox 
+                  checked={formData.father_status === "Living"} 
+                  onCheckedChange={(checked) => handleSelect('father_status', checked ? 'Living' : 'Deceased')}
+                />
+                Living
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <Checkbox 
+                  checked={formData.father_status === "Deceased"} 
+                  onCheckedChange={(checked) => handleSelect('father_status', checked ? 'Deceased' : 'Living')}
+                />
+                Deceased
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-1"><Label>Mother's Maiden Name</Label><Input name="mother_maiden_name" value={formData.mother_maiden_name} onChange={handleChange} /></div>
+            <div className="flex items-center gap-6 px-1">
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <Checkbox 
+                  checked={formData.mother_status === "Living"} 
+                  onCheckedChange={(checked) => handleSelect('mother_status', checked ? 'Living' : 'Deceased')}
+                />
+                Living
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <Checkbox 
+                  checked={formData.mother_status === "Deceased"} 
+                  onCheckedChange={(checked) => handleSelect('mother_status', checked ? 'Deceased' : 'Living')}
+                />
+                Deceased
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border shadow-sm">
+        <DynamicGrid 
+          title="Languages & Literacy" 
+          columns={langCols} 
+          data={formData.languages || []} 
+          onChange={(d: any) => handleGrid('languages', d)} 
+        />
       </div>
 
       <div className="bg-white p-6 rounded-xl border shadow-sm">

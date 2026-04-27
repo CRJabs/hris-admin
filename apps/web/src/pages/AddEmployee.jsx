@@ -15,8 +15,6 @@ import PersonalDetailsTab from "@/components/employees/profile/PersonalDetailsTa
 import EducationTab from "@/components/employees/profile/EducationTab";
 import TrainingDevTab from "@/components/employees/profile/TrainingDevTab";
 import EmploymentInfoTab from "@/components/employees/profile/EmploymentInfoTab";
-import CredentialsTab from "@/components/employees/profile/CredentialsTab";
-import SkillsTab from "@/components/employees/profile/SkillsTab";
 
 const defaultEmployee = {
   first_name: "", middle_name: "", last_name: "", titles: "", gender: "Male", birthdate: "",
@@ -218,13 +216,10 @@ export default function AddEmployee() {
                     <GraduationCap className="w-4 h-4" /> Education
                   </TabsTrigger>
                   <TabsTrigger value="training" className="gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                    <Award className="w-4 h-4" /> Training
+                    <Award className="w-4 h-4" /> Trainings and Development
                   </TabsTrigger>
                   <TabsTrigger value="employment" className="gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
                     <Briefcase className="w-4 h-4" /> Employment
-                  </TabsTrigger>
-                  <TabsTrigger value="credentials" className="gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                    <ShieldCheck className="w-4 h-4" /> Credentials
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -260,20 +255,6 @@ export default function AddEmployee() {
                     isReadOnly={false} 
                     errors={errors}
                   />
-                </TabsContent>
-                <TabsContent value="credentials" className="m-0 focus-visible:ring-0">
-                  <div className="grid grid-cols-1 gap-8">
-                    <CredentialsTab 
-                      employee={employeeData} 
-                      isEditing={true} 
-                      onUpdate={(field, newData) => handleFieldChange(field, newData)} 
-                    />
-                    <SkillsTab 
-                      employee={employeeData} 
-                      isEditing={true} 
-                      onUpdate={(field, newData) => handleFieldChange(field, newData)} 
-                    />
-                  </div>
                 </TabsContent>
               </div>
             </Tabs>

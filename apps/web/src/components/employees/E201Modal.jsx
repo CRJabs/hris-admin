@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Check, X, Save, Edit3, ShieldCheck } from "lucide-react";
+import { User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Check, X, Save, Edit3, ShieldCheck, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import PersonalDetailsTab from "./profile/PersonalDetailsTab";
@@ -10,8 +10,7 @@ import EducationTab from "./profile/EducationTab";
 import TrainingDevTab from "./profile/TrainingDevTab";
 import EmploymentInfoTab from "./profile/EmploymentInfoTab";
 import LeaveTab from "./profile/LeaveTab";
-import CredentialsTab from "./profile/CredentialsTab";
-import SkillsTab from "./profile/SkillsTab";
+import BenefitsTab from "./profile/BenefitsTab";
 
 export default function E201Modal({ employee, open, onOpenChange, onToggleActive, onSave }) {
   const [editedEmployee, setEditedEmployee] = useState(null);
@@ -150,19 +149,19 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
             </TabsTrigger>
             <TabsTrigger value="training" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
               <Award className="w-3.5 h-3.5" />
-              Training & Development
+              Trainings and Development
             </TabsTrigger>
             <TabsTrigger value="employment" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
               <Briefcase className="w-3.5 h-3.5" />
               Employment Info
             </TabsTrigger>
-            <TabsTrigger value="credentials" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Credentials & Skills
-            </TabsTrigger>
             <TabsTrigger value="leave" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
               <CalendarDays className="w-3.5 h-3.5" />
               Leave Credits
+            </TabsTrigger>
+            <TabsTrigger value="benefits" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
+              <Gift className="w-3.5 h-3.5" />
+              Benefits
             </TabsTrigger>
           </TabsList>
 
@@ -173,6 +172,7 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
               onToggleActive={onToggleActive} 
               isReadOnly={true} 
               isEditMode={isEditMode}
+              isAdminView={true}
               requestedChanges={requestedChanges ? baselineEmployee : null} 
             />
           </TabsContent>
@@ -185,14 +185,11 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
           <TabsContent value="employment" className="mt-4">
             <EmploymentInfoTab employee={editedEmployee} onChange={handleFieldChange} isReadOnly={!isEditMode} requestedChanges={requestedChanges ? baselineEmployee : null} />
           </TabsContent>
-          <TabsContent value="credentials" className="mt-4">
-            <div className="grid grid-cols-1 gap-6">
-              <CredentialsTab employee={editedEmployee} isEditing={false} requestedChanges={requestedChanges ? baselineEmployee : null} />
-              <SkillsTab employee={editedEmployee} isEditing={false} requestedChanges={requestedChanges ? baselineEmployee : null} />
-            </div>
-          </TabsContent>
           <TabsContent value="leave" className="mt-4">
             <LeaveTab employee={editedEmployee} onChange={handleFieldChange} isReadOnly={!isEditMode} requestedChanges={requestedChanges ? baselineEmployee : null} />
+          </TabsContent>
+          <TabsContent value="benefits" className="mt-4">
+            <BenefitsTab employee={editedEmployee} />
           </TabsContent>
         </Tabs>
 

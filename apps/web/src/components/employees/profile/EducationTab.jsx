@@ -23,7 +23,7 @@ export default function EducationTab({ employee, isReadOnly = false, isEditing =
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-none border-muted">
+      <Card className="shadow-sm border-slate-300">
         <CardHeader className="flex flex-row items-center justify-between pb-2 bg-[#0C005F]/5">
           <CardTitle className="text-sm font-bold flex items-center gap-2">
             <GraduationCap className="w-5 h-5 text-primary" />

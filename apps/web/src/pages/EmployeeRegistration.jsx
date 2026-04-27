@@ -14,8 +14,6 @@ import { PersonalSection } from "../components/employees/registration/sections/P
 import { FamilySection } from "../components/employees/registration/sections/FamilySection";
 import { HistorySection } from "../components/employees/registration/sections/HistorySection";
 import { EducationSection } from "../components/employees/registration/sections/EducationSection";
-import { SkillsSection } from "../components/employees/registration/sections/SkillsSection";
-import { CredentialsSection } from "../components/employees/registration/sections/CredentialsSection";
 import { SubmissionSection } from "../components/employees/registration/sections/SubmissionSection";
 
 // Grid Span Distributions
@@ -112,8 +110,8 @@ export default function EmployeeRegistration() {
     contact_phone: "", contact_email: "",
 
     // Parents
-    father_name: "", father_occupation: "", father_status: "Living",
-    mother_name: "", mother_occupation: "", mother_status: "Living",
+    father_name: "", father_status: "Living",
+    mother_maiden_name: "", mother_status: "Living",
 
     // Tax & IDs
     sss: "", tin: "", philhealth: "", pag_ibig: "", peraa: "", tax_status: "Single",
@@ -359,9 +357,7 @@ export default function EmployeeRegistration() {
     { id: "personal", label: "Personal Data", icon: User },
     { id: "family", label: "Family & Contacts", icon: Users },
     { id: "history", label: "Previous Employment", icon: BookOpen },
-    { id: "education", label: "Education & Training", icon: GraduationCap },
-    { id: "background", label: "Certification & Skills", icon: Award },
-    { id: "credentials", label: "Credentials", icon: Shield },
+    { id: "education", label: "Education, Training & Skills", icon: GraduationCap },
     { id: "certify", label: "Submission", icon: CheckCircle },
   ];
 
@@ -441,7 +437,7 @@ export default function EmployeeRegistration() {
         <ScrollArea className="flex-1 bg-slate-50 relative p-4 md:p-8">
           <div className="max-w-5xl mx-auto pb-32">
             {activeTab === "personal" && (
-              <PersonalSection formData={formData} handleChange={handleChange} handleSelect={handleSelect} />
+              <PersonalSection formData={formData} handleChange={handleChange} handleSelect={handleSelect} handleGrid={handleGrid} langCols={langCols} />
             )}
             {activeTab === "family" && (
               <FamilySection 
@@ -457,26 +453,18 @@ export default function EmployeeRegistration() {
               <HistorySection formData={formData} handleGrid={handleGrid} prevEmpCols={prevEmpCols} />
             )}
             {activeTab === "education" && (
-              <EducationSection formData={formData} handleGrid={handleGrid} eduCols={eduCols} trainCols={trainCols} />
-            )}
-            {activeTab === "background" && (
-              <SkillsSection 
+              <EducationSection 
                 formData={formData} 
                 handleGrid={handleGrid} 
-                langCols={langCols} 
-                skillsCols={skillsCols} 
-                awardsCols={awardsCols} 
-                extraCols={extraCols} 
-                affiliationCols={affiliationCols} 
-              />
-            )}
-            {activeTab === "credentials" && (
-              <CredentialsSection 
-                formData={formData} 
-                handleGrid={handleGrid} 
-                licenseCols={licenseCols} 
-                examsCols={examsCols} 
-                scholarCols={scholarCols} 
+                eduCols={eduCols} 
+                trainCols={trainCols} 
+                skillsCols={skillsCols}
+                awardsCols={awardsCols}
+                extraCols={extraCols}
+                affiliationCols={affiliationCols}
+                licenseCols={licenseCols}
+                examsCols={examsCols}
+                scholarCols={scholarCols}
               />
             )}
             {activeTab === "certify" && (

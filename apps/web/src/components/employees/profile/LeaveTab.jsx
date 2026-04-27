@@ -14,7 +14,7 @@ function LeaveBalanceCard({ title, total, used, isCommutable, isReadOnly }) {
   else if (percentage < 60) colorClass = "bg-amber-500 text-white";
 
   return (
-    <Card className="shadow-none border-muted overflow-hidden">
+    <Card className="shadow-sm border-slate-300 overflow-hidden">
        <div className={`h-2 ${colorClass}`} style={{ width: `${percentage}%` }} />
        <CardContent className="p-4 pt-3">
          <div className="flex justify-between items-start mb-2">
@@ -100,7 +100,7 @@ export default function LeaveTab({ employee, isReadOnly = false, onChange, reque
         <LeaveBalanceCard title="Leave without Pay" total={0} used={2} isCommutable={false} isReadOnly={isReadOnly} />
       </div>
 
-      <Card className="shadow-none border-muted mt-8">
+      <Card className="shadow-sm border-slate-300 mt-8">
          <CardHeader className="p-4 pb-2">
            <CardTitle className="text-sm font-bold flex items-center gap-2">
              <Activity className="w-4 h-4 text-primary" />

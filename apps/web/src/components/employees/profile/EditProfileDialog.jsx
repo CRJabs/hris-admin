@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -217,7 +218,7 @@ export default function EditProfileDialog({ employee, buttonLabel = "Edit Person
                 <TabsTrigger value="profiling" className="text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">Personal Data</TabsTrigger>
                 <TabsTrigger value="social" className="text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">Family & Social</TabsTrigger>
                 <TabsTrigger value="education" className="text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">Educational Record</TabsTrigger>
-                <TabsTrigger value="training" className="text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">Trainings</TabsTrigger>
+                <TabsTrigger value="training" className="text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">Trainings and Development</TabsTrigger>
                 <TabsTrigger value="certification" className="text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">Credentials & Skills</TabsTrigger>
                 <TabsTrigger value="others" className="text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">Others</TabsTrigger>
               </TabsList>
@@ -347,6 +348,22 @@ export default function EditProfileDialog({ employee, buttonLabel = "Edit Person
                               <Label className="text-[11px] uppercase opacity-60">Full Name</Label>
                               <Input name="father_name" value={formData.father_name} onChange={handleChange} />
                            </div>
+                           <div className="flex items-center gap-4 pt-1">
+                              <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                                <Checkbox 
+                                  checked={formData.father_status === "Living"} 
+                                  onCheckedChange={(checked) => setFormData({ ...formData, father_status: checked ? 'Living' : 'Deceased' })}
+                                />
+                                Living
+                              </label>
+                              <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                                <Checkbox 
+                                  checked={formData.father_status === "Deceased"} 
+                                  onCheckedChange={(checked) => setFormData({ ...formData, father_status: checked ? 'Deceased' : 'Living' })}
+                                />
+                                Deceased
+                              </label>
+                           </div>
                            <div className="space-y-1">
                               <Label className="text-[11px] uppercase opacity-60">Occupation</Label>
                               <Input name="father_occupation" value={formData.father_occupation} onChange={handleChange} />
@@ -361,6 +378,22 @@ export default function EditProfileDialog({ employee, buttonLabel = "Edit Person
                            <div className="space-y-1">
                               <Label className="text-[11px] uppercase opacity-60">Full Name</Label>
                               <Input name="mother_name" value={formData.mother_name} onChange={handleChange} />
+                           </div>
+                           <div className="flex items-center gap-4 pt-1">
+                              <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                                <Checkbox 
+                                  checked={formData.mother_status === "Living"} 
+                                  onCheckedChange={(checked) => setFormData({ ...formData, mother_status: checked ? 'Living' : 'Deceased' })}
+                                />
+                                Living
+                              </label>
+                              <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                                <Checkbox 
+                                  checked={formData.mother_status === "Deceased"} 
+                                  onCheckedChange={(checked) => setFormData({ ...formData, mother_status: checked ? 'Deceased' : 'Living' })}
+                                />
+                                Deceased
+                              </label>
                            </div>
                            <div className="space-y-1">
                               <Label className="text-[11px] uppercase opacity-60">Occupation</Label>

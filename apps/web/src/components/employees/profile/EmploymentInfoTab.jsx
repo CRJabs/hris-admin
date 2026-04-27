@@ -46,7 +46,7 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, onChan
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Active Employment Information */}
-      <Card className="shadow-none border-muted">
+      <Card className="shadow-sm border-slate-300">
         <CardHeader className="p-4 pb-2">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
             <Briefcase className="w-5 h-5 text-primary" />
@@ -124,7 +124,7 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, onChan
       </Card>
 
       {/* Employment History Timeline */}
-      <Card className="shadow-none border-muted">
+      <Card className="shadow-sm border-slate-300">
         <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
             <CalendarClock className="w-5 h-5 text-primary" />
