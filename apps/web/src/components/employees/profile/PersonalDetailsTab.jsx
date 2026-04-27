@@ -27,7 +27,7 @@ function SectionBlock({ title, icon: Icon, children, action }) {
   );
 }
 
-function InfoRow({ label, value, name, onChange, isEditing, type = "text", className = "", isUpdated = false }) {
+function InfoRow({ label, value, name, onChange, isEditing, type = "text", className = "", isUpdated = false, isError = false }) {
   return (
     <div className={`py-1.5 px-2 rounded-md transition-colors ${isUpdated ? 'bg-amber-50 border border-amber-200/50 shadow-sm' : ''} ${className}`}>
       <div className="flex items-center justify-between">
@@ -44,7 +44,7 @@ function InfoRow({ label, value, name, onChange, isEditing, type = "text", class
           name={name}
           value={value || ""} 
           onChange={(e) => onChange(name, e.target.value)}
-          className="h-8 text-sm mt-1"
+          className={`h-8 text-sm mt-1 ${isError ? 'border-red-500 focus-visible:ring-red-500 bg-red-50/50' : ''}`}
         />
       ) : (
         <p className="text-sm font-medium mt-0.5">{value || "—"}</p>
@@ -53,7 +53,7 @@ function InfoRow({ label, value, name, onChange, isEditing, type = "text", class
   );
 }
 
-export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnly = false, showPhotoUpload = false, onChange, isEditMode = false, requestedChanges = null }) {
+export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnly = false, showPhotoUpload = false, onChange, isEditMode = false, requestedChanges = null, errors = {} }) {
   const { toast } = useToast();
   const statusColor = {
     Regular: "bg-green-50 text-green-700 border-green-200",
@@ -170,12 +170,43 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                   </label>
                 )}
               </div>
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <h3 className="text-xl font-bold">
-                  {employee.first_name} {employee.middle_name?.[0] ? employee.middle_name[0] + "." : ""} {employee.last_name}
-                  {employee.titles && <span className="text-sm font-normal text-muted-foreground ml-2">, {employee.titles}</span>}
-                </h3>
-              </div>
+              {isEditMode ? (
+                <div className="flex flex-col items-center gap-2 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 w-full">
+                    <Input 
+                      className={`h-8 text-sm text-center ${errors.first_name ? 'border-red-500 bg-red-50' : ''}`}
+                      placeholder="First Name"
+                      value={employee.first_name || ""}
+                      onChange={(e) => onChange('first_name', e.target.value)}
+                    />
+                    <Input 
+                      className="h-8 text-sm text-center"
+                      placeholder="Middle Name"
+                      value={employee.middle_name || ""}
+                      onChange={(e) => onChange('middle_name', e.target.value)}
+                    />
+                    <Input 
+                      className={`h-8 text-sm text-center ${errors.last_name ? 'border-red-500 bg-red-50' : ''}`}
+                      placeholder="Last Name"
+                      value={employee.last_name || ""}
+                      onChange={(e) => onChange('last_name', e.target.value)}
+                    />
+                  </div>
+                  <Input 
+                    className="h-7 text-xs text-center w-1/2"
+                    placeholder="Titles (e.g. PhD, LPT)"
+                    value={employee.titles || ""}
+                    onChange={(e) => onChange('titles', e.target.value)}
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <h3 className="text-xl font-bold">
+                    {employee.first_name} {employee.middle_name?.[0] ? employee.middle_name[0] + "." : ""} {employee.last_name}
+                    {employee.titles && <span className="text-sm font-normal text-muted-foreground ml-2">, {employee.titles}</span>}
+                  </h3>
+                </div>
+              )}
               
               {isEditMode ? (
                 <div className="flex flex-col items-center gap-1 mb-2">
@@ -284,6 +315,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                     onChange={onChange} 
                     isEditing={isEditing} 
                     isUpdated={checkUpdated('birthdate')}
+                    isError={!!errors.birthdate}
                   />
                   <InfoRow label="Civil Status" value={employee.civil_status} name="civil_status" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('civil_status')} />
                   <InfoRow label="Nationality" value={employee.nationality || "Filipino"} name="nationality" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('nationality')} />
@@ -297,9 +329,25 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                   <InfoRow label="Height (cm)" value={employee.height} name="height" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('height')} />
                   <InfoRow label="Weight (lbs)" value={employee.weight} name="weight" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('weight')} />
                   <InfoRow label="Blood Type" value={employee.blood_type} name="blood_type" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('blood_type')} />
-                  <InfoRow label="Phone" value={employee.contact_phone || employee.phone} name="contact_phone" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('contact_phone') || checkUpdated('phone')} />
+                  <InfoRow 
+                    label="Phone" 
+                    value={employee.contact_phone || employee.phone} 
+                    name="contact_phone" 
+                    onChange={onChange} 
+                    isEditing={isEditing} 
+                    isUpdated={checkUpdated('contact_phone') || checkUpdated('phone')} 
+                    isError={!!errors.contact_phone}
+                  />
                 </div>
-                <InfoRow label="Email" value={employee.contact_email || employee.email} name="contact_email" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('contact_email') || checkUpdated('email')} />
+                <InfoRow 
+                  label="Email" 
+                  value={employee.contact_email || employee.email} 
+                  name="contact_email" 
+                  onChange={onChange} 
+                  isEditing={isEditing} 
+                  isUpdated={checkUpdated('contact_email') || checkUpdated('email')} 
+                  isError={!!errors.contact_email}
+                />
                 <InfoRow label="Distinguishing Marks" value={employee.distinguishing_marks} name="distinguishing_marks" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('distinguishing_marks')} />
               </div>
 

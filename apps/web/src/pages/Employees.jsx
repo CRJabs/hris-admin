@@ -8,6 +8,7 @@ import EmployeeTable from "@/components/employees/EmployeeTable";
 import E201Modal from "@/components/employees/E201Modal";
 import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
+import { UserPlus } from "lucide-react";
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -15,10 +16,11 @@ export default function Employees() {
   const [isLoading, setIsLoading] = useState(true);
   
   const [globalSearch, setGlobalSearch] = useState("");
-  const [filters, setFilters] = useState({ departments: [], statuses: [], active: "All" });
+  const [filters, setFilters] = useState({ departments: [], statuses: [], classifications: [], active: "All" });
   
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [sortConfig, setSortConfig] = useState({ key: 'last_name', direction: 'asc' });
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -67,12 +69,12 @@ export default function Employees() {
   };
 
   const clearFilters = () => {
-    setFilters({ departments: [], statuses: [], active: "All" });
+    setFilters({ departments: [], statuses: [], classifications: [], active: "All" });
     setGlobalSearch("");
   };
 
   const filteredEmployees = useMemo(() => {
-    return employees.filter((emp) => {
+    let result = employees.filter((emp) => {
       const search = (globalSearch || "").toLowerCase();
       const matchesSearch = !search ||
         `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(search) ||
@@ -83,20 +85,58 @@ export default function Employees() {
 
       const matchesDept = !filters.departments?.length || filters.departments.includes(emp.department);
       const matchesStatus = !filters.statuses?.length || filters.statuses.includes(emp.employment_status);
+      const matchesClassification = !filters.classifications?.length || filters.classifications.includes(emp.employment_classification);
       const matchesActive = filters.active === "All" ||
         (filters.active === "Active" && emp.is_active) ||
         (filters.active === "Inactive" && !emp.is_active);
 
-      return matchesSearch && matchesDept && matchesStatus && matchesActive;
+      return matchesSearch && matchesDept && matchesStatus && matchesClassification && matchesActive;
     }).map(emp => {
        const empPendingRequests = pendingRequests.filter(req => req.employee_id === emp.id);
        return { ...emp, pendingRequests: empPendingRequests };
     });
-  }, [employees, filters, globalSearch, pendingRequests]);
+
+    // Sorting
+    if (sortConfig.key) {
+      result.sort((a, b) => {
+        const aVal = a[sortConfig.key] || "";
+        const bVal = b[sortConfig.key] || "";
+        
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [employees, filters, globalSearch, pendingRequests, sortConfig]);
 
   const handleViewE201 = (emp) => {
     setSelectedEmployee(emp);
     setModalOpen(true);
+  };
+
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const handleDeleteEmployee = async (emp) => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', emp.id);
+
+      if (error) throw error;
+
+      setEmployees(prev => prev.filter(e => e.id !== emp.id));
+      toast.success(`Records for ${emp.first_name} ${emp.last_name} have been deleted.`);
+    } catch (err) {
+      toast.error("Failed to delete records");
+    }
   };
 
   const handleToggleActive = async (emp) => {
@@ -125,7 +165,7 @@ export default function Employees() {
   };
 
   return (
-    <div className="p-6 space-y-5 max-w-350 mx-auto">
+    <div className="p-6 space-y-5 max-w-[1440px] mx-auto">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-[300px]">
           <div className="relative w-full max-w-md">
@@ -145,6 +185,10 @@ export default function Employees() {
           <EmployeeFilters filters={filters} onFilterChange={handleFilterChange} onClear={clearFilters} />
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <Button onClick={() => navigate("/employees/add")} className="gap-2 text-xs bg-[#0C005F] hover:bg-[#0C005F]/90">
+            <UserPlus className="w-3.5 h-3.5" />
+            Add Employee
+          </Button>
           <Button variant="outline" size="sm" className="gap-2 text-xs">
             <Upload className="w-3.5 h-3.5" />
             Import Data (.csv)
@@ -164,7 +208,10 @@ export default function Employees() {
         employees={filteredEmployees}
         onViewE201={handleViewE201}
         onToggleActive={handleToggleActive}
+        onDelete={handleDeleteEmployee}
         isLoading={isLoading}
+        onSort={handleSort}
+        sortConfig={sortConfig}
       />
 
       <E201Modal

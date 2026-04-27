@@ -4,9 +4,9 @@ import { Plus, Briefcase, CalendarClock, PenTool } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { EMPLOYMENT_CLASSIFICATIONS } from "@/lib/constants";
+import { EMPLOYMENT_CLASSIFICATIONS, DEPARTMENTS } from "@/lib/constants";
 
-function InfoRow({ label, value, name, onChange, isReadOnly, type = "text", isUpdated = false }) {
+function InfoRow({ label, value, name, onChange, isReadOnly, type = "text", isUpdated = false, isError = false }) {
   return (
     <div className={`flex items-center justify-between py-2 px-2 rounded-md transition-colors ${isUpdated ? 'bg-amber-50 border border-amber-200/50 shadow-sm' : 'border-b last:border-0'}`}>
       <div className="w-full pr-4">
@@ -24,7 +24,7 @@ function InfoRow({ label, value, name, onChange, isReadOnly, type = "text", isUp
             name={name}
             value={value || ""} 
             onChange={(e) => onChange(name, e.target.value)}
-            className="h-8 text-sm mt-1 w-full max-w-sm"
+            className={`h-8 text-sm mt-1 w-full max-w-sm ${isError ? 'border-red-500 focus-visible:ring-red-500 bg-red-50/50' : ''}`}
           />
         ) : (
           <p className="text-sm font-medium mt-0.5">{value || "—"}</p>
@@ -34,7 +34,7 @@ function InfoRow({ label, value, name, onChange, isReadOnly, type = "text", isUp
   );
 }
 
-export default function EmploymentInfoTab({ employee, isReadOnly = false, onChange, requestedChanges = null }) {
+export default function EmploymentInfoTab({ employee, isReadOnly = false, onChange, requestedChanges = null, errors = {} }) {
   const checkUpdated = (name) => {
     if (!requestedChanges) return false;
     if (requestedChanges[name] !== undefined && requestedChanges[name] !== employee[name]) {
@@ -98,8 +98,26 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, onChan
                  )}
                </div>
              </div>
-             <InfoRow label="Position" value={employee.position} name="position" onChange={onChange} isReadOnly={isReadOnly} isUpdated={checkUpdated('position')} />
-             <InfoRow label="College/Department" value={employee.department} name="department" onChange={onChange} isReadOnly={isReadOnly} isUpdated={checkUpdated('department')} />
+             <InfoRow label="Position" value={employee.position} name="position" onChange={onChange} isReadOnly={isReadOnly} isUpdated={checkUpdated('position')} isError={!!errors.position} />
+             <div className={`flex items-center justify-between py-2 px-2 rounded-md transition-colors ${checkUpdated('department') ? 'bg-amber-50 border border-amber-200/50 shadow-sm' : 'border-b last:border-0'} ${errors.department ? 'bg-red-50 border-red-200' : ''}`}>
+               <div className="w-full pr-4">
+                 <p className="text-[11px] text-muted-foreground uppercase tracking-wider">College/Department</p>
+                 {!isReadOnly ? (
+                   <select 
+                     className={`flex h-8 w-full max-w-sm items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 mt-1 ${errors.department ? 'border-red-500 ring-red-500' : ''}`}
+                     value={employee.department || ""}
+                     onChange={(e) => onChange('department', e.target.value)}
+                   >
+                     <option value="" disabled>Select Department</option>
+                     {DEPARTMENTS.map(dept => (
+                       <option key={dept} value={dept}>{dept}</option>
+                     ))}
+                   </select>
+                 ) : (
+                   <p className="text-sm font-medium mt-0.5">{employee.department || "—"}</p>
+                 )}
+               </div>
+             </div>
              <InfoRow label="Employee Status" value={employee.is_active ? "Active" : "Inactive"} isReadOnly={true} />
           </div>
         </CardContent>

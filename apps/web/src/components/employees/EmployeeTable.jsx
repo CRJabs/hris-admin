@@ -2,8 +2,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Eye, Archive, UserCheck, AlertCircle } from "lucide-react";
+import { 
+  MoreHorizontal, Eye, Archive, UserCheck, AlertCircle, 
+  Trash2, ArrowUpDown 
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  AlertDialog, AlertDialogAction, AlertDialogCancel, 
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter, 
+  AlertDialogHeader, AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 const statusStyles = {
   Regular: "bg-green-50 text-green-700 border-green-200",
@@ -11,17 +21,57 @@ const statusStyles = {
   Contractual: "bg-blue-50 text-blue-700 border-blue-200",
 };
 
-export default function EmployeeTable({ employees, onViewE201, onToggleActive, isLoading }) {
+export default function EmployeeTable({ employees, onViewE201, onToggleActive, onDelete, isLoading, onSort, sortConfig }) {
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState(null);
+
+  const SortButton = ({ column, label }) => (
+    <button 
+      onClick={(e) => { e.stopPropagation(); onSort?.(column); }}
+      className="flex items-center gap-1 hover:text-foreground transition-colors group"
+    >
+      {label}
+      <ArrowUpDown className={cn(
+        "w-3 h-3 transition-colors",
+        sortConfig?.key === column ? "text-primary" : "text-muted-foreground/50 group-hover:text-muted-foreground"
+      )} />
+    </button>
+  );
+
+  const handleDeleteClick = (e, emp) => {
+    e.stopPropagation();
+    setEmployeeToDelete(emp);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (employeeToDelete) {
+      onDelete?.(employeeToDelete);
+    }
+    setDeleteConfirmOpen(false);
+    setEmployeeToDelete(null);
+  };
+
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="text-xs font-semibold uppercase tracking-wider w-25">ID</TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">Employee</TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">Department</TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">Position</TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider w-25">
+              <SortButton column="employee_id" label="ID" />
+            </TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider">
+              <SortButton column="last_name" label="Employee" />
+            </TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider">
+              <SortButton column="department" label="Department" />
+            </TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider">
+              <SortButton column="position" label="Position" />
+            </TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider">
+              <SortButton column="employment_status" label="Status" />
+            </TableHead>
             <TableHead className="text-xs font-semibold uppercase tracking-wider text-center w-15">Active</TableHead>
             <TableHead className="text-xs font-semibold uppercase tracking-wider w-15"></TableHead>
           </TableRow>
@@ -86,10 +136,10 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, i
                         <MoreHorizontal className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onViewE201(emp); }}>
                         <Eye className="w-4 h-4 mr-2" />
-                        View E201
+                        View Details
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggleActive(emp); }}>
                         {emp.is_active ? (
@@ -97,6 +147,14 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, i
                         ) : (
                           <><UserCheck className="w-4 h-4 mr-2" />Reactivate</>
                         )}
+                      </DropdownMenuItem>
+                      <div className="h-px bg-muted my-1" />
+                      <DropdownMenuItem 
+                        onClick={(e) => handleDeleteClick(e, emp)}
+                        className="text-red-600 focus:text-red-700 focus:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Records
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -106,6 +164,30 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, i
           )}
         </TableBody>
       </Table>
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="w-5 h-5" />
+              Confirm Record Deletion
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the records of <strong>{employeeToDelete?.first_name} {employeeToDelete?.last_name}</strong>? 
+              This action is permanent and will completely remove all associated employee data from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => { e.stopPropagation(); confirmDelete(); }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Confirm Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

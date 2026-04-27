@@ -196,7 +196,7 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
           </TabsContent>
         </Tabs>
 
-        {pendingRequests.length > 0 && (
+        {pendingRequests.length > 0 && activeRequest?.status === 'pending' && (
           <div className="p-6 border-t bg-muted/20 flex items-center justify-end gap-3 sticky bottom-0 z-50 backdrop-blur-sm">
              <div className="mr-auto text-xs text-muted-foreground">
                {pendingRequests.length} pending request(s) for this employee

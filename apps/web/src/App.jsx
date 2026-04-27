@@ -24,6 +24,9 @@ const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const EmployeeRegistration = lazy(() => import('@/pages/EmployeeRegistration'));
 const Register = lazy(() => import('@/pages/Register'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
+const AddEmployee = lazy(() => import('@/pages/AddEmployee'));
+const ProfileUpdates = lazy(() => import('@/pages/approvals/ProfileUpdates'));
+const NewRegistrations = lazy(() => import('@/pages/approvals/NewRegistrations'));
 
 // Loading component
 const PageLoader = () => (
@@ -61,8 +64,11 @@ const AuthenticatedApp = () => {
         <Route element={<AppLayout />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/approvals" element={<Approvals />} />
+          <Route path="/approvals" element={<Navigate to="/approvals/updates" replace />} />
+          <Route path="/approvals/updates" element={<ProfileUpdates />} />
+          <Route path="/approvals/registrations" element={<NewRegistrations />} />
           <Route path="/employees" element={<Employees />} />
+          <Route path="/employees/add" element={<AddEmployee />} />
           <Route path="/payroll" element={<Payroll />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
