@@ -112,6 +112,16 @@ export default function Approvals() {
 
       if (error) throw error;
 
+      // Notify the employee
+      await supabase.from('notifications').insert({
+        employee_id: req.employee_id,
+        type: status === 'approved' ? 'approved' : 'rejected',
+        title: `Profile Update ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        message: status === 'approved' 
+          ? "Your profile update request has been approved and applied." 
+          : "Your profile update request was rejected by the HR administration."
+      });
+
       toast.success(`Request ${status} successfully.`);
       fetchRequests();
     } catch (err) {
@@ -127,6 +137,15 @@ export default function Approvals() {
           .update({ is_active: true, employment_status: 'Probationary' }) // Default approved status
           .eq('id', emp.id);
         if (error) throw error;
+
+        // Notify the employee (Welcome message)
+        await supabase.from('notifications').insert({
+          employee_id: emp.id,
+          type: 'approved',
+          title: "Welcome to UB HRIS",
+          message: "Your registration has been approved! You can now access all features of the HRIS."
+        });
+
         toast.success(`Registration for ${emp.first_name} approved.`);
       } else {
         const { error } = await supabase

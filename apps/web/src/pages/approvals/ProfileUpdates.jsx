@@ -65,6 +65,16 @@ export default function ProfileUpdates() {
 
       if (error) throw error;
 
+      // Notify the employee
+      await supabase.from('notifications').insert({
+        employee_id: req.employee_id,
+        type: status === 'approved' ? 'approved' : 'rejected',
+        title: `Profile Update ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        message: status === 'approved' 
+          ? "Your profile update request has been approved and applied." 
+          : "Your profile update request was rejected by the HR administration."
+      });
+
       toast.success(`Request ${status} successfully.`);
       fetchRequests();
     } catch (err) {

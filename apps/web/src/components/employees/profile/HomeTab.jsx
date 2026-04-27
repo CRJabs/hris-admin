@@ -10,8 +10,33 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
-export default function HomeTab({ employee, onViewProfile, notifications = [] }) {
+export default function HomeTab({ employee, onViewProfile, notifications = [], leaveCredits = [] }) {
   const today = new Date();
+
+  // Use DB credits if available, otherwise fallback to the derived logic for initial state
+  const displayCredits = leaveCredits.length > 0 
+    ? leaveCredits.map(c => ({
+        type: `${c.leave_type} Leave${c.is_commutable ? ' (Comm)' : ' (Non-Comm)'}`,
+        total: parseFloat(c.total_credits),
+        used: parseFloat(c.used_credits),
+        color: c.leave_type === 'Vacation' ? 'bg-blue-500' :
+               c.leave_type === 'Sick' ? 'bg-rose-500' :
+               c.leave_type === 'Family' ? 'bg-emerald-500' :
+               c.leave_type === 'Force' ? 'bg-amber-500' : 'bg-slate-500'
+      }))
+    : (employee.classification === "Teaching" ? [
+        { type: 'Vacation Leave', total: 7, used: 2, color: 'bg-blue-500' },
+        { type: 'Family Leave', total: 4, used: 1, color: 'bg-emerald-500' },
+      ] : [
+        { type: 'Vacation Leave (Comm)', total: 10, used: 3, color: 'bg-blue-500' },
+        { type: 'Vacation Leave (Non-Comm)', total: 5, used: 0, color: 'bg-cyan-500' },
+        { type: 'Family Leave', total: 4, used: 0, color: 'bg-emerald-500' },
+      ]).concat([
+        { type: 'Sick Leave', total: 15, used: 5, color: 'bg-rose-500' },
+        { type: 'Bereavement Leave', total: 3, used: 0, color: 'bg-slate-500' },
+        { type: 'Force Leave (Comm)', total: 5, used: 0, color: 'bg-amber-500' },
+        { type: 'Force Leave (Non-Comm)', total: 5, used: 0, color: 'bg-orange-500' },
+      ]);
   
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -19,7 +44,9 @@ export default function HomeTab({ employee, onViewProfile, notifications = [] })
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0C005F] via-[#1a106d] to-[#0C005F] p-10 text-white shadow-xl min-h-[350px] flex items-center">
         <div className="relative z-10 w-full flex flex-col md:flex-row items-center gap-10">
           <Avatar className="w-56 h-56 border-4 border-white/20 shadow-2xl">
-            <AvatarImage src={employee.photo_url} alt={employee.first_name} className="object-cover" />
+            {employee.photo_url && (
+              <AvatarImage src={employee.photo_url} alt={employee.first_name} className="object-cover" />
+            )}
             <AvatarFallback className="text-4xl bg-white/10 text-white font-black">
               {employee.first_name?.[0]}{employee.last_name?.[0]}
             </AvatarFallback>
@@ -113,19 +140,7 @@ export default function HomeTab({ employee, onViewProfile, notifications = [] })
           <CardContent className="p-5 flex-1 overflow-hidden">
             <ScrollArea className="h-full pr-4">
                <div className="space-y-4">
-                  {(employee.classification === "Teaching" ? [
-                    { type: 'Vacation Leave', total: 7, used: 2, color: 'bg-blue-500' },
-                    { type: 'Family Leave', total: 4, used: 1, color: 'bg-emerald-500' },
-                  ] : [
-                    { type: 'Vacation Leave (Comm)', total: 10, used: 3, color: 'bg-blue-500' },
-                    { type: 'Vacation Leave (Non-Comm)', total: 5, used: 0, color: 'bg-cyan-500' },
-                    { type: 'Family Leave', total: 4, used: 0, color: 'bg-emerald-500' },
-                  ]).concat([
-                    { type: 'Sick Leave', total: 15, used: 5, color: 'bg-rose-500' },
-                    { type: 'Bereavement Leave', total: 3, used: 0, color: 'bg-slate-500' },
-                    { type: 'Force Leave (Comm)', total: 5, used: 0, color: 'bg-amber-500' },
-                    { type: 'Force Leave (Non-Comm)', total: 5, used: 0, color: 'bg-orange-500' },
-                  ]).map((leave) => (
+                  {displayCredits.map((leave) => (
                     <div key={leave.type} className="p-4 bg-slate-50 border rounded-2xl space-y-3">
                        <div className="flex justify-between items-center">
                           <p className="text-xs font-bold text-slate-700">{leave.type}</p>
@@ -166,12 +181,15 @@ export default function HomeTab({ employee, onViewProfile, notifications = [] })
                           notif.type === 'approved' ? 'text-green-600' :
                           notif.type === 'rejected' ? 'text-red-600' :
                           notif.type === 'expired' ? 'text-red-600' :
-                          notif.type === 'expiring' ? 'text-amber-600' : 'text-primary'
+                          notif.type === 'expiring' ? 'text-amber-600' :
+                          notif.type === 'info' ? 'text-blue-600' : 'text-primary'
                         }`}>
                           {notif.title}
                         </p>
                         <p className="text-xs font-semibold">{notif.description}</p>
-                        <p className="text-[9px] text-muted-foreground">{format(notif.date, "MMMM d, yyyy")}</p>
+                        <p className="text-[9px] text-muted-foreground">
+                          {notif.date && !isNaN(notif.date) ? format(notif.date, "MMMM d, yyyy") : ""}
+                        </p>
                       </div>
                     ))
                   ) : (

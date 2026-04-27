@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Home, User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Zap, Shield, FileText, Loader2, Info, LogOut, Gift, Bell } from "lucide-react";
@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import PersonalDetailsTab from "@/components/employees/profile/PersonalDetailsTab";
-import EducationTab from "@/components/employees/profile/EducationTab";
-import TrainingDevTab from "@/components/employees/profile/TrainingDevTab";
-import EmploymentInfoTab from "@/components/employees/profile/EmploymentInfoTab";
-import LeaveTab from "@/components/employees/profile/LeaveTab";
-import BenefitsTab from "@/components/employees/profile/BenefitsTab";
-import HomeTab from "@/components/employees/profile/HomeTab";
+import { ProfileSkeleton } from "@/components/employees/profile/ProfileSkeleton";
+const PersonalDetailsTab = lazy(() => import("@/components/employees/profile/PersonalDetailsTab"));
+const EducationTab = lazy(() => import("@/components/employees/profile/EducationTab"));
+const TrainingDevTab = lazy(() => import("@/components/employees/profile/TrainingDevTab"));
+const EmploymentInfoTab = lazy(() => import("@/components/employees/profile/EmploymentInfoTab"));
+const LeaveTab = lazy(() => import("@/components/employees/profile/LeaveTab"));
+const BenefitsTab = lazy(() => import("@/components/employees/profile/BenefitsTab"));
+const HomeTab = lazy(() => import("@/components/employees/profile/HomeTab"));
 import EditProfileDialog from "@/components/employees/profile/EditProfileDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, differenceInDays, isAfter, isBefore, addDays } from "date-fns";
@@ -62,8 +63,6 @@ export default function EmployeeProfile() {
   const [unreadCount, setUnreadCount] = useState(0);
   const { user, logout } = useAuth();
   const { toast } = useToast();
-  const hasBootstrappedRequestStatuses = useRef(false);
-  const knownRequestStatuses = useRef(new Map());
   const [employeeData, setEmployeeData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -71,6 +70,7 @@ export default function EmployeeProfile() {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [leaveCredits, setLeaveCredits] = useState([]); // Leave credits balance from DB
 
   useEffect(() => {
     async function loadProfile() {
@@ -84,6 +84,16 @@ export default function EmployeeProfile() {
 
         if (error) throw error;
         setEmployeeData(data);
+
+        // Fetch leave credits
+        const { data: credits, error: creditsError } = await supabase
+          .from("leave_credits")
+          .select("*")
+          .eq("employee_id", data.id);
+        
+        if (!creditsError) {
+          setLeaveCredits(credits);
+        }
       } catch (err) {
         console.error("Error loading employee profile", err);
       } finally {
@@ -117,141 +127,91 @@ export default function EmployeeProfile() {
     };
   }, [user]);
   
-  useEffect(() => {
-    if (employeeData) {
-      const generated = generateNotifications(employeeData);
-      setNotifications(generated);
-      setUnreadCount(generated.filter(n => !n.read).length);
+  // Fetch notifications from DB and subscribe to realtime updates
+  const fetchNotifications = async (employeeId) => {
+    if (!employeeId) return;
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .order('created_at', { ascending: false });
+    if (!error && data) {
+      setNotifications(data.map(n => ({
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        description: n.message,
+        date: new Date(n.created_at),
+        read: n.is_read
+      })));
+      setUnreadCount(data.filter(n => !n.is_read).length);
     }
-  }, [employeeData]);
+  };
 
-  const generateNotifications = (emp) => {
-    const notifs = [];
+  // Check for expiring licenses and upsert notifications if not already stored
+  const checkLicenseExpiry = async (emp) => {
+    if (!emp?.licenses || !emp?.id) return;
     const today = new Date();
+    for (const lic of emp.licenses) {
+      if (!lic.expiry || !lic.number) continue;
+      const expiryDate = new Date(lic.expiry);
+      const daysToExpiry = differenceInDays(expiryDate, today);
+      if (daysToExpiry > 90) continue;
 
-    // 1. Leave Requests
-    if (emp.leave_requests) {
-      emp.leave_requests.forEach(req => {
-        if (req.status === 'approved' || req.status === 'rejected') {
-          notifs.push({
-            id: `leave-${req.id || Math.random()}`,
-            type: req.status === 'approved' ? 'approved' : 'rejected',
-            title: `Leave Request ${req.status.charAt(0).toUpperCase() + req.status.slice(1)}`,
-            description: `Your ${req.type} leave for ${req.dates} has been ${req.status}.`,
-            date: today, // In a real app, use actual update date
-            read: false
-          });
-        }
+      const isExpired = daysToExpiry < 0;
+      const refKey = `license-${lic.number}`;
+
+      // Check if a notification for this license already exists
+      const { data: existing } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('employee_id', emp.id)
+        .eq('type', isExpired ? 'expired' : 'expiring')
+        .ilike('message', `%${lic.number}%`)
+        .limit(1);
+
+      if (existing && existing.length > 0) continue;
+
+      await supabase.from('notifications').insert({
+        employee_id: emp.id,
+        type: isExpired ? 'expired' : 'expiring',
+        title: isExpired ? 'License Expired' : 'License Expiring Soon',
+        message: isExpired
+          ? `Your ${lic.name} license (${lic.number}) expired on ${lic.expiry}. Please renew it as soon as possible.`
+          : `Your ${lic.name} license (${lic.number}) will expire in ${daysToExpiry} day(s) on ${lic.expiry}.`
       });
     }
-
-    // 2. Professional Licenses
-    if (emp.licenses) {
-      emp.licenses.forEach(lic => {
-        if (lic.expiry) {
-          const expiryDate = new Date(lic.expiry);
-          const daysToExpiry = differenceInDays(expiryDate, today);
-
-          if (daysToExpiry < 0) {
-            notifs.push({
-              id: `lic-expired-${lic.number}`,
-              type: 'expired',
-              title: 'License Expired',
-              description: `Your ${lic.name} (${lic.number}) expired on ${lic.expiry}.`,
-              date: today,
-              read: false
-            });
-          } else if (daysToExpiry <= 90) {
-            notifs.push({
-              id: `lic-expiring-${lic.number}`,
-              type: 'expiring',
-              title: 'License Expiring Soon',
-              description: `Your ${lic.name} (${lic.number}) will expire in ${daysToExpiry} days.`,
-              date: today,
-              read: false
-            });
-          }
-        }
-      });
-    }
-
-    // 3. Benefits Eligibility (Placeholder example)
-    if (emp.benefits) {
-        // ... logic
-    }
-
-    return notifs.sort((a, b) => b.date - a.date);
-  };
-
-  const handleNotificationOpen = () => {
-    setUnreadCount(0);
-    // In a real app, you'd mark them as read in DB
   };
 
   useEffect(() => {
-    if (!employeeData?.id) return;
+    if (employeeData?.id) {
+      fetchNotifications(employeeData.id);
+      checkLicenseExpiry(employeeData);
 
-    let statusSubscription = null;
-    let isMounted = true;
+      // Realtime: listen for new/updated notifications for this employee
+      const notifSub = supabase
+        .channel(`employee_notifications_${employeeData.id}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'notifications', filter: `employee_id=eq.${employeeData.id}` },
+          () => fetchNotifications(employeeData.id)
+        )
+        .subscribe();
 
-    const fetchAndNotifyRequestStatuses = async () => {
-      const { data, error } = await supabase
-        .from("employee_update_requests")
-        .select("id, status, reviewed_at")
-        .eq("employee_id", employeeData.id)
-        .order("created_at", { ascending: false });
+      return () => notifSub.unsubscribe();
+    }
+  }, [employeeData?.id]);
 
-      if (error || !isMounted || !data) return;
-
-      if (hasBootstrappedRequestStatuses.current) {
-        data.forEach((req) => {
-          const previous = knownRequestStatuses.current.get(req.id);
-          const hasStatusChanged = previous !== undefined && previous !== req.status;
-          const isReviewOutcome = req.status === "approved" || req.status === "rejected";
-          if (hasStatusChanged && isReviewOutcome) {
-            toast({
-              title: req.status === "approved" ? "Profile Update Approved" : "Profile Update Rejected",
-              description:
-                req.status === "approved"
-                  ? "HR approved your submitted profile changes."
-                  : "HR rejected your submitted profile changes.",
-              variant: req.status === "rejected" ? "destructive" : "default",
-              duration: 10000,
-            });
-          }
-        });
-      } else {
-        hasBootstrappedRequestStatuses.current = true;
-      }
-
-      const statusMap = new Map();
-      data.forEach((req) => {
-        statusMap.set(req.id, req.status);
-      });
-      knownRequestStatuses.current = statusMap;
-    };
-
-    fetchAndNotifyRequestStatuses();
-
-    statusSubscription = supabase
-      .channel(`employee_request_status_${employeeData.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "employee_update_requests",
-          filter: `employee_id=eq.${employeeData.id}`,
-        },
-        fetchAndNotifyRequestStatuses
-      )
-      .subscribe();
-
-    return () => {
-      isMounted = false;
-      if (statusSubscription) statusSubscription.unsubscribe();
-    };
-  }, [employeeData?.id, toast]);
+  const handleNotificationOpen = async () => {
+    setUnreadCount(0);
+    // Mark all as read in DB
+    if (employeeData?.id) {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('employee_id', employeeData.id)
+        .eq('is_read', false);
+    }
+  };
 
   const handleStartEdit = () => {
     setEditedData(JSON.parse(JSON.stringify(employeeData))); // Deep clone
@@ -300,6 +260,14 @@ export default function EmployeeProfile() {
         });
 
       if (error) throw error;
+
+      // Notify the employee: submission confirmation
+      await supabase.from('notifications').insert({
+        employee_id: employeeData.id,
+        type: 'info',
+        title: 'Profile Update Submitted',
+        message: 'Your profile update request has been submitted and is pending HR review. You will be notified once it has been reviewed.'
+      });
 
       toast({
         title: "Changes Submitted",
@@ -408,11 +376,14 @@ export default function EmployeeProfile() {
                               notif.type === 'approved' ? 'text-green-600' :
                               notif.type === 'rejected' ? 'text-red-600' :
                               notif.type === 'expired' ? 'text-red-600' :
-                              notif.type === 'expiring' ? 'text-amber-600' : 'text-primary'
+                              notif.type === 'expiring' ? 'text-amber-600' :
+                              notif.type === 'info' ? 'text-blue-600' : 'text-primary'
                             }`}>
                               {notif.title}
                             </p>
-                            <span className="text-[9px] text-muted-foreground">{format(notif.date, "MMM d")}</span>
+                            <span className="text-[9px] text-muted-foreground">
+                              {notif.date && !isNaN(notif.date) ? format(notif.date, "MMM d") : ""}
+                            </span>
                           </div>
                           <p className="text-xs text-slate-700 leading-snug">{notif.description}</p>
                         </div>
@@ -427,7 +398,18 @@ export default function EmployeeProfile() {
                 </ScrollArea>
                 {notifications.length > 0 && (
                   <div className="p-2 border-t bg-slate-50 text-center">
-                    <Button variant="ghost" size="sm" className="text-[10px] h-6 text-primary hover:text-primary font-bold" onClick={() => setNotifications([])}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-[10px] h-6 text-primary hover:text-primary font-bold"
+                      onClick={async () => {
+                        if (employeeData?.id) {
+                          await supabase.from('notifications').delete().eq('employee_id', employeeData.id);
+                          setNotifications([]);
+                          setUnreadCount(0);
+                        }
+                      }}
+                    >
                       Clear all notifications
                     </Button>
                   </div>
@@ -483,47 +465,54 @@ export default function EmployeeProfile() {
             </TabsList>
 
             <ScrollArea className="flex-1 pr-4">
-              <TabsContent value="home" className="m-0 space-y-6">
-                <HomeTab 
-                  employee={employeeData} 
-                  onViewProfile={() => setActiveTab("profiling")}
-                  notifications={notifications}
-                />
-              </TabsContent>
-              <TabsContent value="profiling" className="m-0 space-y-6">
-                <PersonalDetailsTab
-                  employee={isEditing ? editedData : employeeData}
-                  isReadOnly={!isEditing}
-                  isEditMode={isEditing}
-                  showPhotoUpload={true}
-                  onChange={handleFieldChange}
-                />
-              </TabsContent>
-              <TabsContent value="education" className="m-0 space-y-6">
-                <EducationTab
-                  employee={isEditing ? editedData : employeeData}
-                  isReadOnly={!isEditing}
-                  isEditing={isEditing}
-                  onUpdate={(newData) => handleFieldChange('educational_record', newData)}
-                />
-              </TabsContent>
-              <TabsContent value="training" className="m-0 space-y-6">
-                <TrainingDevTab
-                  employee={isEditing ? editedData : employeeData}
-                  isReadOnly={!isEditing}
-                  isEditing={isEditing}
-                  onUpdate={(field, newData) => handleFieldChange(field, newData)}
-                />
-              </TabsContent>
-              <TabsContent value="employment" className="m-0 space-y-6">
-                <EmploymentInfoTab employee={isEditing ? editedData : employeeData} isReadOnly={true} />
-              </TabsContent>
-              <TabsContent value="leave" className="m-0 space-y-6">
-                <LeaveTab employee={isEditing ? editedData : employeeData} isReadOnly={true} />
-              </TabsContent>
-              <TabsContent value="benefits" className="m-0 space-y-6">
-                <BenefitsTab employee={isEditing ? editedData : employeeData} />
-              </TabsContent>
+              <Suspense fallback={<ProfileSkeleton />}>
+                <TabsContent value="home" className="m-0 space-y-6">
+                  <HomeTab 
+                    employee={employeeData} 
+                    onViewProfile={() => setActiveTab("profiling")}
+                    notifications={notifications}
+                    leaveCredits={leaveCredits}
+                  />
+                </TabsContent>
+                <TabsContent value="profiling" className="m-0 space-y-6">
+                  <PersonalDetailsTab
+                    employee={isEditing ? editedData : employeeData}
+                    isReadOnly={!isEditing}
+                    isEditMode={isEditing}
+                    showPhotoUpload={true}
+                    onChange={handleFieldChange}
+                  />
+                </TabsContent>
+                <TabsContent value="education" className="m-0 space-y-6">
+                  <EducationTab
+                    employee={isEditing ? editedData : employeeData}
+                    isReadOnly={!isEditing}
+                    isEditing={isEditing}
+                    onUpdate={(newData) => handleFieldChange('educational_record', newData)}
+                  />
+                </TabsContent>
+                <TabsContent value="training" className="m-0 space-y-6">
+                  <TrainingDevTab
+                    employee={isEditing ? editedData : employeeData}
+                    isReadOnly={!isEditing}
+                    isEditing={isEditing}
+                    onUpdate={(field, newData) => handleFieldChange(field, newData)}
+                  />
+                </TabsContent>
+                <TabsContent value="employment" className="m-0 space-y-6">
+                  <EmploymentInfoTab employee={isEditing ? editedData : employeeData} isReadOnly={true} />
+                </TabsContent>
+                <TabsContent value="leave" className="m-0 space-y-6">
+                  <LeaveTab 
+                    employee={isEditing ? editedData : employeeData} 
+                    isReadOnly={true} 
+                    leaveCredits={leaveCredits}
+                  />
+                </TabsContent>
+                <TabsContent value="benefits" className="m-0 space-y-6">
+                  <BenefitsTab employee={isEditing ? editedData : employeeData} />
+                </TabsContent>
+              </Suspense>
             </ScrollArea>
           </Tabs>
         </div>

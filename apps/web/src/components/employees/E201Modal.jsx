@@ -16,6 +16,7 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
   const [editedEmployee, setEditedEmployee] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [leaveCredits, setLeaveCredits] = useState([]);
 
   const pendingRequests = employee?.pendingRequests || [];
   const activeRequest = pendingRequests[0];
@@ -31,9 +32,19 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
   };
 
   useEffect(() => {
+    const fetchLeaveCredits = async () => {
+      if (!employee?.id) return;
+      const { data, error } = await supabase
+        .from('leave_credits')
+        .select('*')
+        .eq('employee_id', employee.id);
+      if (!error) setLeaveCredits(data || []);
+    };
+
     if (open && employee) {
       setEditedEmployee(getReviewEmployee());
       setIsEditMode(false);
+      fetchLeaveCredits();
     }
   }, [employee, open, activeRequest?.id]);
 
@@ -56,6 +67,17 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
         .eq('id', req.id);
 
       if (error) throw error;
+
+      // Notify the employee
+      await supabase.from('notifications').insert({
+        employee_id: req.employee_id,
+        type: status === 'approved' ? 'approved' : 'rejected',
+        title: `Profile Update ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        message: status === 'approved' 
+          ? "Your profile update request has been approved and applied." 
+          : "Your profile update request was rejected by the HR administration."
+      });
+
       toast.success(`Request ${status} successfully.`);
       onOpenChange(false); // Close the modal
       if (onSave) onSave();
@@ -186,7 +208,20 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
             <EmploymentInfoTab employee={editedEmployee} onChange={handleFieldChange} isReadOnly={!isEditMode} requestedChanges={requestedChanges ? baselineEmployee : null} />
           </TabsContent>
           <TabsContent value="leave" className="mt-4">
-            <LeaveTab employee={editedEmployee} onChange={handleFieldChange} isReadOnly={!isEditMode} requestedChanges={requestedChanges ? baselineEmployee : null} />
+            <LeaveTab 
+              employee={editedEmployee} 
+              onChange={() => {
+                // Refetch credits after update
+                const fetchCredits = async () => {
+                   const { data } = await supabase.from('leave_credits').select('*').eq('employee_id', employee.id);
+                   setLeaveCredits(data || []);
+                };
+                fetchCredits();
+              }} 
+              isReadOnly={!isEditMode} 
+              requestedChanges={requestedChanges ? baselineEmployee : null}
+              leaveCredits={leaveCredits}
+            />
           </TabsContent>
           <TabsContent value="benefits" className="mt-4">
             <BenefitsTab employee={editedEmployee} />

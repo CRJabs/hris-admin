@@ -51,6 +51,15 @@ export default function NewRegistrations() {
           .update({ is_active: true, employment_status: 'Probationary' })
           .eq('id', emp.id);
         if (error) throw error;
+
+        // Notify the employee (Welcome message)
+        await supabase.from('notifications').insert({
+          employee_id: emp.id,
+          type: 'approved',
+          title: "Welcome to UB HRIS",
+          message: "Your registration has been approved! You can now access all features of the HRIS."
+        });
+
         toast.success(`Registration for ${emp.first_name} approved.`);
       } else {
         const { error } = await supabase
