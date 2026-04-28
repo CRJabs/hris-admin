@@ -111,7 +111,7 @@ export default function LeaveTab({ employee, isReadOnly = false, onChange, reque
     return false;
   };
 
-  const isTeaching = employee.classification === "Teaching";
+  const isTeaching = employee.employment_classification === "Teaching";
   
   // Use DB credits if available, otherwise fallback to the derived logic for initial state
   const displayCredits = leaveCredits.length > 0 

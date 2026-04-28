@@ -11,7 +11,9 @@ import { lazy, Suspense, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 // Lazy load pages for performance
+const Home = lazy(() => import('@/pages/Home'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
+
 const Employees = lazy(() => import('@/pages/Employees'));
 const Payroll = lazy(() => import('@/pages/Payroll'));
 const Reports = lazy(() => import('@/pages/Reports'));
@@ -27,6 +29,9 @@ const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const AddEmployee = lazy(() => import('@/pages/AddEmployee'));
 const ProfileUpdates = lazy(() => import('@/pages/approvals/ProfileUpdates'));
 const NewRegistrations = lazy(() => import('@/pages/approvals/NewRegistrations'));
+const AssignLeaveCredits = lazy(() => import('@/pages/AssignLeaveCredits'));
+const LeaveApplications = lazy(() => import('@/pages/LeaveApplications'));
+
 
 // Loading component
 const PageLoader = () => (
@@ -62,14 +67,18 @@ const AuthenticatedApp = () => {
     return (
       <Routes>
         <Route element={<AppLayout />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
+
           <Route path="/approvals" element={<Navigate to="/approvals/updates" replace />} />
           <Route path="/approvals/updates" element={<ProfileUpdates />} />
           <Route path="/approvals/registrations" element={<NewRegistrations />} />
           <Route path="/employees" element={<Employees />} />
           <Route path="/employees/add" element={<AddEmployee />} />
+          <Route path="/leaves/assign" element={<AssignLeaveCredits />} />
+          <Route path="/leaves/applications" element={<LeaveApplications />} />
           <Route path="/payroll" element={<Payroll />} />
+
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
         </Route>

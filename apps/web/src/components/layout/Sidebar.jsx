@@ -1,14 +1,16 @@
 import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, Users, DollarSign, BarChart3, Settings, LogOut, 
-  CheckSquare, ChevronLeft, ChevronRight, UserPlus, List, FileText 
+  CheckSquare, ChevronLeft, ChevronRight, UserPlus, List, FileText, CalendarDays, Zap 
 } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+  { label: "Home", icon: Zap, path: "/" },
+  { label: "Analytics", icon: LayoutDashboard, path: "/dashboard" },
   { 
     label: "Pending Approvals", 
     icon: CheckSquare, 
@@ -25,6 +27,15 @@ const navItems = [
     children: [
       { label: "View Masterlist", icon: List, path: "/employees" },
       { label: "Add New Employee", icon: UserPlus, path: "/employees/add" },
+    ]
+  },
+  {
+    label: "Leaves",
+    icon: CalendarDays,
+    path: "/leaves",
+    children: [
+      { label: "Assign Leave Credits", icon: List, path: "/leaves/assign" },
+      { label: "Leave Applications", icon: FileText, path: "/leaves/applications" },
     ]
   },
 ];

@@ -9,6 +9,8 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import E201Modal from "@/components/employees/E201Modal";
 import { useLocation, useNavigate } from "react-router-dom";
+import { assignDefaultLeaveCredits } from "@/utils/leaveUtils";
+
 
 export default function Approvals() {
   const [requests, setRequests] = useState([]);
@@ -146,7 +148,11 @@ export default function Approvals() {
           message: "Your registration has been approved! You can now access all features of the HRIS."
         });
 
+        // Assign default leave credits
+        await assignDefaultLeaveCredits(emp.id, emp.employment_classification);
+
         toast.success(`Registration for ${emp.first_name} approved.`);
+
       } else {
         const { error } = await supabase
           .from('employees')

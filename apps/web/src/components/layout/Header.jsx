@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { toast as popupToast } from "@/components/ui/use-toast";
 
-export default function Header({ onSearch, title, subtitle }) {
+export default function Header({ onSearch, title, subtitle, icon: Icon }) {
   const [searchValue, setSearchValue] = useState("");
   const [notifications, setNotifications] = useState([]);
   const [hasUnread, setHasUnread] = useState(false);
@@ -124,9 +124,12 @@ export default function Header({ onSearch, title, subtitle }) {
 
   return (
     <header className="h-20 bg-card text-foreground border-b border-border flex items-center justify-between px-8 sticky top-0 z-30 shrink-0">
-      <div>
-        {title && <h1 className="text-xl font-bold text-foreground">{title}</h1>}
-        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+      <div className="flex items-center gap-3">
+        {Icon && <Icon className="w-6 h-6 text-[#0C005F]" />}
+        <div>
+          {title && <h1 className="text-xl font-bold text-[#0C005F]">{title}</h1>}
+          {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+        </div>
       </div>
 
       <div className="flex items-center gap-3">
