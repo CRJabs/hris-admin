@@ -3,7 +3,8 @@ import {
   Users, UserPlus, CheckSquare, CalendarDays, 
   ArrowRight, Bell, Zap, TrendingUp, Clock, 
   ChevronRight, Activity, ShieldCheck, RefreshCw, List,
-  UserX, CheckCircle2, Plane, Stethoscope, Sun
+  UserX, CheckCircle2, Plane, Stethoscope, Sun,
+  XCircle, Edit3, ToggleRight
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
@@ -14,21 +15,35 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Map action keys to icons and colors for the activity feed
+const ACTION_CONFIG = {
+  employee_submitted_update: { icon: RefreshCw, color: "bg-amber-50 text-amber-600", label: "Profile Update Request" },
+  employee_submitted_registration: { icon: UserPlus, color: "bg-blue-50 text-blue-600", label: "New Registration" },
+  admin_approved_update: { icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600", label: "Update Approved" },
+  admin_rejected_update: { icon: XCircle, color: "bg-red-50 text-red-600", label: "Update Rejected" },
+  admin_approved_registration: { icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600", label: "Registration Approved" },
+  admin_rejected_registration: { icon: XCircle, color: "bg-red-50 text-red-600", label: "Registration Rejected" },
+  admin_edited_employee: { icon: Edit3, color: "bg-purple-50 text-purple-600", label: "Employee Edited" },
+  admin_added_employee: { icon: UserPlus, color: "bg-blue-50 text-blue-600", label: "Employee Added" },
+  admin_assigned_leave_credits: { icon: CalendarDays, color: "bg-purple-50 text-purple-600", label: "Leave Credits" },
+  admin_toggled_employee_status: { icon: ToggleRight, color: "bg-slate-100 text-slate-600", label: "Status Changed" },
+};
+
 export default function Home() {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     totalEmployees: 0,
     pendingRegistrations: 0,
     pendingUpdates: 0,
-    activeLeaves: 0
   });
   const [recentActivities, setRecentActivities] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchHomeData = async () => {
     setIsLoading(true);
     try {
-      // Fetch stats
+      // --- Stats ---
       const [empRes, regRes, updRes] = await Promise.all([
         supabase.from('employees').select('id', { count: 'exact', head: true }),
         supabase.from('employees').select('id', { count: 'exact', head: true }).eq('employment_status', 'Pending'),
@@ -39,49 +54,63 @@ export default function Home() {
         totalEmployees: empRes.count || 0,
         pendingRegistrations: regRes.count || 0,
         pendingUpdates: updRes.count || 0,
-        activeLeaves: 5 // Placeholder for now
       });
 
-      // Fetch alerts/activities (Transferred logic from AlertsWidget)
-      const { data: updateData } = await supabase
-        .from('employee_update_requests')
-        .select(`*, employees ( first_name, last_name )`)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
-
-      const { data: regData } = await supabase
-        .from('employees')
+      // --- Recent Activity (from admin_activity_log) ---
+      const { data: activityData } = await supabase
+        .from('admin_activity_log')
         .select('*')
-        .eq('employment_status', 'Pending')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      setRecentActivities(activityData || []);
+
+      // --- Pending Requests (real data from two sources) ---
+      const [updateReqRes, regReqRes] = await Promise.all([
+        supabase
+          .from('employee_update_requests')
+          .select(`*, employees ( id, first_name, last_name, employee_id, position, department, employment_status )`)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('employees')
+          .select('*')
+          .eq('employment_status', 'Pending')
+          .order('created_at', { ascending: false })
+      ]);
 
       let combined = [];
-      if (updateData) {
-        combined = [...combined, ...updateData.map(req => ({
-          id: `req_${req.id}`,
-          type: 'update',
-          user: `${req.employees?.first_name} ${req.employees?.last_name}`,
-          description: 'Requested profile update',
-          time: new Date(req.created_at),
-          status: 'ACTION REQUIRED',
-          color: 'text-amber-500'
+
+      if (updateReqRes.data) {
+        combined = [...combined, ...updateReqRes.data.map(req => ({
+          id: `upd_${req.id}`,
+          name: `${req.employees?.first_name || ''} ${req.employees?.last_name || ''}`.trim(),
+          employeeId: req.employees?.employee_id || '—',
+          position: req.employees?.position || req.employees?.department || '—',
+          type: 'Profile Update',
+          status: req.status,
+          date: new Date(req.created_at),
+          notes: '—',
+          requestType: 'update',
         }))];
       }
 
-      if (regData) {
-        combined = [...combined, ...regData.map(emp => ({
+      if (regReqRes.data) {
+        combined = [...combined, ...regReqRes.data.map(emp => ({
           id: `reg_${emp.id}`,
-          type: 'registration',
-          user: `${emp.first_name} ${emp.last_name}`,
-          description: 'Submitted a registration',
-          time: new Date(emp.created_at),
-          status: 'PENDING',
-          color: 'text-blue-500'
+          name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim(),
+          employeeId: emp.employee_id || '—',
+          position: emp.position || emp.department || 'New Applicant',
+          type: 'Registration',
+          status: emp.employment_status,
+          date: new Date(emp.created_at),
+          notes: '—',
+          requestType: 'registration',
         }))];
       }
 
-      combined.sort((a, b) => b.time - a.time);
-      setRecentActivities(combined);
+      combined.sort((a, b) => b.date - a.date);
+      setPendingRequests(combined.slice(0, 5));
 
     } catch (err) {
       console.error("Error fetching home data:", err);
@@ -94,15 +123,20 @@ export default function Home() {
     fetchHomeData();
 
     // Realtime subscriptions
-    const reqSub = supabase.channel('home_requests_alerts')
+    const activitySub = supabase.channel('home_activity_log')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_activity_log' }, fetchHomeData)
+      .subscribe();
+
+    const reqSub = supabase.channel('home_requests_pending')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_update_requests' }, fetchHomeData)
       .subscribe();
 
-    const empSub = supabase.channel('home_employees_alerts')
+    const empSub = supabase.channel('home_employees_pending')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, fetchHomeData)
       .subscribe();
 
     return () => {
+      activitySub.unsubscribe();
       reqSub.unsubscribe();
       empSub.unsubscribe();
     };
@@ -136,7 +170,6 @@ export default function Home() {
                   You have <span className="text-white font-bold">{stats.pendingRegistrations + stats.pendingUpdates} pending tasks</span> that require your immediate attention.
                 </p>
               </div>
-              {/* Buttons removed as requested */}
             </div>
             
             {/* Decorative elements */}
@@ -146,7 +179,6 @@ export default function Home() {
           </section>
 
           <div className="space-y-4">
-            {/* Heading removed as requested */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {quickActions.map((action) => (
                 <Link key={action.label} to={action.path} className="group">
@@ -193,32 +225,33 @@ export default function Home() {
                         <p className="text-slate-400 text-sm font-medium">No recent activities found.</p>
                       </div>
                     ) : (
-                      recentActivities.map((activity) => (
-                        <div key={activity.id} className="group flex items-start gap-4 p-6 hover:bg-slate-50/50 transition-colors">
-                          <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm",
-                            activity.type === 'registration' ? "bg-blue-50 text-blue-600" :
-                            activity.type === 'update' ? "bg-amber-50 text-amber-600" :
-                            "bg-slate-50 text-slate-600"
-                          )}>
-                            {activity.type === 'registration' ? <UserPlus className="w-5 h-5" /> :
-                             activity.type === 'update' ? <RefreshCw className="w-5 h-5" /> :
-                             <Zap className="w-5 h-5" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-sm font-bold text-slate-800 truncate">{activity.user}</p>
-                              <span className={cn("text-[10px] font-black uppercase tracking-wider shrink-0", activity.color)}>
-                                {activity.status}
-                              </span>
+                      recentActivities.map((activity) => {
+                        const config = ACTION_CONFIG[activity.action] || { icon: Zap, color: "bg-slate-50 text-slate-600", label: activity.action };
+                        const IconComponent = config.icon;
+                        const [bgClass, textClass] = config.color.split(' ');
+                        return (
+                          <div key={activity.id} className="group flex items-start gap-4 p-6 hover:bg-slate-50/50 transition-colors">
+                            <div className={cn(
+                              "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm",
+                              bgClass, textClass
+                            )}>
+                              <IconComponent className="w-5 h-5" />
                             </div>
-                            <p className="text-xs text-slate-500 mt-0.5">{activity.description}</p>
-                            <p className="text-[10px] font-medium text-slate-400 mt-2">
-                              {formatDistanceToNow(activity.time, { addSuffix: true })}
-                            </p>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-sm font-bold text-slate-800 truncate">{activity.actor_name}</p>
+                                <span className={cn("text-[10px] font-black uppercase tracking-wider shrink-0", textClass)}>
+                                  {config.label}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-0.5">{activity.description}</p>
+                              <p className="text-[10px] font-medium text-slate-400 mt-2">
+                                {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </CardContent>
@@ -295,48 +328,48 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {recentActivities.slice(0, 5).map((request) => (
+                  {pendingRequests.map((request) => (
                     <tr key={request.id} className="group hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                            {request.user.split(' ').map(n => n[0]).join('')}
+                            {request.name.split(' ').map(n => n[0]).join('')}
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-sm font-bold text-slate-800">{request.user}</span>
-                            <span className="text-[10px] text-slate-400 font-medium">Employee ID: CC-{request.id.split('_')[1].slice(0, 4)}</span>
+                            <span className="text-sm font-bold text-slate-800">{request.name}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">{request.employeeId}</span>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-xs font-medium text-slate-600">
-                          {request.type === 'registration' ? 'New Applicant' : 'Regular Employee'}
+                          {request.position}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <Badge variant="secondary" className={cn(
                           "text-[10px] font-black uppercase px-2 py-0.5",
-                          request.type === 'registration' ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
+                          request.requestType === 'registration' ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
                         )}>
-                          {request.type === 'registration' ? 'Registration' : 'Profile Update'}
+                          {request.type}
                         </Badge>
                       </td>
                       <td className="px-6 py-4">
                         <Badge variant="outline" className="text-[10px] font-bold border-amber-200 text-amber-600 bg-amber-50/30">
-                          PENDING
+                          {request.status?.toUpperCase() || 'PENDING'}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-xs font-medium text-slate-500">
-                        {request.time.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {request.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-xs text-slate-500 max-w-[200px] truncate">
-                          {request.description}
+                        <p className="text-xs text-slate-500">
+                          {request.notes}
                         </p>
                       </td>
                     </tr>
                   ))}
-                  {recentActivities.length === 0 && (
+                  {pendingRequests.length === 0 && (
                     <tr>
                       <td colSpan="6" className="px-6 py-12 text-center">
                         <p className="text-slate-400 text-sm font-medium">No pending requests at the moment.</p>

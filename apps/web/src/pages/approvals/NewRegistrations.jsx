@@ -60,8 +60,26 @@ export default function NewRegistrations() {
           message: "Your registration has been approved! You can now access all features of the HRIS."
         });
 
+        // Log to admin activity
+        await supabase.from('admin_activity_log').insert({
+          actor_type: 'admin',
+          actor_name: 'Administrator',
+          action: 'admin_approved_registration',
+          description: `Approved registration for ${emp.first_name} ${emp.last_name}`,
+          employee_id: emp.id
+        });
+
         toast.success(`Registration for ${emp.first_name} approved.`);
       } else {
+        // Log rejection before delete
+        await supabase.from('admin_activity_log').insert({
+          actor_type: 'admin',
+          actor_name: 'Administrator',
+          action: 'admin_rejected_registration',
+          description: `Rejected registration for ${emp.first_name} ${emp.last_name}`,
+          employee_id: emp.id
+        });
+
         const { error } = await supabase
           .from('employees')
           .delete()

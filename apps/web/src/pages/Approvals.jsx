@@ -124,6 +124,17 @@ export default function Approvals() {
           : "Your profile update request was rejected by the HR administration."
       });
 
+      // Log to admin activity
+      const empName = `${req.employees?.first_name} ${req.employees?.last_name}`;
+      await supabase.from('admin_activity_log').insert({
+        actor_type: 'admin',
+        actor_name: 'Administrator',
+        action: status === 'approved' ? 'admin_approved_update' : 'admin_rejected_update',
+        description: `${status === 'approved' ? 'Approved' : 'Rejected'} profile update for ${empName}`,
+        employee_id: req.employee_id,
+        metadata: { request_id: req.id }
+      });
+
       toast.success(`Request ${status} successfully.`);
       fetchRequests();
     } catch (err) {
@@ -151,9 +162,27 @@ export default function Approvals() {
         // Assign default leave credits
         await assignDefaultLeaveCredits(emp.id, emp.employment_classification);
 
+        // Log to admin activity
+        await supabase.from('admin_activity_log').insert({
+          actor_type: 'admin',
+          actor_name: 'Administrator',
+          action: 'admin_approved_registration',
+          description: `Approved registration for ${emp.first_name} ${emp.last_name}`,
+          employee_id: emp.id
+        });
+
         toast.success(`Registration for ${emp.first_name} approved.`);
 
       } else {
+        // Log rejection before delete (employee_id will be SET NULL after delete)
+        await supabase.from('admin_activity_log').insert({
+          actor_type: 'admin',
+          actor_name: 'Administrator',
+          action: 'admin_rejected_registration',
+          description: `Rejected registration for ${emp.first_name} ${emp.last_name}`,
+          employee_id: emp.id
+        });
+
         const { error } = await supabase
           .from('employees')
           .delete()

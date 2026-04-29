@@ -269,6 +269,15 @@ export default function EmployeeProfile() {
         message: 'Your profile update request has been submitted and is pending HR review. You will be notified once it has been reviewed.'
       });
 
+      // Log to admin activity
+      await supabase.from('admin_activity_log').insert({
+        actor_type: 'employee',
+        actor_name: `${employeeData.first_name} ${employeeData.last_name}`,
+        action: 'employee_submitted_update',
+        description: `${employeeData.first_name} ${employeeData.last_name} submitted a profile update request`,
+        employee_id: employeeData.id
+      });
+
       toast({
         title: "Changes Submitted",
         description: "Your updates have been sent for HR approval.",

@@ -78,6 +78,16 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
           : "Your profile update request was rejected by the HR administration."
       });
 
+      // Log to admin activity
+      await supabase.from('admin_activity_log').insert({
+        actor_type: 'admin',
+        actor_name: 'Administrator',
+        action: status === 'approved' ? 'admin_approved_update' : 'admin_rejected_update',
+        description: `${status === 'approved' ? 'Approved' : 'Rejected'} profile update for ${editedEmployee.first_name} ${editedEmployee.last_name}`,
+        employee_id: req.employee_id,
+        metadata: { request_id: req.id }
+      });
+
       toast.success(`Request ${status} successfully.`);
       onOpenChange(false); // Close the modal
       if (onSave) onSave();
@@ -99,6 +109,16 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
         .eq('id', editedEmployee.id);
         
       if (error) throw error;
+      
+      // Log to admin activity
+      await supabase.from('admin_activity_log').insert({
+        actor_type: 'admin',
+        actor_name: 'Administrator',
+        action: 'admin_edited_employee',
+        description: `Manually edited employee record for ${editedEmployee.first_name} ${editedEmployee.last_name}`,
+        employee_id: editedEmployee.id
+      });
+
       toast.success("Employee changes saved successfully.");
       if (onSave) onSave();
       setIsEditMode(false);

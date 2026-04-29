@@ -113,6 +113,15 @@ export default function AssignLeaveCredits() {
 
       toast.success("Leave credits reset to system defaults.");
       fetchLeaveCredits(selectedEmployee.id);
+
+      // Log to admin activity
+      await supabase.from('admin_activity_log').insert({
+        actor_type: 'admin',
+        actor_name: 'Administrator',
+        action: 'admin_assigned_leave_credits',
+        description: `Reset leave credits to defaults for ${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
+        employee_id: selectedEmployee.id
+      });
     } catch (err) {
       toast.error("Failed to reset credits: " + err.message);
     } finally {
@@ -170,6 +179,15 @@ export default function AssignLeaveCredits() {
       
       setLeaveCredits(prev => prev.map(c => c.id === creditId ? { ...c, ...updates } : c));
       toast.success("Credit updated successfully.");
+
+      // Log to admin activity
+      await supabase.from('admin_activity_log').insert({
+        actor_type: 'admin',
+        actor_name: 'Administrator',
+        action: 'admin_assigned_leave_credits',
+        description: `Updated ${creditToUpdate.leave_type} leave credits for ${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
+        employee_id: selectedEmployee.id
+      });
     } catch (err) {
       toast.error("Failed to update credit");
     }

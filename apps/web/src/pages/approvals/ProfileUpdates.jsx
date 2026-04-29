@@ -75,6 +75,17 @@ export default function ProfileUpdates() {
           : "Your profile update request was rejected by the HR administration."
       });
 
+      // Log to admin activity
+      const empName = `${req.employees?.first_name} ${req.employees?.last_name}`;
+      await supabase.from('admin_activity_log').insert({
+        actor_type: 'admin',
+        actor_name: 'Administrator',
+        action: status === 'approved' ? 'admin_approved_update' : 'admin_rejected_update',
+        description: `${status === 'approved' ? 'Approved' : 'Rejected'} profile update for ${empName}`,
+        employee_id: req.employee_id,
+        metadata: { request_id: req.id }
+      });
+
       toast.success(`Request ${status} successfully.`);
       fetchRequests();
     } catch (err) {

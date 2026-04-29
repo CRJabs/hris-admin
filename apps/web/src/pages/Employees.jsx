@@ -154,6 +154,16 @@ export default function Employees() {
       if (selectedEmployee?.id === emp.id) {
         setSelectedEmployee((prev) => prev ? { ...prev, is_active: !prev.is_active } : null);
       }
+
+      // Log to admin activity
+      await supabase.from('admin_activity_log').insert({
+        actor_type: 'admin',
+        actor_name: 'Administrator',
+        action: 'admin_toggled_employee_status',
+        description: `${emp.is_active ? 'Deactivated' : 'Reactivated'} ${emp.first_name} ${emp.last_name}`,
+        employee_id: emp.id
+      });
+
       toast.success(`${emp.first_name} ${emp.last_name} has been ${emp.is_active ? "deactivated" : "reactivated"}.`);
     } catch (err) {
       toast.error("Failed to update status");

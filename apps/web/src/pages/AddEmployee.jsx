@@ -127,6 +127,16 @@ export default function AddEmployee() {
 
       setCreatedEmployee(data);
       setAccountData(prev => ({ ...prev, email: data.contact_email || "" }));
+
+      // Log to admin activity
+      await supabase.from('admin_activity_log').insert({
+        actor_type: 'admin',
+        actor_name: 'Administrator',
+        action: 'admin_added_employee',
+        description: `Manually added new employee ${data.first_name} ${data.last_name}`,
+        employee_id: data.id
+      });
+
       toast.success("Employee record created successfully. Proceed to account assignment.");
       setStep(2);
     } catch (err) {

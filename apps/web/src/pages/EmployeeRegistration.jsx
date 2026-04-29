@@ -289,6 +289,14 @@ export default function EmployeeRegistration() {
 
       toast.success("Profile registered successfully. Please log in to your account.");
       
+      // Log to admin activity
+      await supabase.from('admin_activity_log').insert({
+        actor_type: 'employee',
+        actor_name: `${formData.first_name} ${formData.last_name}`,
+        action: 'employee_submitted_registration',
+        description: `New employee registration submitted by ${formData.first_name} ${formData.last_name}`
+      });
+
       // Logout and return to login page to ensure clean session state
       await logout();
       navigate("/login");
