@@ -202,7 +202,7 @@ export default function AddEmployee() {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <UserPlus className="w-6 h-6 text-primary" />
-              {step === 1 ? "Manually Add New Employee" : "Assign Employee Account"}
+              {step === 1 ? "Onboard new Employee" : "Assign Employee Account"}
             </h1>
             <p className="text-sm text-muted-foreground">
               {step === 1 

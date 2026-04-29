@@ -71,6 +71,7 @@ export default function EmployeeProfile() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [leaveCredits, setLeaveCredits] = useState([]); // Leave credits balance from DB
+  const [leaveApplications, setLeaveApplications] = useState([]); // Leave applications from DB
 
   useEffect(() => {
     async function loadProfile() {
@@ -94,6 +95,17 @@ export default function EmployeeProfile() {
         if (!creditsError) {
           setLeaveCredits(credits);
         }
+
+        // Fetch leave applications
+        const { data: apps, error: appsError } = await supabase
+          .from("leave_applications")
+          .select("*")
+          .eq("employee_id", data.id)
+          .order("created_at", { ascending: false });
+        
+        if (!appsError) {
+          setLeaveApplications(apps || []);
+        }
       } catch (err) {
         console.error("Error loading employee profile", err);
       } finally {
@@ -104,6 +116,7 @@ export default function EmployeeProfile() {
 
     // Set up realtime subscription for this employee's record
     let sub = null;
+    let leaveAppSub = null;
     if (user?.id) {
       sub = supabase
         .channel(`employee_profile_${user.id}`)
@@ -124,6 +137,7 @@ export default function EmployeeProfile() {
 
     return () => {
       if (sub) sub.unsubscribe();
+      if (leaveAppSub) leaveAppSub.unsubscribe();
     };
   }, [user]);
   
@@ -300,6 +314,34 @@ export default function EmployeeProfile() {
   const handleFieldChange = (name, value) => {
     setEditedData(prev => ({ ...prev, [name]: value }));
   };
+
+  // Refresh leave data after filing a leave
+  const refreshLeaveData = async () => {
+    if (!employeeData?.id) return;
+    const [creditsRes, appsRes] = await Promise.all([
+      supabase.from("leave_credits").select("*").eq("employee_id", employeeData.id),
+      supabase.from("leave_applications").select("*").eq("employee_id", employeeData.id).order("created_at", { ascending: false })
+    ]);
+    if (creditsRes.data) setLeaveCredits(creditsRes.data);
+    if (appsRes.data) setLeaveApplications(appsRes.data);
+  };
+
+  // Set up realtime subscription for leave applications
+  useEffect(() => {
+    if (!employeeData?.id) return;
+    const leaveAppSub = supabase
+      .channel(`employee_leave_apps_${employeeData.id}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'leave_applications', filter: `employee_id=eq.${employeeData.id}` },
+        () => refreshLeaveData()
+      )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'leave_credits', filter: `employee_id=eq.${employeeData.id}` },
+        () => refreshLeaveData()
+      )
+      .subscribe();
+    return () => leaveAppSub.unsubscribe();
+  }, [employeeData?.id]);
 
   if (isLoading) {
     return <div className="p-8 text-center text-muted-foreground">Loading your profile...</div>;
@@ -481,6 +523,7 @@ export default function EmployeeProfile() {
                     onViewProfile={() => setActiveTab("profiling")}
                     notifications={notifications}
                     leaveCredits={leaveCredits}
+                    leaveApplications={leaveApplications}
                   />
                 </TabsContent>
                 <TabsContent value="profiling" className="m-0 space-y-6">
@@ -516,6 +559,8 @@ export default function EmployeeProfile() {
                     employee={isEditing ? editedData : employeeData} 
                     isReadOnly={true} 
                     leaveCredits={leaveCredits}
+                    leaveApplications={leaveApplications}
+                    onRefresh={refreshLeaveData}
                   />
                 </TabsContent>
                 <TabsContent value="benefits" className="m-0 space-y-6">

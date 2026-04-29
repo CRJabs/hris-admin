@@ -33,9 +33,13 @@ export default function AppLayout() {
     title = "New Registration Requests";
     subtitle = "Review digital 201 form submissions for new employees.";
     icon = UserPlus;
+  } else if (location.pathname === '/approvals/leaves') {
+    title = "Leave Applications";
+    subtitle = "Review and process employee leave requests.";
+    icon = CalendarDays;
   } else if (location.pathname.startsWith('/approvals')) {
     title = "Pending Approvals";
-    subtitle = "Review profile update requests and new employee registrations.";
+    subtitle = "Review profile update requests, new registrations, and leave applications.";
     icon = FileText;
   } else if (location.pathname.startsWith('/employees')) {
     title = "Employees";
@@ -50,12 +54,8 @@ export default function AppLayout() {
     subtitle = "Generate and view HR analytics.";
     icon = BarChart3;
   } else if (location.pathname === '/leaves/assign') {
-    title = "Assign Leave Credits";
+    title = "Manage Leave Credits";
     subtitle = "Manage and adjust employee leave allocations.";
-    icon = CalendarDays;
-  } else if (location.pathname === '/leaves/applications') {
-    title = "Leave Applications";
-    subtitle = "Review and process employee leave requests.";
     icon = CalendarDays;
   } else if (location.pathname.startsWith('/settings')) {
     title = "Settings";

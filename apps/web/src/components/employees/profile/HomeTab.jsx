@@ -10,8 +10,16 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
-export default function HomeTab({ employee, onViewProfile, notifications = [], leaveCredits = [] }) {
+export default function HomeTab({ employee, onViewProfile, notifications = [], leaveCredits = [], leaveApplications = [] }) {
   const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
+  // Check if employee is currently on leave
+  const activeLeave = leaveApplications.find(app => 
+    app.status === 'approved' && 
+    app.start_date <= todayStr && 
+    app.end_date >= todayStr
+  );
 
   // Use DB credits if available, otherwise fallback to the derived logic for initial state
   const displayCredits = leaveCredits.length > 0 
@@ -55,15 +63,27 @@ export default function HomeTab({ employee, onViewProfile, notifications = [], l
           <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
               <p className="text-white/60 text-sm font-medium uppercase tracking-widest mb-2">Welcome Back,</p>
-              <h2 className="text-4xl md:text-5xl font-black tracking-tight flex items-center gap-4">
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight flex items-center gap-4 flex-wrap">
                 {employee.first_name} {employee.last_name}
-                <Badge className={`${employee.is_active !== false ? 'bg-green-500' : 'bg-red-500'} text-white border-none px-3 py-1`}>
-                  {employee.is_active !== false ? 'Active' : 'Inactive'}
-                </Badge>
+                {activeLeave ? (
+                  <Badge className="bg-amber-500 text-white border-none px-3 py-1 animate-pulse">
+                    On Leave
+                  </Badge>
+                ) : (
+                  <Badge className={`${employee.is_active !== false ? 'bg-green-500' : 'bg-red-500'} text-white border-none px-3 py-1`}>
+                    {employee.is_active !== false ? 'Active' : 'Inactive'}
+                  </Badge>
+                )}
               </h2>
-              <p className="text-white/70 mt-4 max-w-xl text-lg leading-relaxed font-medium">
-                Management of your personnel records and professional growth. Your digital 201 form is up to date as of {format(today, "MMMM d, yyyy")}.
-              </p>
+              {activeLeave ? (
+                <p className="text-amber-200/80 mt-4 max-w-xl text-lg leading-relaxed font-medium">
+                  On {activeLeave.leave_type} Leave · {format(new Date(activeLeave.start_date + "T00:00:00"), "MMM d")} – {format(new Date(activeLeave.end_date + "T00:00:00"), "MMM d, yyyy")}
+                </p>
+              ) : (
+                <p className="text-white/70 mt-4 max-w-xl text-lg leading-relaxed font-medium">
+                  Management of your personnel records and professional growth. Your digital 201 form is up to date as of {format(today, "MMMM d, yyyy")}.
+                </p>
+              )}
             </div>
             <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/10 text-center min-w-[240px]">
               <p className="text-white/60 text-xs uppercase font-bold tracking-widest mb-1">Employee ID</p>

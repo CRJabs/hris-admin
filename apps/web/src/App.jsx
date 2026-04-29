@@ -70,13 +70,15 @@ const AuthenticatedApp = () => {
           <Route path="/" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
 
-          <Route path="/approvals" element={<Navigate to="/approvals/updates" replace />} />
-          <Route path="/approvals/updates" element={<ProfileUpdates />} />
-          <Route path="/approvals/registrations" element={<NewRegistrations />} />
+          <Route path="/approvals" element={<Approvals />}>
+            <Route index element={<Navigate to="updates" replace />} />
+            <Route path="updates" element={<ProfileUpdates />} />
+            <Route path="registrations" element={<NewRegistrations />} />
+            <Route path="leaves" element={<LeaveApplications />} />
+          </Route>
           <Route path="/employees" element={<Employees />} />
           <Route path="/employees/add" element={<AddEmployee />} />
           <Route path="/leaves/assign" element={<AssignLeaveCredits />} />
-          <Route path="/leaves/applications" element={<LeaveApplications />} />
           <Route path="/payroll" element={<Payroll />} />
 
           <Route path="/reports" element={<Reports />} />

@@ -223,7 +223,7 @@ export default function AddEmployeeModal({ open, onOpenChange, onSuccess }) {
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <UserPlus className="w-5 h-5 text-primary" />
-            {step === 1 ? "Manually Add New Employee" : "Assign Employee Account"}
+            {step === 1 ? "Onboard new Employee" : "Assign Employee Account"}
           </DialogTitle>
           <DialogDescription>
             {step === 1 

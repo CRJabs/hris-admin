@@ -18,6 +18,7 @@ const navItems = [
     children: [
       { label: "Profile Updates", icon: FileText, path: "/approvals/updates" },
       { label: "New Registrations", icon: UserPlus, path: "/approvals/registrations" },
+      { label: "Leave Applications", icon: CalendarDays, path: "/approvals/leaves" },
     ]
   },
   { 
@@ -26,7 +27,7 @@ const navItems = [
     path: "/employees",
     children: [
       { label: "View Masterlist", icon: List, path: "/employees" },
-      { label: "Add New Employee", icon: UserPlus, path: "/employees/add" },
+      { label: "Onboarding", icon: UserPlus, path: "/employees/add" },
     ]
   },
   {
@@ -34,8 +35,7 @@ const navItems = [
     icon: CalendarDays,
     path: "/leaves",
     children: [
-      { label: "Assign Leave Credits", icon: List, path: "/leaves/assign" },
-      { label: "Leave Applications", icon: FileText, path: "/leaves/applications" },
+      { label: "Manage Leave Credits", icon: List, path: "/leaves/assign" },
     ]
   },
   { label: "Payroll", icon: DollarSign, path: "/payroll" },

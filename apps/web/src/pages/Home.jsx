@@ -27,6 +27,9 @@ const ACTION_CONFIG = {
   admin_added_employee: { icon: UserPlus, color: "bg-blue-50 text-blue-600", label: "Employee Added" },
   admin_assigned_leave_credits: { icon: CalendarDays, color: "bg-purple-50 text-purple-600", label: "Leave Credits" },
   admin_toggled_employee_status: { icon: ToggleRight, color: "bg-slate-100 text-slate-600", label: "Status Changed" },
+  employee_filed_leave: { icon: CalendarDays, color: "bg-amber-50 text-amber-600", label: "Leave Filed" },
+  admin_approved_leave: { icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600", label: "Leave Approved" },
+  admin_rejected_leave: { icon: XCircle, color: "bg-red-50 text-red-600", label: "Leave Rejected" },
 };
 
 export default function Home() {
@@ -39,6 +42,7 @@ export default function Home() {
   });
   const [recentActivities, setRecentActivities] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [leaveStats, setLeaveStats] = useState({});
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchHomeData = async () => {
@@ -115,6 +119,22 @@ export default function Home() {
       combined.sort((a, b) => b.date - a.date);
       setPendingRequests(combined.slice(0, 5));
 
+      // --- Leave Analytics (currently active approved leaves by type) ---
+      const todayStr = new Date().toISOString().split('T')[0];
+      const { data: activeLeaves } = await supabase
+        .from('leave_applications')
+        .select('leave_type')
+        .eq('status', 'approved')
+        .lte('start_date', todayStr)
+        .gte('end_date', todayStr);
+
+      // Count by leave_type
+      const leaveCounts = {};
+      (activeLeaves || []).forEach(l => {
+        leaveCounts[l.leave_type] = (leaveCounts[l.leave_type] || 0) + 1;
+      });
+      setLeaveStats(leaveCounts);
+
     } catch (err) {
       console.error("Error fetching home data:", err);
     } finally {
@@ -138,17 +158,22 @@ export default function Home() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, fetchHomeData)
       .subscribe();
 
+    const leaveSub = supabase.channel('home_leave_apps')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_applications' }, fetchHomeData)
+      .subscribe();
+
     return () => {
       activitySub.unsubscribe();
       reqSub.unsubscribe();
       empSub.unsubscribe();
+      leaveSub.unsubscribe();
     };
   }, []);
 
   const quickActions = [
     { label: "View Employees", icon: Users, path: "/employees", color: "bg-blue-500" },
     { label: "Review Approvals", icon: CheckSquare, path: "/approvals", color: "bg-amber-500" },
-    { label: "Manage Leaves", icon: CalendarDays, path: "/leaves/applications", color: "bg-purple-500" },
+    { label: "Manage Leave Credits", icon: List, path: "/leaves/assign", color: "bg-purple-500" },
     { label: "System Reports", icon: TrendingUp, path: "/reports", color: "bg-emerald-500" }
   ];
 
@@ -279,25 +304,31 @@ export default function Home() {
 
                 {/* Vertical Stats Stack - Scrollable */}
                 <div className="divide-y divide-slate-50 overflow-y-auto flex-1">
-                  {[
-                    { label: "Active Today", value: 0, icon: CheckCircle2 },
-                    { label: "Absentees", value: "to be added", icon: UserX },
-                    { label: "On Vacation", value: 0, icon: Plane },
-                    { label: "Day Off", value: 0, icon: Sun },
-                    { label: "Sick Leave", value: 0, icon: Stethoscope }
-                  ].map((stat, i) => (
-                    <div key={i} className="p-5 flex items-center justify-between group hover:bg-slate-50/50 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm bg-white border border-slate-50">
-                          <stat.icon className="w-5 h-5 text-[#0C005F]" />
-                        </div>
-                        <div className="space-y-0.5">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                          <p className="text-xl font-black text-slate-900 tracking-tight">{stat.value}</p>
+                  {(() => {
+                    const totalOnLeave = Object.values(leaveStats).reduce((a, b) => a + b, 0);
+                    const leaveTypeRows = [
+                      { label: "Active Today", value: stats.totalEmployees - totalOnLeave, icon: CheckCircle2 },
+                      { label: "Total On Leave", value: totalOnLeave, icon: CalendarDays },
+                      { label: "Vacation Leave", value: leaveStats['Vacation'] || 0, icon: Plane },
+                      { label: "Sick Leave", value: leaveStats['Sick'] || 0, icon: Stethoscope },
+                      { label: "Family Leave", value: leaveStats['Family'] || 0, icon: Users },
+                      { label: "Bereavement Leave", value: leaveStats['Bereavement'] || 0, icon: UserX },
+                      { label: "Force Leave", value: leaveStats['Force'] || 0, icon: Sun },
+                    ];
+                    return leaveTypeRows.map((stat, i) => (
+                      <div key={i} className="p-5 flex items-center justify-between group hover:bg-slate-50/50 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm bg-white border border-slate-50">
+                            <stat.icon className="w-5 h-5 text-[#0C005F]" />
+                          </div>
+                          <div className="space-y-0.5">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                            <p className="text-xl font-black text-slate-900 tracking-tight">{stat.value}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
               </TabsContent>
             </Card>

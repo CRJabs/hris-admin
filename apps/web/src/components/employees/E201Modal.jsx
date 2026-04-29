@@ -31,20 +31,23 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
     return { ...baselineEmployee, ...requestedChanges };
   };
 
+  const [leaveApps, setLeaveApps] = useState([]);
+
   useEffect(() => {
-    const fetchLeaveCredits = async () => {
+    const fetchLeaveData = async () => {
       if (!employee?.id) return;
-      const { data, error } = await supabase
-        .from('leave_credits')
-        .select('*')
-        .eq('employee_id', employee.id);
-      if (!error) setLeaveCredits(data || []);
+      const [creditsRes, appsRes] = await Promise.all([
+        supabase.from('leave_credits').select('*').eq('employee_id', employee.id),
+        supabase.from('leave_applications').select('*').eq('employee_id', employee.id).order('created_at', { ascending: false })
+      ]);
+      if (creditsRes.data) setLeaveCredits(creditsRes.data);
+      if (appsRes.data) setLeaveApps(appsRes.data);
     };
 
     if (open && employee) {
       setEditedEmployee(getReviewEmployee());
       setIsEditMode(false);
-      fetchLeaveCredits();
+      fetchLeaveData();
     }
   }, [employee, open, activeRequest?.id]);
 
@@ -241,6 +244,8 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
               isReadOnly={!isEditMode} 
               requestedChanges={requestedChanges ? baselineEmployee : null}
               leaveCredits={leaveCredits}
+              leaveApplications={leaveApps}
+              isAdminView={true}
             />
           </TabsContent>
           <TabsContent value="benefits" className="mt-4">
