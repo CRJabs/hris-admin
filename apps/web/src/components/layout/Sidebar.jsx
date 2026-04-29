@@ -38,6 +38,9 @@ const navItems = [
       { label: "Leave Applications", icon: FileText, path: "/leaves/applications" },
     ]
   },
+  { label: "Payroll", icon: DollarSign, path: "/payroll" },
+  { label: "Reports", icon: BarChart3, path: "/reports" },
+  { label: "Settings", icon: Settings, path: "/settings" },
 ];
 
 export default function Sidebar({ collapsed, setCollapsed }) {

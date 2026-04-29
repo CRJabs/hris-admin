@@ -18,9 +18,9 @@ export default function AppLayout() {
   let icon = null;
 
   if (location.pathname === '/') {
-    title = "Portal Home";
-    subtitle = "Overview of your organization's human resources.";
-    icon = Zap;
+    title = "";
+    subtitle = "";
+    icon = null;
   } else if (location.pathname.startsWith('/dashboard')) {
     title = "HR Analytics";
     subtitle = "Deep dive into workforce metrics and trends.";
