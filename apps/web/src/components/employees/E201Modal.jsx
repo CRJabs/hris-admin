@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Check, X, Save, Edit3, ShieldCheck, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -158,8 +159,24 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
 
         <DialogHeader className="p-6 pb-0 flex flex-row items-center justify-between">
           <div>
-            <DialogTitle className="text-xl font-bold">
+            <DialogTitle className="text-xl font-bold flex items-center gap-3">
               {editedEmployee.first_name} {editedEmployee.last_name}
+              {(() => {
+                const todayStr = new Date().toISOString().split('T')[0];
+                const activeLeave = leaveApps.find(app => 
+                  app.status === 'approved' && 
+                  app.start_date <= todayStr && 
+                  app.end_date >= todayStr
+                );
+                if (activeLeave) {
+                  return (
+                    <Badge className="bg-amber-500 text-white border-none text-[10px] px-2 py-0.5 animate-pulse">
+                      On {activeLeave.leave_type} Leave
+                    </Badge>
+                  );
+                }
+                return null;
+              })()}
             </DialogTitle>
             <p className="text-sm text-muted-foreground mt-1">
               {editedEmployee.employee_id || "No ID"} • {editedEmployee.department || "No Dept"} • {editedEmployee.position || "No Position"}

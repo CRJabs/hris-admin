@@ -70,8 +70,8 @@ export default function Home() {
 
       setRecentActivities(activityData || []);
 
-      // --- Pending Requests (real data from two sources) ---
-      const [updateReqRes, regReqRes] = await Promise.all([
+      // --- Pending Requests (profile updates + registrations + leave applications) ---
+      const [updateReqRes, regReqRes, leaveReqRes] = await Promise.all([
         supabase
           .from('employee_update_requests')
           .select(`*, employees ( id, first_name, last_name, employee_id, position, department, employment_status, photo_url )`)
@@ -81,6 +81,11 @@ export default function Home() {
           .from('employees')
           .select('*')
           .eq('employment_status', 'Pending')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('leave_applications')
+          .select(`*, employees ( id, first_name, last_name, employee_id, position, department, photo_url )`)
+          .eq('status', 'pending')
           .order('created_at', { ascending: false })
       ]);
 
@@ -116,8 +121,23 @@ export default function Home() {
         }))];
       }
 
+      if (leaveReqRes.data) {
+        combined = [...combined, ...leaveReqRes.data.map(app => ({
+          id: `leave_${app.id}`,
+          name: `${app.employees?.first_name || ''} ${app.employees?.last_name || ''}`.trim(),
+          employeeId: app.employees?.employee_id || '—',
+          position: app.employees?.position || app.employees?.department || '—',
+          photoUrl: app.employees?.photo_url || null,
+          type: 'Leave Application',
+          status: app.status,
+          date: new Date(app.created_at),
+          notes: `${app.leave_type} Leave (${app.start_date} to ${app.end_date})`,
+          requestType: 'leave',
+        }))];
+      }
+
       combined.sort((a, b) => b.date - a.date);
-      setPendingRequests(combined.slice(0, 5));
+      setPendingRequests(combined.slice(0, 10));
 
       // --- Leave Analytics (currently active approved leaves by type) ---
       const todayStr = new Date().toISOString().split('T')[0];
@@ -366,7 +386,11 @@ export default function Home() {
                     <tr 
                       key={request.id} 
                       className="group hover:bg-slate-50/50 transition-colors cursor-pointer" 
-                      onClick={() => navigate(request.requestType === 'update' ? '/approvals/updates' : '/approvals/registrations')}
+                      onClick={() => navigate(
+                        request.requestType === 'update' ? '/approvals/updates' : 
+                        request.requestType === 'leave' ? '/approvals/leaves' :
+                        '/approvals/registrations'
+                      )}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -395,7 +419,9 @@ export default function Home() {
                       <td className="px-6 py-4">
                         <Badge variant="secondary" className={cn(
                           "text-[10px] font-black uppercase px-2 py-0.5",
-                          request.requestType === 'registration' ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
+                          request.requestType === 'registration' ? "bg-blue-50 text-blue-600" : 
+                          request.requestType === 'leave' ? "bg-purple-50 text-purple-600" :
+                          "bg-amber-50 text-amber-600"
                         )}>
                           {request.type}
                         </Badge>
