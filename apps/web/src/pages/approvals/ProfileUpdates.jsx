@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { CheckSquare, Check, X, Clock } from "lucide-react";
+import { CheckSquare, Check, X, Clock, Search, Filter } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import E201Modal from "@/components/employees/E201Modal";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -14,6 +16,8 @@ export default function ProfileUpdates() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRegistrant, setSelectedRegistrant] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -98,21 +102,70 @@ export default function ProfileUpdates() {
     setModalOpen(true);
   };
 
+  // Filter and search logic
+  const filteredRequests = requests.filter(req => {
+    const matchesStatus = statusFilter === "all" || req.status === statusFilter;
+    const fullName = `${req.employees?.first_name || ''} ${req.employees?.last_name || ''}`.toLowerCase();
+    const empId = (req.employees?.employee_id || '').toLowerCase();
+    const dept = (req.employees?.department || '').toLowerCase();
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = !query || fullName.includes(query) || empId.includes(query) || dept.includes(query);
+    return matchesStatus && matchesSearch;
+  });
+
+  const statusCounts = {
+    all: requests.length,
+    pending: requests.filter(r => r.status === 'pending').length,
+    approved: requests.filter(r => r.status === 'approved').length,
+    rejected: requests.filter(r => r.status === 'rejected').length,
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-[1440px] mx-auto">
+      {/* Search & Filter Bar */}
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            placeholder="Search by name, ID, or department..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-10 bg-white border-slate-200 focus-visible:ring-[#0C005F]/20"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-[200px] h-10 bg-white border-slate-200">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-slate-400" />
+              <SelectValue placeholder="Filter by status" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses ({statusCounts.all})</SelectItem>
+            <SelectItem value="pending">Pending ({statusCounts.pending})</SelectItem>
+            <SelectItem value="approved">Approved ({statusCounts.approved})</SelectItem>
+            <SelectItem value="rejected">Rejected ({statusCounts.rejected})</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {isLoading ? (
         <div className="text-center p-8 text-muted-foreground">Loading requests...</div>
-      ) : requests.length === 0 ? (
+      ) : filteredRequests.length === 0 ? (
         <Card className="border-dashed shadow-none bg-muted/10">
            <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
               <CheckSquare className="w-12 h-12 mb-3 opacity-20" />
-              <p className="font-medium text-lg">No pending requests</p>
-              <p className="text-sm">You are all caught up!</p>
+              <p className="font-medium text-lg">
+                {requests.length === 0 ? "No requests found" : "No matching requests"}
+              </p>
+              <p className="text-sm">
+                {requests.length === 0 ? "You are all caught up!" : "Try adjusting your search or filter."}
+              </p>
            </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
-          {requests.map((req) => (
+          {filteredRequests.map((req) => (
             <Card key={req.id} className="overflow-hidden cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group" onClick={() => handleViewRegistrant({ ...req.employees, pendingRequests: [req] })}>
                 <CardHeader className="bg-muted/30 group-hover:bg-primary/5 transition-colors pb-3 p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div>

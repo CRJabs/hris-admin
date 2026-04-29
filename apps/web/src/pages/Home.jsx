@@ -7,7 +7,7 @@ import {
   XCircle, Edit3, ToggleRight
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +31,7 @@ const ACTION_CONFIG = {
 
 export default function Home() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalEmployees: 0,
     pendingRegistrations: 0,
@@ -69,7 +70,7 @@ export default function Home() {
       const [updateReqRes, regReqRes] = await Promise.all([
         supabase
           .from('employee_update_requests')
-          .select(`*, employees ( id, first_name, last_name, employee_id, position, department, employment_status )`)
+          .select(`*, employees ( id, first_name, last_name, employee_id, position, department, employment_status, photo_url )`)
           .eq('status', 'pending')
           .order('created_at', { ascending: false }),
         supabase
@@ -87,6 +88,7 @@ export default function Home() {
           name: `${req.employees?.first_name || ''} ${req.employees?.last_name || ''}`.trim(),
           employeeId: req.employees?.employee_id || '—',
           position: req.employees?.position || req.employees?.department || '—',
+          photoUrl: req.employees?.photo_url || null,
           type: 'Profile Update',
           status: req.status,
           date: new Date(req.created_at),
@@ -101,6 +103,7 @@ export default function Home() {
           name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim(),
           employeeId: emp.employee_id || '—',
           position: emp.position || emp.department || 'New Applicant',
+          photoUrl: emp.photo_url || null,
           type: 'Registration',
           status: emp.employment_status,
           date: new Date(emp.created_at),
@@ -329,12 +332,24 @@ export default function Home() {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {pendingRequests.map((request) => (
-                    <tr key={request.id} className="group hover:bg-slate-50/50 transition-colors">
+                    <tr 
+                      key={request.id} 
+                      className="group hover:bg-slate-50/50 transition-colors cursor-pointer" 
+                      onClick={() => navigate(request.requestType === 'update' ? '/approvals/updates' : '/approvals/registrations')}
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                            {request.name.split(' ').map(n => n[0]).join('')}
-                          </div>
+                          {request.photoUrl ? (
+                            <img 
+                              src={request.photoUrl} 
+                              alt={request.name} 
+                              className="w-8 h-8 rounded-full object-cover shrink-0"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0">
+                              {request.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                          )}
                           <div className="flex flex-col">
                             <span className="text-sm font-bold text-slate-800">{request.name}</span>
                             <span className="text-[10px] text-slate-400 font-medium">{request.employeeId}</span>
