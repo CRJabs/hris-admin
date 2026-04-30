@@ -284,13 +284,18 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
           <TabsContent value="leave" className="mt-4">
             <LeaveTab 
               employee={editedEmployee} 
-              onChange={() => {
+              onRefresh={() => {
                 // Refetch credits after update
-                const fetchCredits = async () => {
-                   const { data } = await supabase.from('leave_credits').select('*').eq('employee_id', employee.id);
-                   setLeaveCredits(data || []);
+                const fetchLeaveData = async () => {
+                   if (!employee?.id) return;
+                   const [creditsRes, appsRes] = await Promise.all([
+                     supabase.from('leave_credits').select('*').eq('employee_id', employee.id),
+                     supabase.from('leave_applications').select('*').eq('employee_id', employee.id).order('created_at', { ascending: false })
+                   ]);
+                   if (creditsRes.data) setLeaveCredits(creditsRes.data);
+                   if (appsRes.data) setLeaveApps(appsRes.data);
                 };
-                fetchCredits();
+                fetchLeaveData();
               }} 
               isReadOnly={!isEditMode} 
               requestedChanges={requestedChanges ? baselineEmployee : null}

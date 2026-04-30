@@ -5,15 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 
-interface FamilySectionProps {
-  formData: any;
-  handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleGrid: (key: string, data: any[]) => void;
-  emergencyCols: any[];
-  childrenCols: any[];
-}
-
-export const FamilySection: React.FC<FamilySectionProps> = ({ formData, handleChange, handleGrid, emergencyCols, childrenCols }) => {
+export const FamilySection = ({ formData, handleChange, handleGrid, emergencyCols, childrenCols }) => {
   const [showSpouse, setShowSpouse] = React.useState(!!formData.spouse_name || !!formData.spouse_employer);
 
   return (
@@ -32,7 +24,7 @@ export const FamilySection: React.FC<FamilySectionProps> = ({ formData, handleCh
       </div>
 
       <div className="bg-white rounded-xl border shadow-sm">
-        <DynamicGrid title="Emergency Contact Line" columns={emergencyCols} data={formData.emergency_contacts} onChange={(d: any) => handleGrid('emergency_contacts', d)} />
+        <DynamicGrid title="Emergency Contact Line" columns={emergencyCols} data={formData.emergency_contacts} onChange={(d) => handleGrid('emergency_contacts', d)} />
       </div>
 
       <div className="bg-white p-6 rounded-xl border shadow-sm">
@@ -79,9 +71,8 @@ export const FamilySection: React.FC<FamilySectionProps> = ({ formData, handleCh
       </div>
 
       <div className="bg-white rounded-xl border shadow-sm">
-        <DynamicGrid title="Children Profiles" columns={childrenCols} data={formData.spouse_children} onChange={(d: any) => handleGrid('spouse_children', d)} />
+        <DynamicGrid title="Children Profiles" columns={childrenCols} data={formData.spouse_children} onChange={(d) => handleGrid('spouse_children', d)} />
       </div>
     </div>
   );
 };
-

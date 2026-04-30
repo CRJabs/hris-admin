@@ -5,15 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 
-interface PersonalDataProps {
-  formData: any;
-  handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleSelect: (name: string, value: string) => void;
-  handleGrid: (key: string, data: any[]) => void;
-  langCols: any[];
-}
-
-export const PersonalSection: React.FC<PersonalDataProps> = ({ formData, handleChange, handleSelect, handleGrid, langCols }) => {
+export const PersonalSection = ({ formData, handleChange, handleSelect, handleGrid, langCols }) => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="bg-white p-6 rounded-xl border shadow-sm">
@@ -111,7 +103,7 @@ export const PersonalSection: React.FC<PersonalDataProps> = ({ formData, handleC
           title="Languages & Literacy" 
           columns={langCols} 
           data={formData.languages || []} 
-          onChange={(d: any) => handleGrid('languages', d)} 
+          onChange={(d) => handleGrid('languages', d)} 
         />
       </div>
 

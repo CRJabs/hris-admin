@@ -27,7 +27,8 @@ export default function ProfileUpdates() {
       const { data: updateData, error: updateError } = await supabase
         .from('employee_update_requests')
         .select(`*, employees (*)`)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(30);
 
       if (!updateError) setRequests(updateData || []);
     } catch (err) {

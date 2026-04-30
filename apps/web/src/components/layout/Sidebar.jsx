@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, Users, DollarSign, BarChart3, Settings, LogOut, 
-  CheckSquare, ChevronLeft, ChevronRight, UserPlus, List, FileText, CalendarDays, Zap 
+  CheckSquare, ChevronLeft, ChevronRight, UserPlus, List, FileText, CalendarDays, Zap, Building2
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -10,7 +10,8 @@ import { useAuth } from "@/lib/AuthContext";
 
 const navItems = [
   { label: "Home", icon: Zap, path: "/" },
-  { label: "Analytics", icon: LayoutDashboard, path: "/dashboard" },
+  { label: "Reports & Analytics", icon: BarChart3, path: "/reports" },
+  { label: "Company", icon: Building2, path: "/company" },
   { 
     label: "Pending Approvals", 
     icon: CheckSquare, 
@@ -38,7 +39,7 @@ const navItems = [
       { label: "Manage Leave Credits", icon: List, path: "/leaves/assign" },
     ]
   },
-  { label: "Reports", icon: BarChart3, path: "/reports" },
+  { label: "Settings", icon: Settings, path: "/settings" },
 ];
 
 export default function Sidebar({ collapsed, setCollapsed }) {

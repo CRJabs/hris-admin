@@ -96,14 +96,23 @@ export default function AddEmployee() {
     setIsSaving(true);
     try {
       const year = new Date().getFullYear();
-      const { count, error: countError } = await supabase
+      const { data: lastEmp, error: lastEmpError } = await supabase
         .from('employees')
-        .select('*', { count: 'exact', head: true })
-        .filter('employee_id', 'ilike', `${year} - %`);
+        .select('employee_id')
+        .ilike('employee_id', `${year} - %`)
+        .order('employee_id', { ascending: false })
+        .limit(1);
       
-      if (countError) throw countError;
+      if (lastEmpError) throw lastEmpError;
       
-      const nextIdNumber = (count || 0) + 1;
+      let nextIdNumber = 1;
+      if (lastEmp && lastEmp.length > 0) {
+        const lastId = lastEmp[0].employee_id;
+        const parts = lastId.split(' - ');
+        if (parts.length === 2) {
+          nextIdNumber = parseInt(parts[1], 10) + 1;
+        }
+      }
       const generatedId = `${year} - ${String(nextIdNumber).padStart(3, '0')}`;
 
        const sanitizedData = Object.fromEntries(

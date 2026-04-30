@@ -232,11 +232,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
 
   const checkUpdated = (name) => {
     if (!requestedChanges) return false;
-    // Basic field comparison
-    if (requestedChanges[name] !== undefined && requestedChanges[name] !== employee[name]) {
-      return true;
-    }
-    return false;
+    return Object.prototype.hasOwnProperty.call(requestedChanges, name);
   };
 
   return (

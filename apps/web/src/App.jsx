@@ -17,7 +17,6 @@ const Dashboard = lazy(() => import('@/pages/core/Dashboard'));
 const Employees = lazy(() => import('@/pages/employees/Employees'));
 const Payroll = lazy(() => import('@/pages/core/Payroll'));
 const Reports = lazy(() => import('@/pages/core/Reports'));
-const Settings = lazy(() => import('@/pages/core/Settings'));
 const Approvals = lazy(() => import('@/pages/Approvals'));
 const EmployeeProfile = lazy(() => import('@/pages/employees/EmployeeProfile'));
 const Login = lazy(() => import('@/pages/auth/Login'));
@@ -31,6 +30,8 @@ const ProfileUpdates = lazy(() => import('@/pages/approvals/ProfileUpdates'));
 const NewRegistrations = lazy(() => import('@/pages/approvals/NewRegistrations'));
 const AssignLeaveCredits = lazy(() => import('@/pages/leaves/AssignLeaveCredits'));
 const LeaveApplications = lazy(() => import('@/pages/leaves/LeaveApplications'));
+const Company = lazy(() => import('@/pages/Company'));
+const Settings = lazy(() => import('@/pages/Settings'));
 
 
 // Loading component
@@ -79,8 +80,8 @@ const AuthenticatedApp = () => {
           <Route path="/employees" element={<Employees />} />
           <Route path="/employees/add" element={<AddEmployee />} />
           <Route path="/leaves/assign" element={<AssignLeaveCredits />} />
+          <Route path="/company" element={<Company />} />
           <Route path="/payroll" element={<Payroll />} />
-
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
@@ -101,6 +102,8 @@ const AuthenticatedApp = () => {
   );
 };
 
+import { Toaster as SonnerToaster } from "sonner";
+
 function App() {
   return (
     <AuthProvider>
@@ -119,6 +122,7 @@ function App() {
           </Suspense>
         </Router>
         <Toaster />
+        <SonnerToaster position="top-right" richColors closeButton />
       </QueryClientProvider>
     </AuthProvider>
   )

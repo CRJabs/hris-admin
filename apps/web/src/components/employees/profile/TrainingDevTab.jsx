@@ -94,10 +94,7 @@ function SectionBlock({ title, data, icon: Icon, isEditing, columns, onUpdate, i
 export default function TrainingDevTab({ employee, isReadOnly = false, isEditing = false, onUpdate, requestedChanges = null }) {
   const checkUpdated = (name) => {
     if (!requestedChanges) return false;
-    if (requestedChanges[name] !== undefined && JSON.stringify(requestedChanges[name]) !== JSON.stringify(employee[name])) {
-      return true;
-    }
-    return false;
+    return Object.prototype.hasOwnProperty.call(requestedChanges, name);
   };
 
   const trainCols = [

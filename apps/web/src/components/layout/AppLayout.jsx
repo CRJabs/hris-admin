@@ -4,7 +4,8 @@ import Header from "./Header";
 import { useState } from "react";
 import { 
   LayoutDashboard, FileText, UserPlus, Users, 
-  DollarSign, BarChart3, Settings, CalendarDays, Zap 
+  DollarSign, BarChart3, Settings, CalendarDays, Zap,
+  Building2, List, CheckSquare
 } from "lucide-react";
 
 
@@ -17,49 +18,55 @@ export default function AppLayout() {
   let subtitle = "";
   let icon = null;
 
-  if (location.pathname === '/') {
-    title = "";
-    subtitle = "";
-    icon = null;
-  } else if (location.pathname.startsWith('/dashboard')) {
-    title = "HR Analytics";
-    subtitle = "Deep dive into workforce metrics and trends.";
-    icon = LayoutDashboard;
-  } else if (location.pathname === '/approvals/updates') {
+  const path = location.pathname;
+
+  if (path === '/') {
+    title = "Home";
+    subtitle = "Welcome to the UB HR Information System.";
+    icon = Zap;
+  } else if (path === '/reports') {
+    title = "Reports & Analytics";
+    subtitle = "Generate and view institutional HR analytics.";
+    icon = BarChart3;
+  } else if (path === '/company') {
+    title = "Company Structure";
+    subtitle = "View organization hierarchy and department alignment.";
+    icon = Building2;
+  } else if (path === '/approvals/updates') {
     title = "Profile Update Requests";
     subtitle = "Review and approve changes submitted by employees.";
     icon = FileText;
-  } else if (location.pathname === '/approvals/registrations') {
+  } else if (path === '/approvals/registrations') {
     title = "New Registration Requests";
     subtitle = "Review digital 201 form submissions for new employees.";
     icon = UserPlus;
-  } else if (location.pathname === '/approvals/leaves') {
+  } else if (path === '/approvals/leaves') {
     title = "Leave Applications";
     subtitle = "Review and process employee leave requests.";
     icon = CalendarDays;
-  } else if (location.pathname.startsWith('/approvals')) {
+  } else if (path.startsWith('/approvals')) {
     title = "Pending Approvals";
-    subtitle = "Review profile update requests, new registrations, and leave applications.";
-    icon = FileText;
-  } else if (location.pathname.startsWith('/employees')) {
-    title = "Employees";
+    subtitle = "Review pending HR requests.";
+    icon = CheckSquare;
+  } else if (path === '/employees/add') {
+    title = "Onboard New Employee";
+    subtitle = "Register a new employee into the system.";
+    icon = UserPlus;
+  } else if (path.startsWith('/employees')) {
+    title = "Employee Masterlist";
     subtitle = "Manage your organization's employee records.";
     icon = Users;
-  } else if (location.pathname.startsWith('/payroll')) {
-    title = "Payroll & Bonuses";
-    subtitle = "Manage employee compensation and benefits.";
-    icon = DollarSign;
-  } else if (location.pathname.startsWith('/reports')) {
-    title = "Reports";
-    subtitle = "Generate and view HR analytics.";
-    icon = BarChart3;
-  } else if (location.pathname === '/leaves/assign') {
+  } else if (path === '/leaves/assign') {
     title = "Manage Leave Credits";
-    subtitle = "Manage and adjust employee leave allocations.";
-    icon = CalendarDays;
-  } else if (location.pathname.startsWith('/settings')) {
-    title = "Settings";
-    subtitle = "Configure system preferences.";
+    subtitle = "Adjust and manage employee leave allocations.";
+    icon = List;
+  } else if (path.startsWith('/payroll')) {
+    title = "Payroll & Bonuses";
+    subtitle = "Manage employee compensation.";
+    icon = DollarSign;
+  } else if (path.startsWith('/settings')) {
+    title = "System Settings";
+    subtitle = "Configure system preferences and global parameters.";
     icon = Settings;
   }
 

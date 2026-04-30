@@ -205,11 +205,7 @@ export default function Employees() {
             <UserPlus className="w-3.5 h-3.5" />
             Add Employee
           </Button>
-          <Button variant="outline" size="sm" className="gap-2 text-xs">
-            <Upload className="w-3.5 h-3.5" />
-            Import Data (.csv)
-          </Button>
-          <Button onClick={handleExport} variant="outline" size="sm" className="gap-2 text-xs">
+          <Button onClick={() => navigate("/reports")} variant="outline" size="sm" className="gap-2 text-xs">
             <Download className="w-3.5 h-3.5" />
             Export Report
           </Button>

@@ -44,10 +44,7 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
   const isAdminEditing = !isReadOnly && isAdminView;
   const checkUpdated = (name) => {
     if (!requestedChanges) return false;
-    if (requestedChanges[name] !== undefined && requestedChanges[name] !== employee[name]) {
-      return true;
-    }
-    return false;
+    return Object.prototype.hasOwnProperty.call(requestedChanges, name);
   };
 
   const prevEmpCols = [

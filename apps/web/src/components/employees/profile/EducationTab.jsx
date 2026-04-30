@@ -25,10 +25,7 @@ export default function EducationTab({ employee, isReadOnly = false, isEditing =
 
   const checkUpdated = (name) => {
     if (!requestedChanges) return false;
-    if (requestedChanges[name] !== undefined && JSON.stringify(requestedChanges[name]) !== JSON.stringify(employee[name])) {
-      return true;
-    }
-    return false;
+    return Object.prototype.hasOwnProperty.call(requestedChanges, name);
   };
 
   const isListUpdated = checkUpdated('educational_record');

@@ -18,6 +18,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
 } from "@/components/ui/select";
 import { CalendarDays, AlertTriangle, Loader2, Send, Info } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -162,39 +164,40 @@ export default function FileLeaveModal({ open, onOpenChange, employee, leaveCred
                 <SelectValue placeholder="Select leave type..." />
               </SelectTrigger>
               <SelectContent>
-                {leaveCredits.map((credit) => {
-                  const avail = credit.total_credits - credit.used_credits;
-                  const isExhausted = avail <= 0;
-                  return (
-                    <SelectItem
-                      key={credit.id}
-                      value={`${credit.id}`}
-                      disabled={isExhausted}
-                      className="py-3"
-                    >
-                      <div className="flex items-center justify-between w-full gap-4">
-                        <span className={isExhausted ? "text-slate-400 line-through" : ""}>
-                          {credit.leave_type} Leave
-                          <span className="text-muted-foreground text-[10px] ml-1">
-                            ({credit.is_commutable ? "Comm." : "Non-comm."})
-                          </span>
-                        </span>
-                        <Badge
-                          variant="secondary"
-                          className={`text-[10px] font-bold ml-2 shrink-0 ${
-                            isExhausted
-                              ? "bg-red-50 text-red-500"
-                              : avail <= 2
-                              ? "bg-amber-50 text-amber-600"
-                              : "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {avail} left
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
+                {leaveCredits.filter(c => c.is_commutable).length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-black uppercase tracking-widest text-amber-600 bg-amber-50/50 py-1 px-2 mb-1">Commutable Credits</SelectLabel>
+                    {leaveCredits.filter(c => c.is_commutable).map((credit) => {
+                      const avail = credit.total_credits - credit.used_credits;
+                      const isExhausted = avail <= 0;
+                      return (
+                        <SelectItem key={credit.id} value={`${credit.id}`} disabled={isExhausted}>
+                          <div className="flex items-center justify-between w-full gap-4">
+                            <span className={isExhausted ? "text-slate-400 line-through" : ""}>{credit.leave_type} Leave</span>
+                            <Badge variant="secondary" className={`text-[10px] font-bold ${isExhausted ? "bg-red-50 text-red-500" : "bg-amber-50 text-amber-600"}`}>{avail} left</Badge>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectGroup>
+                )}
+                {leaveCredits.filter(c => !c.is_commutable).length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50/50 py-1 px-2 mt-2 mb-1">Non-Commutable Credits</SelectLabel>
+                    {leaveCredits.filter(c => !c.is_commutable).map((credit) => {
+                      const avail = credit.total_credits - credit.used_credits;
+                      const isExhausted = avail <= 0;
+                      return (
+                        <SelectItem key={credit.id} value={`${credit.id}`} disabled={isExhausted}>
+                          <div className="flex items-center justify-between w-full gap-4">
+                            <span className={isExhausted ? "text-slate-400 line-through" : ""}>{credit.leave_type} Leave</span>
+                            <Badge variant="secondary" className={`text-[10px] font-bold ${isExhausted ? "bg-red-50 text-red-500" : "bg-slate-100 text-slate-600"}`}>{avail} left</Badge>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectGroup>
+                )}
               </SelectContent>
             </Select>
 

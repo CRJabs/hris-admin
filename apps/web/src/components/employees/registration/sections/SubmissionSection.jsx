@@ -5,20 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Upload, CheckCircle, Loader2 } from "lucide-react";
 
-interface SubmissionSectionProps {
-  certified: boolean;
-  setCertified: (val: boolean) => void;
-  signatureName: string;
-  setSignatureName: (val: string) => void;
-  signatureUrl: string;
-  signaturePreviewUrl?: string;
-  handleSignatureUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  isUploadingSignature: boolean;
-  submitRegistration: () => void;
-  isSubmitting: boolean;
-}
-
-export const SubmissionSection: React.FC<SubmissionSectionProps> = ({ 
+export const SubmissionSection = ({ 
   certified, 
   setCertified, 
   signatureName, 

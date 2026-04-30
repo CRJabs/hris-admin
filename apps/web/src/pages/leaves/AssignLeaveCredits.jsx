@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Search, X, CalendarDays, RefreshCw, Save, Activity, Loader2 } from "lucide-react";
+import { Search, X, CalendarDays, RefreshCw, Save, Activity, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 import EmployeeFilters from "@/components/employees/EmployeeFilters";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -16,13 +16,15 @@ export default function AssignLeaveCredits() {
   const [employees, setEmployees] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
-  
+
   const [globalSearch, setGlobalSearch] = useState("");
   const [filters, setFilters] = useState({ departments: [], statuses: [], classifications: [], active: "Active" });
-  
+
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [leaveCredits, setLeaveCredits] = useState([]);
   const [isFetchingCredits, setIsFetchingCredits] = useState(false);
+  const [dirtyCredits, setDirtyCredits] = useState({}); // { id: { total_credits } }
+  const [isSaving, setIsSaving] = useState(false);
 
   const fetchEmployees = async () => {
     setIsLoading(true);
@@ -32,7 +34,6 @@ export default function AssignLeaveCredits() {
       setEmployees(data || []);
     } catch (err) {
       console.error("Error fetching employees:", err);
-      toast.error("Failed to fetch employees");
     } finally {
       setIsLoading(false);
     }
@@ -47,12 +48,12 @@ export default function AssignLeaveCredits() {
         .select('*')
         .eq('employee_id', empId)
         .order('leave_type', { ascending: true });
-      
+
       if (error) throw error;
       setLeaveCredits(data || []);
+      setDirtyCredits({}); // Clear dirty state when switching employees
     } catch (err) {
       console.error("Error fetching credits:", err);
-      toast.error("Failed to fetch leave credits");
     } finally {
       setIsFetchingCredits(false);
     }
@@ -104,14 +105,13 @@ export default function AssignLeaveCredits() {
         .from('leave_credits')
         .delete()
         .eq('employee_id', selectedEmployee.id);
-      
+
       if (deleteError) throw deleteError;
 
       // Assign defaults
       const res = await assignDefaultLeaveCredits(selectedEmployee.id, selectedEmployee.employment_classification);
       if (!res.success) throw res.error;
 
-      toast.success("Leave credits reset to system defaults.");
       fetchLeaveCredits(selectedEmployee.id);
 
       // Log to admin activity
@@ -123,83 +123,91 @@ export default function AssignLeaveCredits() {
         employee_id: selectedEmployee.id
       });
     } catch (err) {
-      toast.error("Failed to reset credits: " + err.message);
     } finally {
       setIsActionLoading(false);
     }
   };
 
-  const handleUpdateCredit = async (creditId, updates, creditSnapshot) => {
-    // Use the passed snapshot first; fall back to current state lookup
-    const creditToUpdate = creditSnapshot || leaveCredits.find(c => c.id === creditId);
-    if (!creditToUpdate) return;
+  const handleValueChange = (id, val) => {
+    const numVal = parseInt(val) || 0;
+    setDirtyCredits(prev => ({
+      ...prev,
+      [id]: { total_credits: numVal }
+    }));
+  };
 
-    // Ensure total_credits is integer and >= 0
-    if (updates.total_credits !== undefined) {
-      updates.total_credits = Math.max(0, Math.floor(updates.total_credits));
-      
-      const systemDefaults = DEFAULT_LEAVE_CREDITS[selectedEmployee.employment_classification];
-      
-      // Strictly apply the system default as the absolute limit for each specific leave type
-      const specificDefault = systemDefaults.find(d => 
-        d.leave_type === creditToUpdate.leave_type && 
-        d.is_commutable === creditToUpdate.is_commutable
-      );
-
-      if (specificDefault && updates.total_credits > specificDefault.total_credits) {
-        toast.error(`${creditToUpdate.leave_type} Leave (${creditToUpdate.is_commutable ? 'Commutable' : 'Non-commutable'}) cannot exceed its system default of ${specificDefault.total_credits}.`);
-        return;
-      }
-
-      // Keep the commuting pool logic as well if needed, but the individual cap takes precedence now
-      if (creditToUpdate.is_commutable) {
-        const otherCommutableTotal = leaveCredits
-          .filter(c => c.is_commutable && c.id !== creditId)
-          .reduce((acc, c) => acc + c.total_credits, 0);
-        
-        const allowedPoolMax = systemDefaults
-          .filter(c => c.is_commutable)
-          .reduce((acc, c) => acc + c.total_credits, 0);
-
-        if (otherCommutableTotal + updates.total_credits > allowedPoolMax) {
-          toast.error(`Total commutable credits cannot exceed the ${allowedPoolMax} pool limit.`);
-          return;
-        }
-      }
-    }
-
-
+  const saveChanges = async () => {
+    if (!selectedEmployee) return;
+    setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('leave_credits')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', creditId);
-      
-      if (error) throw error;
-      
-      setLeaveCredits(prev => prev.map(c => c.id === creditId ? { ...c, ...updates } : c));
-      toast.success("Credit updated successfully.");
+      const updates = Object.entries(dirtyCredits).map(([id, values]) => {
+        const creditToUpdate = leaveCredits.find(c => c.id === id);
+        if (!creditToUpdate) return null;
 
-      // Log to admin activity
+        // Validation logic
+        let finalVal = Math.max(0, Math.floor(values.total_credits));
+        const systemDefaults = DEFAULT_LEAVE_CREDITS[selectedEmployee.employment_classification];
+        const specificDefault = systemDefaults.find(d =>
+          d.leave_type === creditToUpdate.leave_type &&
+          d.is_commutable === creditToUpdate.is_commutable
+        );
+
+        if (specificDefault && finalVal > specificDefault.total_credits) {
+          throw new Error(`${creditToUpdate.leave_type} Leave (${creditToUpdate.is_commutable ? 'Commutable' : 'Non-commutable'}) cannot exceed its system default of ${specificDefault.total_credits}.`);
+        }
+
+        return supabase
+          .from('leave_credits')
+          .update({ total_credits: finalVal, updated_at: new Date().toISOString() })
+          .eq('id', id);
+      }).filter(Boolean);
+
+      const results = await Promise.all(updates);
+      const errors = results.filter(r => r.error);
+      if (errors.length > 0) throw errors[0].error;
+
+      // Batch Log to admin activity
       await supabase.from('admin_activity_log').insert({
         actor_type: 'admin',
         actor_name: 'Administrator',
         action: 'admin_assigned_leave_credits',
-        description: `Updated ${creditToUpdate.leave_type} leave credits for ${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
+        description: `Updated leave credits for ${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
         employee_id: selectedEmployee.id
       });
+
+
+      setDirtyCredits({});
+      fetchLeaveCredits(selectedEmployee.id);
     } catch (err) {
-      toast.error("Failed to update credit");
+    } finally {
+      setIsSaving(false);
     }
   };
 
+  const discardChanges = () => {
+    setDirtyCredits({});
+  };
+
+  const displayCredits = leaveCredits.map(c => {
+    const dirty = dirtyCredits[c.id];
+    return {
+      ...c,
+      total_credits: dirty ? dirty.total_credits : c.total_credits,
+      isDirty: !!dirty
+    };
+  });
+
+  const commutable = displayCredits.filter(c => c.is_commutable);
+  const nonCommutable = displayCredits.filter(c => !c.is_commutable);
+
+  const hasDirty = Object.keys(dirtyCredits).length > 0;
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-full overflow-hidden">
       <div className="flex flex-1 overflow-hidden">
         {/* Left Side: Employee List */}
         <div className="w-1/3 border-r bg-slate-50/50 flex flex-col overflow-hidden">
-          <div className="p-4 space-y-4 border-b bg-white">
+          <div className="h-[105px] p-4 flex flex-col justify-center gap-3 border-b bg-white">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -237,8 +245,8 @@ export default function AssignLeaveCredits() {
                     onClick={() => setSelectedEmployee(emp)}
                     className={cn(
                       "p-4 cursor-pointer transition-all duration-200",
-                      selectedEmployee?.id === emp.id 
-                        ? "bg-[#0C005F]/5 border-l-4 border-[#0C005F] shadow-inner" 
+                      selectedEmployee?.id === emp.id
+                        ? "bg-[#0C005F]/5 border-l-4 border-[#0C005F] shadow-inner"
                         : "bg-transparent hover:bg-slate-100/50"
                     )}
                   >
@@ -270,7 +278,7 @@ export default function AssignLeaveCredits() {
         </div>
 
         {/* Right Side: Leave Credit Table */}
-        <div className="flex-1 bg-white flex flex-col overflow-hidden">
+        <div className="flex-1 bg-white flex flex-col overflow-hidden relative">
           {!selectedEmployee ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-12 text-center">
               <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4">
@@ -281,7 +289,7 @@ export default function AssignLeaveCredits() {
             </div>
           ) : (
             <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="p-6 border-b flex items-center justify-between shrink-0">
+              <div className="h-[105px] px-6 py-4 border-b flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
                     {selectedEmployee.photo_url ? (
@@ -304,14 +312,14 @@ export default function AssignLeaveCredits() {
                   <div className="text-right mr-4">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Available Credits</p>
                     <p className="text-xl font-black text-[#0C005F]">
-                      {Math.floor(leaveCredits.reduce((acc, c) => acc + (c.total_credits - c.used_credits), 0))}
+                      {Math.floor(displayCredits.reduce((acc, c) => acc + (c.total_credits - c.used_credits), 0))}
                     </p>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={handleResetToDefault}
-                    disabled={isActionLoading}
+                    disabled={isActionLoading || isSaving}
                     className="gap-2 text-xs border-slate-200 hover:bg-slate-50 text-slate-700"
                   >
                     {isActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
@@ -320,7 +328,7 @@ export default function AssignLeaveCredits() {
                 </div>
               </div>
 
-              <ScrollArea className="flex-1 p-6">
+              <ScrollArea className="flex-1 p-6 pb-24">
                 {isFetchingCredits ? (
                   <div className="flex flex-col items-center justify-center py-20 gap-3">
                     <Loader2 className="w-8 h-8 animate-spin text-[#0C005F]" />
@@ -339,70 +347,161 @@ export default function AssignLeaveCredits() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                      {leaveCredits.map((credit) => (
-                        <Card key={credit.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow border-slate-200">
-                          <div className={cn(
-                            "h-1.5 w-full",
-                            credit.is_commutable ? "bg-amber-400" : "bg-[#0C005F]"
-                          )} />
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start mb-4">
-                              <div>
-                                <h3 className="font-bold text-sm">{credit.leave_type} Leave</h3>
-                                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
-                                  {credit.is_commutable ? "Commutable" : "Non-Commutable"}
-                                </p>
-                              </div>
-                              <Badge variant="secondary" className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5">
-                                {Math.floor(credit.total_credits - credit.used_credits)} Available
-                              </Badge>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Total Allocation</label>
-                                <div className="flex items-center gap-2">
-                                  <Input 
-                                    type="number" 
-                                    value={credit.total_credits}
-                                    onChange={(e) => {
-                                      const val = parseInt(e.target.value) || 0;
-                                      setLeaveCredits(prev => prev.map(c => c.id === credit.id ? { ...c, total_credits: val } : c));
-                                    }}
-                                    onBlur={(e) => {
-                                      const val = parseInt(e.target.value) || 0;
-                                      // Pass the original snapshot from the render so validation uses correct baseline
-                                      handleUpdateCredit(credit.id, { total_credits: val }, credit);
-                                    }}
-                                    className="h-8 text-xs font-bold focus:ring-[#0C005F]"
-                                  />
+                  <div className="space-y-10">
+                    {/* Commutable Section */}
+                    {commutable.length > 0 && (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3 border-l-4 border-amber-400 pl-4 py-1 bg-amber-50/30 rounded-r-xl">
+                          <div>
+                            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-600">Commutable Credits</h3>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                          {commutable.map((credit) => (
+                            <CreditCard
+                              key={credit.id}
+                              credit={credit}
+                              onValueChange={handleValueChange}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                                </div>
-                              </div>
-                              <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Used Credits</label>
-                                <div className="flex items-center gap-2">
-                                  <Input 
-                                    type="number" 
-                                    value={Math.floor(credit.used_credits)}
-                                    readOnly
-                                    className="h-8 text-xs font-bold bg-slate-50 border-slate-100 text-slate-400"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+                    {/* Non-Commutable Section */}
+                    {nonCommutable.length > 0 && (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3 border-l-4 border-[#0C005F] pl-4 py-1 bg-blue-50/30 rounded-r-xl">
+                          <div>
+                            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-600">Non-Commutable Credits</h3>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                          {nonCommutable.map((credit) => (
+                            <CreditCard
+                              key={credit.id}
+                              credit={credit}
+                              onValueChange={handleValueChange}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </ScrollArea>
+
+              {/* Batch Actions Bar */}
+              {hasDirty && (
+                <div className="fixed bottom-10 left-[66.6%] -translate-x-1/2 max-w-xl w-[calc(66.6%-4rem)] bg-white/95 backdrop-blur-md p-5 rounded-3xl border-2 border-amber-400/50 shadow-[0_20px_60px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom-10 duration-500 z-[100] ring-1 ring-amber-400/10">
+                  <div className="flex items-center justify-between gap-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+                        <Activity className="w-5 h-5 text-amber-500 animate-pulse" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">{Object.keys(dirtyCredits).length} pending changes</p>
+                        <p className="text-[10px] text-slate-400 font-medium">Click save to apply to employee record</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={discardChanges}
+                        disabled={isSaving}
+                        className="h-9 px-4 border-slate-200 text-slate-600 font-bold hover:bg-slate-50"
+                      >
+                        Discard
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={saveChanges}
+                        disabled={isSaving}
+                        className="h-9 px-6 bg-[#0C005F] hover:bg-[#0C005F]/90 font-bold shadow-lg shadow-[#0C005F]/20"
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4 mr-2" />
+                            Save Changes
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+function CreditCard({ credit, onValueChange }) {
+  const [localVal, setLocalVal] = useState(credit.total_credits);
+
+  useEffect(() => {
+    setLocalVal(credit.total_credits);
+  }, [credit.total_credits]);
+
+  return (
+    <Card className={cn(
+      "overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border-slate-200",
+      credit.isDirty && "border-amber-400 shadow-amber-100 ring-1 ring-amber-400/20"
+    )}>
+      <div className={cn(
+        "h-1.5 w-full",
+        credit.is_commutable ? "bg-amber-400" : "bg-[#0C005F]"
+      )} />
+      <CardContent className="p-4">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-sm text-slate-800">{credit.leave_type} Leave</h3>
+              {credit.isDirty && (
+                <Badge className="bg-amber-100 text-amber-700 text-[9px] font-bold px-1.5 py-0 border-none animate-pulse">
+                  Unsaved
+                </Badge>
+              )}
+            </div>
+            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">
+              {credit.is_commutable ? "Commutable" : "Non-Commutable"}
+            </p>
+          </div>
+          <Badge variant="secondary" className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 border-none">
+            {Math.floor(localVal - credit.used_credits)} Available
+          </Badge>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Allocation</label>
+            <Input
+              type="number"
+              value={localVal}
+              onChange={(e) => {
+                const val = e.target.value;
+                setLocalVal(val);
+                onValueChange(credit.id, val);
+              }}
+              className="h-9 text-sm font-bold focus-visible:ring-[#0C005F]/20 border-slate-200 bg-white"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Used Credits</label>
+            <div className="h-9 w-full rounded-md border border-slate-100 bg-slate-50/50 px-3 py-2 text-sm font-bold text-slate-400 flex items-center">
+              {Math.floor(credit.used_credits)}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
