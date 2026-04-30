@@ -1,7 +1,8 @@
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { User, Heart, MapPin, Shield, Users } from "lucide-react";
+import { User, Heart, MapPin, Shield, Users, Plus, X, Briefcase } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 import { DEPARTMENTS, EMPLOYMENT_CLASSIFICATIONS } from "@/lib/constants";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 
 function SectionBlock({ title, icon: Icon, children, action }) {
   return (
@@ -52,7 +54,7 @@ const getDepartmentLogo = (dept) => {
   return `${supabaseUrl}/storage/v1/object/public/department-logos/${filename}`;
 };
 
-function InfoRow({ label, value, name, onChange, isEditing, type = "text", className = "", isUpdated = false, isError = false }) {
+function InfoRow({ label, value, name, onChange, isEditing, type = "text", className = "", isUpdated = false, isError = false, children }) {
   return (
     <div className={`py-1.5 px-2 rounded-md transition-colors ${isUpdated ? 'bg-amber-50 border border-amber-200/50 shadow-sm' : ''} ${className}`}>
       <div className="flex items-center justify-between">
@@ -64,13 +66,15 @@ function InfoRow({ label, value, name, onChange, isEditing, type = "text", class
         )}
       </div>
       {isEditing ? (
-        <Input 
-          type={type}
-          name={name}
-          value={value || ""} 
-          onChange={(e) => onChange(name, e.target.value)}
-          className={`h-8 text-sm mt-1 ${isError ? 'border-red-500 focus-visible:ring-red-500 bg-red-50/50' : ''}`}
-        />
+        children ? children : (
+          <Input 
+            type={type}
+            name={name}
+            value={value || ""} 
+            onChange={(e) => onChange(name, e.target.value)}
+            className={`h-8 text-sm mt-1 ${isError ? 'border-red-500 focus-visible:ring-red-500 bg-red-50/50' : ''}`}
+          />
+        )
       ) : (
         <p className="text-sm font-medium mt-0.5">{value || "—"}</p>
       )}
@@ -80,6 +84,8 @@ function InfoRow({ label, value, name, onChange, isEditing, type = "text", class
 
 export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnly = false, showPhotoUpload = false, onChange, isEditMode = false, isAdminView = false, requestedChanges = null, errors = {} }) {
   const { toast } = useToast();
+  const [showSpouse, setShowSpouse] = useState(!!employee.spouse_name || !!employee.spouse_employer);
+
   const statusColor = {
     Regular: "bg-green-50 text-green-700 border-green-200",
     Probationary: "bg-amber-50 text-amber-700 border-amber-200",
@@ -88,7 +94,16 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file || !employee?.id) return;
+    if (!file) return;
+
+    if (!employee?.id) {
+      // Handle local preview for new employees (Onboarding/Registration)
+      const previewUrl = URL.createObjectURL(file);
+      onChange('photo_url', previewUrl);
+      onChange('photo_file', file);
+      return;
+    }
+
     const ownerId = employee.user_id || employee.id;
     const acceptedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 
@@ -141,14 +156,69 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
     }
   };
 
+  const handleSignatureUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!employee?.id) {
+      // Handle local preview for new employees
+      const previewUrl = URL.createObjectURL(file);
+      onChange('signature_url', previewUrl);
+      onChange('signature_file', file);
+      return;
+    }
+
+    const ownerId = employee.user_id || employee.id;
+    const acceptedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+
+    if (!acceptedTypes.includes(file.type)) {
+      toast({ title: "Invalid file type", description: "Please upload a PNG or JPG image.", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      const fileExt = (file.name.split('.').pop() || "png").toLowerCase();
+      const objectPath = `${ownerId}/signatures/sig_${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(objectPath, file, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: file.type,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(objectPath);
+
+      const { error: updateError } = await supabase
+        .from('employees')
+        .update({ signature_url: publicUrl })
+        .eq('id', employee.id);
+
+      if (updateError) throw updateError;
+      
+      toast({ title: "Signature updated successfully!" });
+      window.location.reload(); 
+    } catch(err) {
+      console.error(err);
+      toast({ title: "Failed to upload signature", description: err.message, variant: "destructive" });
+    }
+  };
+
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://your-project.supabase.co";
 
   const isEditing = !isReadOnly;
 
   // Grid column definitions
   const contactCols = [
-    { key: 'name', label: 'Contact Name', span: 3 }, { key: 'relation', label: 'Relation', span: 2 },
-    { key: 'address', label: 'Contact Address', span: 3 }, { key: 'mobile', label: 'Mobile', span: 2 }, { key: 'office', label: 'Office/Home', span: 2 }
+    // Row 1
+    { key: 'name', label: 'Contact Name', span: 5 }, { key: 'relation', label: 'Relation', span: 3 }, { key: 'mobile', label: 'Mobile', span: 4 },
+    // Row 2
+    { key: 'address', label: 'Contact Address', span: 6 }, { key: 'office', label: 'Office No.', span: 3 }, { key: 'home', label: 'Home No.', span: 3 }
   ];
   const childrenCols = [
     { key: 'name', label: "Child's Name", span: 8 }, { key: 'birthdate', label: 'Date of Birth', type: 'date', span: 4 },
@@ -156,7 +226,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
     { key: 'enrolled', label: 'Enrolled At', span: 4 }, { key: 'course', label: 'Course & YR', span: 3 }
   ];
   const langCols = [
-    { key: 'language', label: 'Language', span: 4 }, { key: 'literacy', label: 'Literacy (Speak/Read/Write)', span: 4 },
+    { key: 'language', label: 'Language', span: 4 }, { key: 'literacy', label: 'Literacy', span: 4, placeholder: 'Speak/Read/Write' },
     { key: 'fluency', label: 'Fluency Scale', span: 4, placeholder: 'Beginner/Intermediate/Advance/Expert' }
   ];
 
@@ -237,64 +307,15 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                 </div>
               )}
               
-              {isEditMode && isAdminView ? (
-                <div className="flex flex-col items-center gap-1 mb-2">
-                  <Input 
-                    className="h-7 text-sm text-center w-3/4 mb-1"
-                    value={employee.position || ""}
-                    placeholder="Position"
-                    onChange={(e) => onChange('position', e.target.value)}
-                  />
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-800">•</span>
-                    <select 
-                      className="h-7 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
-                      value={employee.department || DEPARTMENTS[0]}
-                      onChange={(e) => onChange('department', e.target.value)}
-                    >
-                      {DEPARTMENTS.map(dept => (
-                        <option key={dept} value={dept}>{dept}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm font-medium text-slate-800">•</span>
-                    <select 
-                      className="h-7 text-xs rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-1 focus:ring-ring"
-                      value={employee.employment_classification || EMPLOYMENT_CLASSIFICATIONS[0]}
-                      onChange={(e) => onChange('employment_classification', e.target.value)}
-                    >
-                      {EMPLOYMENT_CLASSIFICATIONS.map(cls => (
-                        <option key={cls} value={cls}>{cls}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="mt-4 flex flex-col items-center gap-2 max-w-[200px] mx-auto">
-                    <div className="w-full text-left">
-                      <Label className="text-xs text-muted-foreground">Status</Label>
-                      <select 
-                        className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 mt-1"
-                        value={employee.employment_status || "Regular"}
-                        onChange={(e) => onChange('employment_status', e.target.value)}
-                      >
-                        <option value="Regular">Regular</option>
-                        <option value="Probationary">Probationary</option>
-                        <option value="Contractual">Contractual</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <p className="text-sm font-medium text-slate-800 mb-2">
-                    {employee.position || "Employee"} • {employee.department || "University of Bohol"}
-                    {employee.employment_classification && ` • ${employee.employment_classification}`}
-                  </p>
-                  <Badge variant="outline" className={`mb-4 ${statusColor[employee.employment_status] || "bg-gray-50 text-gray-700 border-gray-200"}`}>
-                    {employee.employment_status || "Regular"}
-                  </Badge>
-                </div>
-              )}
+              <div className="text-center">
+                <p className="text-sm font-medium text-slate-800 mb-2">
+                  {employee.position || "Employee"} • {employee.department || "University of Bohol"}
+                  {employee.employment_classification && ` • ${employee.employment_classification}`}
+                </p>
+                <Badge variant="outline" className={`mb-4 ${statusColor[employee.employment_tenure] || "bg-gray-50 text-gray-700 border-gray-200"}`}>
+                  {employee.employment_tenure || "Regular"}
+                </Badge>
+              </div>
             </CardContent>
           </Card>
 
@@ -338,7 +359,15 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                     isUpdated={checkUpdated('birthdate')}
                     isError={!!errors.birthdate}
                   />
-                  <InfoRow label="Civil Status" value={employee.civil_status} name="civil_status" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('civil_status')} />
+                  <InfoRow label="Civil Status" value={employee.civil_status} name="civil_status" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('civil_status')}>
+                    <select 
+                      className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring mt-1"
+                      value={employee.civil_status || "Single"}
+                      onChange={(e) => onChange('civil_status', e.target.value)}
+                    >
+                      {["Single", "Married", "Widowed"].map(status => <option key={status} value={status}>{status}</option>)}
+                    </select>
+                  </InfoRow>
                   <InfoRow label="Nationality" value={employee.nationality || "Filipino"} name="nationality" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('nationality')} />
                   <InfoRow label="Religion" value={employee.religion} name="religion" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('religion')} />
                 </div>
@@ -393,7 +422,15 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
               <InfoRow label="Philhealth No." value={employee.philhealth} name="philhealth" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('philhealth')} />
               <InfoRow label="PAG-IBIG No." value={employee.pag_ibig} name="pag_ibig" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('pag_ibig')} />
               <InfoRow label="PERAA" value={employee.peraa} name="peraa" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('peraa')} />
-              <InfoRow label="Tax Status" value={employee.tax_status} name="tax_status" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('tax_status')} />
+              <InfoRow label="Tax Status" value={employee.tax_status} name="tax_status" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('tax_status')}>
+                <select 
+                  className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring mt-1"
+                  value={employee.tax_status || "Single"}
+                  onChange={(e) => onChange('tax_status', e.target.value)}
+                >
+                  {["Single", "Married", "Head of the Family", "Zero"].map(status => <option key={status} value={status}>{status}</option>)}
+                </select>
+              </InfoRow>
             </div>
           </SectionBlock>
 
@@ -415,7 +452,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                          <Badge variant="outline" className="text-[10px]">{contact.relation}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">{contact.address}</p>
-                      <p className="text-[11px]">Mobile: {contact.mobile} | Office: {contact.office}</p>
+                      <p className="text-[11px]">Mobile: {contact.mobile} | Office: {contact.office} | Home: {contact.home}</p>
                     </div>
                   ))
                 ) : (
@@ -425,15 +462,66 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
             )}
           </SectionBlock>
 
-          <SectionBlock title="Spousal & Dependent's Information" icon={Users}>
+          <SectionBlock 
+            title="Spousal & Dependent's Information" 
+            icon={Users}
+            action={isEditing && !showSpouse && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowSpouse(true)}
+                className="h-7 gap-1 text-[10px] text-primary border-primary/20 hover:bg-primary/5 px-2"
+              >
+                <Plus className="w-3 h-3" /> Add Spouse
+              </Button>
+            )}
+          >
              {isEditing ? (
                <div className="space-y-8">
-                  <div className="grid grid-cols-4 gap-4 pb-6 border-b">
-                    <InfoRow label="Spouse Name" value={employee.spouse_name} name="spouse_name" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_name')} />
-                    <InfoRow label="Spouse Birthdate" value={employee.spouse_birthdate} name="spouse_birthdate" type="date" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_birthdate')} />
-                    <InfoRow label="Spouse Employer" value={employee.spouse_employer} name="spouse_employer" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_employer')} />
-                    <InfoRow label="Spouse Position" value={employee.spouse_position} name="spouse_position" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_position')} />
-                  </div>
+                  {showSpouse ? (
+                    <div className="animate-in fade-in zoom-in-95 duration-300">
+                      <div className="flex items-center justify-between mb-4 border-b pb-2">
+                        <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Spouse Details</h4>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => {
+                            setShowSpouse(false);
+                            // Clear all spousal data fields to ensure deletion is tracked
+                            onChange('spouse_name', "");
+                            onChange('spouse_gender', "");
+                            onChange('spouse_birthdate', "");
+                            onChange('spouse_age', "");
+                            onChange('spouse_employer', "");
+                            onChange('spouse_position', "");
+                            onChange('spouse_employment_status', "");
+                          }}
+                          className="h-6 text-[10px] text-red-500 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <X className="w-3 h-3 mr-1" /> Remove
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-6 border-b">
+                        <div className="md:col-span-2">
+                          <InfoRow label="Spouse Name" value={employee.spouse_name} name="spouse_name" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_name')} />
+                        </div>
+                        <InfoRow label="Gender" value={employee.spouse_gender} name="spouse_gender" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_gender')} />
+                        <InfoRow label="Birthdate" value={employee.spouse_birthdate} name="spouse_birthdate" type="date" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_birthdate')} />
+                        <InfoRow label="Age" value={employee.spouse_age} name="spouse_age" type="number" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_age')} />
+                        <div className="md:col-span-2">
+                          <InfoRow label="Employer" value={employee.spouse_employer} name="spouse_employer" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_employer')} />
+                        </div>
+                        <InfoRow label="Position" value={employee.spouse_position} name="spouse_position" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_position')} />
+                        <InfoRow label="Employment Status" value={employee.spouse_employment_status} name="spouse_employment_status" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('spouse_employment_status')} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-10 text-center border-2 border-dashed rounded-lg bg-slate-50/50">
+                      <p className="text-xs text-slate-500">No spousal details added. Click "Add Spouse" if applicable.</p>
+                    </div>
+                  )}
                   <DynamicGrid 
                     title="Children Records" 
                     columns={childrenCols} 
@@ -443,18 +531,27 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                </div>
              ) : (
                <>
-                 {employee.spouse_name && (
+                 {(employee.spouse_name || (requestedChanges && requestedChanges.spouse_name !== undefined)) && (
                    <div className={`mb-6 p-4 rounded-lg border transition-colors ${
                      checkUpdated('spouse_name') ||
                      checkUpdated('spouse_birthdate') ||
                      checkUpdated('spouse_employer') ||
                      checkUpdated('spouse_position')
-                       ? 'bg-amber-50/50 border-amber-200'
+                       ? 'bg-amber-50/50 border-amber-200 shadow-sm'
                        : 'bg-muted/20'
                    }`}>
-                      <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-widest">Spouse Details</h4>
+                      <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-widest flex items-center justify-between">
+                        <span>Spouse Details</span>
+                        {requestedChanges && requestedChanges.spouse_name === "" && (
+                          <Badge variant="destructive" className="h-4 text-[9px] uppercase font-bold animate-pulse">Deletion Requested</Badge>
+                        )}
+                        {requestedChanges && requestedChanges.spouse_name && !employee.spouse_name && (
+                          <Badge variant="outline" className="h-4 text-[9px] bg-amber-100 text-amber-700 border-amber-300 uppercase font-bold animate-pulse">Addition Requested</Badge>
+                        )}
+                      </h4>
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                          <InfoRow label="Name" value={employee.spouse_name} isUpdated={checkUpdated('spouse_name')} />
+                         <InfoRow label="Age" value={employee.spouse_age} isUpdated={checkUpdated('spouse_age')} />
                          <InfoRow label="Birthdate" value={employee.spouse_birthdate} isUpdated={checkUpdated('spouse_birthdate')} />
                          <InfoRow label="Employer" value={employee.spouse_employer} isUpdated={checkUpdated('spouse_employer')} />
                          <InfoRow label="Position" value={employee.spouse_position} isUpdated={checkUpdated('spouse_position')} />
@@ -501,6 +598,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
                 <div className="space-y-4">
                   <InfoRow label="Father's Full Name" value={employee.father_name} name="father_name" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('father_name')} />
+                  <InfoRow label="Father's Occupation" value={employee.father_occupation} name="father_occupation" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('father_occupation')} />
                   <div className="flex items-center gap-6 px-2">
                     <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
                       <Checkbox 
@@ -523,6 +621,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
 
                 <div className="space-y-4">
                   <InfoRow label="Mother's Maiden Name" value={employee.mother_maiden_name} name="mother_maiden_name" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('mother_maiden_name')} />
+                  <InfoRow label="Mother's Occupation" value={employee.mother_occupation} name="mother_occupation" onChange={onChange} isEditing={isEditing} isUpdated={checkUpdated('mother_occupation')} />
                   <div className="flex items-center gap-6 px-2">
                     <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
                       <Checkbox 
@@ -578,7 +677,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
                    <p className="text-[11px] text-muted-foreground uppercase tracking-widest">Certification Signature</p>
-                   <div className="border rounded-xl p-4 bg-white shadow-sm flex items-center justify-center min-h-[140px]">
+                   <div className="relative group border rounded-xl p-4 bg-white shadow-sm flex items-center justify-center min-h-[140px]">
                       {employee.signature_url ? (
                         <img src={employee.signature_url} alt="E-signature" className="max-h-24 w-auto object-contain mix-blend-multiply" />
                       ) : (
@@ -586,6 +685,12 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                            <Shield className="w-8 h-8 mb-2 opacity-20 mx-auto" />
                            <p className="text-xs text-muted-foreground">No signature uploaded</p>
                         </div>
+                      )}
+                      {(showPhotoUpload || isEditMode) && (
+                        <label className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                           <p className="text-xs text-white font-medium flex items-center gap-1">Change Signature</p>
+                           <input type="file" className="hidden" accept="image/*" onChange={handleSignatureUpload} />
+                        </label>
                       )}
                    </div>
                 </div>

@@ -1,6 +1,8 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Plus, X } from "lucide-react";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 
 interface FamilySectionProps {
@@ -12,6 +14,8 @@ interface FamilySectionProps {
 }
 
 export const FamilySection: React.FC<FamilySectionProps> = ({ formData, handleChange, handleGrid, emergencyCols, childrenCols }) => {
+  const [showSpouse, setShowSpouse] = React.useState(!!formData.spouse_name || !!formData.spouse_employer);
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="bg-white p-6 rounded-xl border shadow-sm">
@@ -32,15 +36,46 @@ export const FamilySection: React.FC<FamilySectionProps> = ({ formData, handleCh
       </div>
 
       <div className="bg-white p-6 rounded-xl border shadow-sm">
-        <h2 className="text-xl font-bold mb-6 text-slate-800 border-b pb-2">Spousal Details</h2>
-        <div className="grid grid-cols-4 gap-4">
-          <div className="space-y-1 col-span-2"><Label>Spouse Name</Label><Input name="spouse_name" value={formData.spouse_name} onChange={handleChange} /></div>
-          <div className="space-y-1"><Label>Gender</Label><Input name="spouse_gender" value={formData.spouse_gender} onChange={handleChange} /></div>
-          <div className="space-y-1"><Label>Birth Date</Label><Input type="date" name="spouse_birthdate" value={formData.spouse_birthdate} onChange={handleChange} /></div>
-          <div className="space-y-1 col-span-2"><Label>Employer</Label><Input name="spouse_employer" value={formData.spouse_employer} onChange={handleChange} /></div>
-          <div className="space-y-1"><Label>Position/Job Title</Label><Input name="spouse_position" value={formData.spouse_position} onChange={handleChange} /></div>
-          <div className="space-y-1"><Label>Employment Status</Label><Input name="spouse_employment_status" value={formData.spouse_employment_status} onChange={handleChange} /></div>
+        <div className="flex items-center justify-between mb-6 border-b pb-2">
+          <h2 className="text-xl font-bold text-slate-800">Spousal Details</h2>
+          {!showSpouse ? (
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowSpouse(true)}
+              className="gap-2 text-[#0C005F] border-[#0C005F]/20 hover:bg-[#0C005F]/5"
+            >
+              <Plus className="w-4 h-4" /> Add Spouse
+            </Button>
+          ) : (
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowSpouse(false)}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+            >
+              <X className="w-4 h-4 mr-1" /> Remove
+            </Button>
+          )}
         </div>
+        
+        {showSpouse ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-in fade-in zoom-in-95 duration-300">
+            <div className="space-y-1 md:col-span-2"><Label>Spouse Name</Label><Input name="spouse_name" value={formData.spouse_name} onChange={handleChange} /></div>
+            <div className="space-y-1"><Label>Gender</Label><Input name="spouse_gender" value={formData.spouse_gender} onChange={handleChange} /></div>
+            <div className="space-y-1"><Label>Birth Date</Label><Input type="date" name="spouse_birthdate" value={formData.spouse_birthdate} onChange={handleChange} /></div>
+            <div className="space-y-1"><Label>Age</Label><Input type="number" name="spouse_age" value={formData.spouse_age} onChange={handleChange} /></div>
+            <div className="space-y-1 md:col-span-2"><Label>Employer</Label><Input name="spouse_employer" value={formData.spouse_employer} onChange={handleChange} /></div>
+            <div className="space-y-1"><Label>Position/Job Title</Label><Input name="spouse_position" value={formData.spouse_position} onChange={handleChange} /></div>
+            <div className="space-y-1"><Label>Employment Status</Label><Input name="spouse_employment_status" value={formData.spouse_employment_status} onChange={handleChange} /></div>
+          </div>
+        ) : (
+          <div className="py-8 text-center border-2 border-dashed rounded-lg bg-slate-50/50">
+            <p className="text-sm text-slate-500">No spousal details added. Click "Add Spouse" if applicable.</p>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border shadow-sm">
@@ -49,3 +84,4 @@ export const FamilySection: React.FC<FamilySectionProps> = ({ formData, handleCh
     </div>
   );
 };
+

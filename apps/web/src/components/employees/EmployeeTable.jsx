@@ -137,8 +137,8 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
                 <TableCell className="text-sm">{emp.department}</TableCell>
                 <TableCell className="text-sm">{emp.position}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={`text-[11px] ${statusStyles[emp.employment_status] || ""}`}>
-                    {emp.employment_status}
+                  <Badge variant="outline" className={`text-[11px] ${statusStyles[emp.employment_tenure] || ""}`}>
+                    {emp.employment_tenure}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-center">

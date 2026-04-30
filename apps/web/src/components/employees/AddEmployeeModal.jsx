@@ -7,7 +7,7 @@ import {
   ShieldCheck, Save, Check, X, Loader2, Mail, Lock, UserPlus 
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseAdmin } from "@/lib/supabase";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PersonalDetailsTab from "./profile/PersonalDetailsTab";
@@ -132,10 +132,12 @@ export default function AddEmployeeModal({ open, onOpenChange, onSuccess }) {
       // Postgres/Supabase strict typing fix: convert empty strings to null
       // This matches the logic in EmployeeRegistration.jsx
       const sanitizedData = Object.fromEntries(
-        Object.entries(employeeData).map(([key, value]) => [
-          key, 
-          (value === "" || (typeof value === "string" && value.trim() === "")) ? null : value
-        ])
+        Object.entries(employeeData)
+          .filter(([key]) => !['photo_file', 'signature_file', 'photo_url', 'signature_url'].includes(key))
+          .map(([key, value]) => [
+            key, 
+            (value === "" || (typeof value === "string" && value.trim() === "")) ? null : value
+          ])
       );
 
       console.log("Sanitized data for insert:", sanitizedData);
@@ -151,12 +153,48 @@ export default function AddEmployeeModal({ open, onOpenChange, onSuccess }) {
         .select()
         .single();
 
-      if (error) {
+       if (error) {
         console.error("Supabase Insert Error:", error.message, error.details, error.hint);
         throw new Error(error.message || "Failed to insert employee record");
       }
 
       console.log("Employee created successfully:", data);
+
+      // --- Handle File Uploads (Photo & Signature) ---
+      let photoUrl = null;
+      let signatureUrl = null;
+
+      if (employeeData.photo_file) {
+        const fileExt = employeeData.photo_file.name.split('.').pop();
+        const filePath = `${data.id}/photo_${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, employeeData.photo_file);
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+          photoUrl = publicUrl;
+        }
+      }
+
+      if (employeeData.signature_file) {
+        const fileExt = employeeData.signature_file.name.split('.').pop();
+        const filePath = `${data.id}/signatures/sig_${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, employeeData.signature_file);
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+          signatureUrl = publicUrl;
+        }
+      }
+
+      if (photoUrl || signatureUrl) {
+        await supabase.from('employees').update({
+          ...(photoUrl && { photo_url: photoUrl }),
+          ...(signatureUrl && { signature_url: signatureUrl })
+        }).eq('id', data.id);
+        
+        // Refresh local createdEmployee state with URLs
+        data.photo_url = photoUrl || data.photo_url;
+        data.signature_url = signatureUrl || data.signature_url;
+      }
+
       setCreatedEmployee(data);
       // Auto-fill account email with the one provided in personal details
       setAccountData(prev => ({ ...prev, email: data.contact_email || "" }));
@@ -172,42 +210,38 @@ export default function AddEmployeeModal({ open, onOpenChange, onSuccess }) {
     }
   };
 
-  const handleCreateAccount = async () => {
+   const handleCreateAccount = async () => {
     if (!accountData.email || !accountData.password) {
       toast.error("Email and password are required.");
       return;
     }
 
+    if (!supabaseAdmin) {
+      toast.error("Service Role Key is missing. Account creation failed.");
+      return;
+    }
+
     setIsCreatingAccount(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-
-      const response = await fetch("/api/create-auth-user", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          email: accountData.email,
-          password: accountData.password,
-          employeeId: createdEmployee.employee_id
-        }),
+      // Create user using Admin API to bypass 404 and security restrictions
+      const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: accountData.email,
+        password: accountData.password,
+        email_confirm: true,
+        user_metadata: { employee_id: createdEmployee.employee_id }
       });
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Failed to create account");
+      if (createError) throw createError;
 
       // Link the new user_id to the employee record
       const { error: linkError } = await supabase
         .from('employees')
-        .update({ user_id: result.user.id })
+        .update({ user_id: userData.user.id })
         .eq('id', createdEmployee.id);
 
       if (linkError) throw linkError;
 
-      toast.success("Account assigned and linked successfully.");
+      toast.success("Account created and linked successfully.");
       if (onSuccess) onSuccess();
       onOpenChange(false);
     } catch (err) {
@@ -284,6 +318,7 @@ export default function AddEmployeeModal({ open, onOpenChange, onSuccess }) {
                     employee={employeeData} 
                     onChange={handleFieldChange} 
                     isReadOnly={false} 
+                    isAdminView={true}
                     errors={errors}
                   />
                 </TabsContent>

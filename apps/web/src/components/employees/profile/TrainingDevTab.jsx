@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Award, BookOpen, FileText, Activity, Users, Shield, Zap, Globe, ShieldAlert } from "lucide-react";
+import { Plus, Award, BookOpen, FileText, Activity, Users, Shield, Zap, Globe, ShieldAlert, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 
 function EmptyState({ icon: Icon, title }) {
@@ -12,36 +14,79 @@ function EmptyState({ icon: Icon, title }) {
   );
 }
 
+function ExpandableItem({ children, titleContent, sideContent, isUpdated = false }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  return (
+    <div className={`border rounded-lg transition-all duration-300 ${isUpdated ? 'bg-amber-50/50 border-amber-200 shadow-sm' : 'bg-muted/10'}`}>
+      <div 
+        className="p-3 flex justify-between items-start cursor-pointer hover:bg-[#0C005F]/5 transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex-1">
+          {titleContent}
+        </div>
+        <div className="flex items-center gap-3">
+          {sideContent}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 w-8 p-0 text-[#0C005F]" 
+            onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+          >
+            <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+          </Button>
+        </div>
+      </div>
+      {isExpanded && (
+        <div className="px-3 pb-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SectionBlock({ title, data, icon: Icon, isEditing, columns, onUpdate, isUpdated = false, renderItem }) {
+  const [isExpanded, setIsExpanded] = useState(true);
+
   return (
     <Card className="shadow-sm border-slate-300">
-      <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 bg-[#0C005F]/5">
+      <CardHeader 
+        className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 bg-[#0C005F]/5 cursor-pointer hover:bg-[#0C005F]/10 transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <CardTitle className="text-sm font-bold flex items-center gap-2">
           <Icon className="w-4 h-4 text-primary" />
           {title}
         </CardTitle>
-        {isEditing && <Badge variant="secondary" className="animate-pulse">Editing</Badge>}
+        <div className="flex items-center gap-2">
+          {isEditing && <Badge variant="secondary" className="animate-pulse">Editing</Badge>}
+          <ChevronDown className={`w-4 h-4 text-[#0C005F] transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+        </div>
       </CardHeader>
-      <CardContent className="p-4 pt-2">
-        {isEditing ? (
-          <DynamicGrid 
-            title={title} 
-            columns={columns} 
-            data={data || []} 
-            onChange={onUpdate} 
-          />
-        ) : (
-          <>
-            {data && data.length > 0 ? (
-              <div className="space-y-3">
-                 {data.map((item, i) => renderItem(item, i, isUpdated))}
-              </div>
-            ) : (
-              <EmptyState icon={Icon} title={title} />
-            )}
-          </>
-        )}
-      </CardContent>
+      {isExpanded && (
+        <CardContent className="p-4 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+          {isEditing ? (
+            <DynamicGrid 
+              title={title} 
+              columns={columns} 
+              data={data || []} 
+              onChange={onUpdate} 
+            />
+          ) : (
+            <>
+              {data && data.length > 0 ? (
+                <div className="space-y-3">
+                   {data.map((item, i) => renderItem(item, i, isUpdated))}
+                </div>
+              ) : (
+                <EmptyState icon={Icon} title={title} />
+              )}
+            </>
+          )}
+        </CardContent>
+      )}
     </Card>
   );
 }
@@ -56,9 +101,11 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
   };
 
   const trainCols = [
-    { key: 'name', label: 'Seminar/Training Name', span: 5 }, { key: 'type', label: 'Type', span: 3 }, { key: 'budget', label: 'Approved Budget', span: 4 },
-    { key: 'venue', label: 'Venue', span: 3 }, { key: 'duration', label: 'Duration', span: 2 }, { key: 'conducted', label: 'Conducted By', span: 2 },
-    { key: 'dates', label: 'Inclusive Dates', span: 2 }, { key: 'notes', label: 'Notes', span: 3 }
+    { key: 'name', label: 'Seminar/Training Name', span: 4 }, { key: 'type', label: 'Type', span: 2 }, { key: 'budget', label: 'Approved Budget', span: 2 },
+    { key: 'venue', label: 'Venue', span: 2 }, { key: 'duration', label: 'Duration', span: 2 }, 
+    { key: 'conducted', label: 'Conducted By', span: 3 },
+    { key: 'start_date', label: 'Start Date', type: 'date', span: 2 }, { key: 'end_date', label: 'End Date', type: 'date', span: 2 }, 
+    { key: 'notes', label: 'Notes', span: 5 }
   ];
 
   const licenseCols = [
@@ -80,7 +127,8 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
 
   const affiliationCols = [
     { key: 'org', label: 'Organization', span: 4 }, { key: 'place', label: 'Place/Station', span: 3 },
-    { key: 'position', label: 'Position', span: 3 }, { key: 'dates', label: 'Inclusive Dates', span: 2 }
+    { key: 'position', label: 'Position', span: 3 }, 
+    { key: 'start_date', label: 'Start Date', type: 'date', span: 1 }, { key: 'end_date', label: 'End Date', type: 'date', span: 1 }
   ];
 
   const awardsCols = [
@@ -90,7 +138,7 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
   ];
 
   const scholarCols = [
-    { key: 'type', label: 'Work Type', span: 4 }, { key: 'spec', label: 'Specification', span: 4 }, { key: 'title', label: 'Complete Title', span: 4 },
+    { key: 'type', label: 'Work Type', span: 4 }, { key: 'spec', label: 'Specification', span: 4, placeholder: 'Study/Travel/Thesis' }, { key: 'title', label: 'Complete Title', span: 4 },
     { key: 'status', label: 'Work Status', span: 2 }, { key: 'agency', label: 'Granting Agency', span: 3 }, { key: 'date', label: 'Date Given', type: 'date', span: 2 },
     { key: 'place', label: 'Place Given', span: 2 }, { key: 'remarks', label: 'Remarks', span: 3 }
   ];
@@ -102,10 +150,9 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
   ];
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-      <div className="space-y-6">
+    <div className="space-y-6">
         <SectionBlock 
-          title="Internal Trainings & Seminars" 
+          title="Internal Trainings" 
           icon={Activity} 
           data={employee.internal_trainings} 
           isEditing={isEditing}
@@ -113,24 +160,47 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
           onUpdate={(newData) => onUpdate('internal_trainings', newData)}
           isUpdated={checkUpdated('internal_trainings')}
           renderItem={(train, i, isUpdated) => (
-            <div key={i} className={`p-3 border rounded-lg space-y-2 transition-colors ${isUpdated ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
-              <div className="flex justify-between items-start">
-                <div className="max-w-[75%]">
+            <ExpandableItem 
+              key={i}
+              isUpdated={isUpdated}
+              titleContent={
+                <div className="max-w-[95%]">
                   <p className="text-sm font-bold leading-tight uppercase">{train.name}</p>
                   <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">{train.venue} • {train.duration}</p>
                 </div>
-                <Badge variant="outline" className="text-[10px] bg-white">{train.dates}</Badge>
+              }
+              sideContent={
+                <Badge variant="outline" className="text-[10px] bg-white whitespace-nowrap">{train.start_date || '—'} - {train.end_date || '—'}</Badge>
+              }
+            >
+              <div className="flex flex-wrap gap-x-6 gap-y-3 pt-3 mt-1 border-t text-[11px] text-muted-foreground">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase opacity-60">Training Type</span>
+                  <span className="text-foreground font-medium">{train.type}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase opacity-60">Conducted By</span>
+                  <span className="text-foreground font-medium">{train.conducted}</span>
+                </div>
+                {train.budget && (
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-bold uppercase opacity-60">Approved Budget</span>
+                    <span className="text-foreground font-medium">{train.budget}</span>
+                  </div>
+                )}
+                {train.notes && (
+                  <div className="flex flex-col w-full">
+                    <span className="text-[9px] font-bold uppercase opacity-60">Additional Notes</span>
+                    <span className="text-foreground leading-relaxed italic">{train.notes}</span>
+                  </div>
+                )}
               </div>
-              <div className="flex flex-wrap gap-x-4 pt-1 border-t text-[11px] text-muted-foreground">
-                <span>Type: <span className="text-foreground">{train.type}</span></span>
-                <span>By: <span className="text-foreground font-medium">{train.conducted}</span></span>
-              </div>
-            </div>
+            </ExpandableItem>
           )}
         />
 
         <SectionBlock 
-          title="External Trainings (Within 5 Years)" 
+          title="External Trainings" 
           icon={Activity} 
           data={employee.external_trainings} 
           isEditing={isEditing}
@@ -138,17 +208,82 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
           onUpdate={(newData) => onUpdate('external_trainings', newData)}
           isUpdated={checkUpdated('external_trainings')}
           renderItem={(train, i, isUpdated) => (
-            <div key={i} className={`p-3 border rounded-lg space-y-2 transition-colors ${isUpdated ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
-              <div className="flex justify-between items-start">
-                <div className="max-w-[75%]">
+            <ExpandableItem 
+              key={i}
+              isUpdated={isUpdated}
+              titleContent={
+                <div className="max-w-[95%]">
                   <p className="text-sm font-bold leading-tight uppercase">{train.name}</p>
                   <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">{train.venue} • {train.duration}</p>
                 </div>
-                <Badge variant="outline" className="text-[10px] bg-white">{train.dates}</Badge>
+              }
+              sideContent={
+                <Badge variant="outline" className="text-[10px] bg-white whitespace-nowrap">{train.start_date || '—'} - {train.end_date || '—'}</Badge>
+              }
+            >
+              <div className="flex flex-wrap gap-x-6 gap-y-3 pt-3 mt-1 border-t text-[11px] text-muted-foreground">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase opacity-60">Training Type</span>
+                  <span className="text-foreground font-medium">{train.type}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase opacity-60">Conducted By</span>
+                  <span className="text-foreground font-medium">{train.conducted}</span>
+                </div>
+                {train.budget && (
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-bold uppercase opacity-60">Approved Budget</span>
+                    <span className="text-foreground font-medium">{train.budget}</span>
+                  </div>
+                )}
+                {train.notes && (
+                  <div className="flex flex-col w-full">
+                    <span className="text-[9px] font-bold uppercase opacity-60">Additional Notes</span>
+                    <span className="text-foreground leading-relaxed italic">{train.notes}</span>
+                  </div>
+                )}
               </div>
-              <div className="flex flex-wrap gap-x-4 pt-1 border-t text-[11px] text-muted-foreground">
-                <span>Type: <span className="text-foreground">{train.type}</span></span>
-                <span>By: <span className="text-foreground font-medium">{train.conducted}</span></span>
+            </ExpandableItem>
+          )}
+        />
+
+        <SectionBlock 
+          title="Awards & Citations" 
+          icon={Award} 
+          data={employee.awards_citations} 
+          isEditing={isEditing}
+          columns={awardsCols}
+          onUpdate={(newData) => onUpdate('awards_citations', newData)}
+          isUpdated={checkUpdated('awards_citations')}
+          renderItem={(award, i, isUpdated) => (
+            <div key={i} className={`p-3 rounded-md border space-y-2 transition-colors ${isUpdated ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
+              <div className="flex justify-between items-start">
+                <div className="max-w-[70%]">
+                  <p className="text-[10px] text-primary uppercase font-bold tracking-tighter">{award.type}</p>
+                  <p className="text-sm font-bold leading-tight">{award.name}</p>
+                </div>
+                <Badge className="text-[10px] bg-[#0C005F]">{award.date}</Badge>
+              </div>
+            </div>
+          )}
+        />
+
+        <SectionBlock 
+          title="Scholarships & Research Work" 
+          icon={BookOpen} 
+          data={employee.scholarships_research} 
+          isEditing={isEditing}
+          columns={scholarCols}
+          onUpdate={(newData) => onUpdate('scholarships_research', newData)}
+          isUpdated={checkUpdated('scholarships_research')}
+          renderItem={(work, i, isUpdated) => (
+            <div key={i} className={`p-3 rounded-md border space-y-2 transition-colors ${isUpdated ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
+              <div className="flex justify-between items-start">
+                <div className="max-w-[75%]">
+                  <p className="text-[10px] text-primary uppercase font-bold tracking-tighter">{work.type} • {work.status}</p>
+                  <p className="text-sm font-bold leading-tight uppercase underline underline-offset-2">{work.title}</p>
+                </div>
+                <Badge className="text-[10px] uppercase">{work.date}</Badge>
               </div>
             </div>
           )}
@@ -213,11 +348,9 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
             </div>
           )}
         />
-      </div>
 
-      <div className="space-y-6">
         <SectionBlock 
-          title="Specialized Skills" 
+          title="Specific Skills" 
           icon={Zap} 
           data={employee.skills} 
           isEditing={isEditing}
@@ -236,48 +369,6 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
         />
 
         <SectionBlock 
-          title="Awards & Citations" 
-          icon={Award} 
-          data={employee.awards_citations} 
-          isEditing={isEditing}
-          columns={awardsCols}
-          onUpdate={(newData) => onUpdate('awards_citations', newData)}
-          isUpdated={checkUpdated('awards_citations')}
-          renderItem={(award, i, isUpdated) => (
-            <div key={i} className={`p-3 rounded-md border space-y-2 transition-colors ${isUpdated ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
-              <div className="flex justify-between items-start">
-                <div className="max-w-[70%]">
-                  <p className="text-[10px] text-primary uppercase font-bold tracking-tighter">{award.type}</p>
-                  <p className="text-sm font-bold leading-tight">{award.name}</p>
-                </div>
-                <Badge className="text-[10px] bg-[#0C005F]">{award.date}</Badge>
-              </div>
-            </div>
-          )}
-        />
-
-        <SectionBlock 
-          title="Scholarships & Research Work" 
-          icon={BookOpen} 
-          data={employee.scholarships_research} 
-          isEditing={isEditing}
-          columns={scholarCols}
-          onUpdate={(newData) => onUpdate('scholarships_research', newData)}
-          isUpdated={checkUpdated('scholarships_research')}
-          renderItem={(work, i, isUpdated) => (
-            <div key={i} className={`p-3 rounded-md border space-y-2 transition-colors ${isUpdated ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
-              <div className="flex justify-between items-start">
-                <div className="max-w-[75%]">
-                  <p className="text-[10px] text-primary uppercase font-bold tracking-tighter">{work.type} • {work.status}</p>
-                  <p className="text-sm font-bold leading-tight uppercase underline underline-offset-2">{work.title}</p>
-                </div>
-                <Badge className="text-[10px] uppercase">{work.date}</Badge>
-              </div>
-            </div>
-          )}
-        />
-
-        <SectionBlock 
           title="Professional Affiliations" 
           icon={Users} 
           data={employee.group_affiliations} 
@@ -290,14 +381,14 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
               <p className="text-sm font-bold">{org.org}</p>
               <div className="flex justify-between text-[11px] text-muted-foreground">
                 <span>{org.position} • {org.place}</span>
-                <span className="font-medium">{org.dates}</span>
+                <span className="font-medium">{org.start_date || '—'} - {org.end_date || '—'}</span>
               </div>
             </div>
           )}
         />
 
         <SectionBlock 
-          title="Extra Activities" 
+          title="Extra Activities / Services" 
           icon={ShieldAlert} 
           data={employee.extra_activities} 
           isEditing={isEditing}
@@ -316,7 +407,6 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
             </div>
           )}
         />
-      </div>
     </div>
   );
 }

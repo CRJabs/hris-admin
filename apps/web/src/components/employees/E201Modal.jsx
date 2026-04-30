@@ -13,7 +13,7 @@ import EmploymentInfoTab from "./profile/EmploymentInfoTab";
 import LeaveTab from "./profile/LeaveTab";
 import BenefitsTab from "./profile/BenefitsTab";
 
-export default function E201Modal({ employee, open, onOpenChange, onToggleActive, onSave }) {
+export default function E201Modal({ employee, open, onOpenChange, onToggleActive, onSave, isAdminView = true }) {
   const [editedEmployee, setEditedEmployee] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -57,9 +57,17 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
   const handleAction = async (req, status) => {
     try {
       if (status === 'approved') {
+        // Sanitize changes: convert empty strings to nulls for DB compatibility
+        const sanitizedChanges = Object.fromEntries(
+          Object.entries(req.requested_changes).map(([key, value]) => [
+            key,
+            value === "" ? null : value
+          ])
+        );
+
         const { error: updateError } = await supabase
           .from('employees')
-          .update(req.requested_changes)
+          .update(sanitizedChanges)
           .eq('id', req.employee_id);
           
         if (updateError) throw updateError;
@@ -106,10 +114,18 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
       // Remove joined properties before updating the employee record
       const updateData = { ...editedEmployee };
       delete updateData.pendingRequests;
+
+      // Sanitize empty strings to null for better database compatibility across all fields (prevents 400 errors on numeric/date columns)
+      const sanitizedUpdateData = Object.fromEntries(
+        Object.entries(updateData).map(([key, value]) => [
+          key,
+          value === "" ? null : value
+        ])
+      );
       
       const { error } = await supabase
         .from('employees')
-        .update(updateData)
+        .update(sanitizedUpdateData)
         .eq('id', editedEmployee.id);
         
       if (error) throw error;
@@ -232,20 +248,38 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
               employee={editedEmployee} 
               onChange={handleFieldChange} 
               onToggleActive={onToggleActive} 
-              isReadOnly={true} 
+              isReadOnly={!isEditMode} 
               isEditMode={isEditMode}
               isAdminView={true}
-              requestedChanges={requestedChanges ? baselineEmployee : null} 
+              requestedChanges={requestedChanges} 
             />
           </TabsContent>
           <TabsContent value="education" className="mt-4">
-            <EducationTab employee={editedEmployee} isReadOnly={true} requestedChanges={requestedChanges ? baselineEmployee : null} />
+            <EducationTab 
+              employee={editedEmployee} 
+              isReadOnly={!isEditMode} 
+              isEditing={isEditMode}
+              onUpdate={(newData) => handleFieldChange('educational_record', newData)}
+              requestedChanges={requestedChanges} 
+            />
           </TabsContent>
           <TabsContent value="training" className="mt-4">
-            <TrainingDevTab employee={editedEmployee} isReadOnly={true} requestedChanges={requestedChanges ? baselineEmployee : null} />
+            <TrainingDevTab 
+              employee={editedEmployee} 
+              isReadOnly={!isEditMode} 
+              isEditing={isEditMode}
+              onUpdate={(field, newData) => handleFieldChange(field, newData)}
+              requestedChanges={requestedChanges} 
+            />
           </TabsContent>
           <TabsContent value="employment" className="mt-4">
-            <EmploymentInfoTab employee={editedEmployee} onChange={handleFieldChange} isReadOnly={!isEditMode} requestedChanges={requestedChanges ? baselineEmployee : null} />
+            <EmploymentInfoTab 
+              employee={editedEmployee} 
+              onChange={handleFieldChange} 
+              isReadOnly={!isEditMode} 
+              isAdminView={true}
+              requestedChanges={requestedChanges} 
+            />
           </TabsContent>
           <TabsContent value="leave" className="mt-4">
             <LeaveTab 

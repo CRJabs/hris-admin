@@ -114,11 +114,11 @@ export default function HomeTab({ employee, onViewProfile, notifications = [], l
                 <p className="text-lg font-bold text-slate-800">{employee.position || "Staff Member"}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Status: <span className={`${
-                    employee.employment_status === 'Probationary' ? 'text-amber-500' : 
-                    employee.employment_status === 'Contractual' ? 'text-blue-500' : 
+                    employee.employment_tenure === 'Probationary' ? 'text-amber-500' : 
+                    employee.employment_tenure === 'Contractual' ? 'text-blue-500' : 
                     'text-green-500'
                   } font-semibold`}>
-                    {employee.employment_status || "Regular"}
+                    {employee.employment_tenure || "Regular"}
                   </span>
                 </p>
                 <div className="flex items-center gap-2 mt-4 text-[11px] text-muted-foreground">

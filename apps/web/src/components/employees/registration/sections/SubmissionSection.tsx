@@ -88,7 +88,11 @@ export const SubmissionSection: React.FC<SubmissionSectionProps> = ({
           </div>
 
           <div className="pt-6 text-center">
-            <Button onClick={submitRegistration} disabled={isSubmitting || isUploadingSignature} className="w-full max-w-sm h-12 bg-[#0C005F] hover:bg-[#1900C5] text-white font-bold text-base shadow-md">
+            <Button 
+              onClick={submitRegistration} 
+              disabled={isSubmitting || isUploadingSignature || !signatureName || !signatureUrl || !certified} 
+              className="w-full max-w-sm h-12 bg-[#0C005F] hover:bg-[#1900C5] text-white font-bold text-base shadow-md disabled:opacity-50 disabled:bg-slate-400"
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -98,7 +102,11 @@ export const SubmissionSection: React.FC<SubmissionSectionProps> = ({
                 "Submit 201 Form"
               )}
             </Button>
-            <p className="text-[10px] text-slate-400 mt-2 italic">Ensure all required sections are completed before submitting.</p>
+            <p className="text-[10px] text-slate-400 mt-2 italic">
+              {!signatureName || !signatureUrl || !certified 
+                ? "Please sign and upload your e-signature to enable submission." 
+                : "Ensure all required sections are completed before submitting."}
+            </p>
           </div>
         </div>
       </div>

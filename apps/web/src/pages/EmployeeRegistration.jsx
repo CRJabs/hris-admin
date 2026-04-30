@@ -7,19 +7,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { ChevronRight, FileText, Upload, Save, User, Briefcase, Users, Shield, Award, BookOpen, GraduationCap, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { ChevronRight, ChevronLeft, FileText, Upload, Save, User, Briefcase, Users, Shield, Award, BookOpen, GraduationCap, CheckCircle, AlertCircle, Loader2, CalendarDays } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { supabase, supabaseAdmin } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import { PersonalSection } from "../components/employees/registration/sections/PersonalSection";
 import { FamilySection } from "../components/employees/registration/sections/FamilySection";
 import { HistorySection } from "../components/employees/registration/sections/HistorySection";
 import { EducationSection } from "../components/employees/registration/sections/EducationSection";
 import { SubmissionSection } from "../components/employees/registration/sections/SubmissionSection";
+import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 
 // Grid Span Distributions
 const emergencyCols = [
-  { key: 'name', label: 'Contact Name', span: 3 }, { key: 'relation', label: 'Relation', span: 2 },
-  { key: 'address', label: 'Contact Address', span: 3 }, { key: 'mobile', label: 'Mobile', span: 2 }, { key: 'office', label: 'Office/Home', span: 2 }
+  // Row 1
+  { key: 'name', label: 'Contact Name', span: 5 }, { key: 'relation', label: 'Relation', span: 3 }, { key: 'mobile', label: 'Mobile', span: 4 },
+  // Row 2
+  { key: 'address', label: 'Contact Address', span: 6 }, { key: 'office', label: 'Office No.', span: 3 }, { key: 'home', label: 'Home No.', span: 3 }
 ];
 const childrenCols = [
   { key: 'name', label: "Child's Name", span: 8 }, { key: 'birthdate', label: 'Date of Birth', type: 'date', span: 4 },
@@ -32,7 +47,7 @@ const awardsCols = [
   { key: 'place', label: 'Place Given', span: 3 }, { key: 'remarks', label: 'Remarks', span: 2 }
 ];
 const scholarCols = [
-  { key: 'type', label: 'Work Type', span: 4 }, { key: 'spec', label: 'Specification', span: 4 }, { key: 'title', label: 'Complete Title', span: 4 },
+  { key: 'type', label: 'Work Type', span: 4 }, { key: 'spec', label: 'Specification', span: 4, placeholder: 'Study/Travel/Thesis' }, { key: 'title', label: 'Complete Title', span: 4 },
   { key: 'status', label: 'Work Status', span: 2 }, { key: 'agency', label: 'Granting Agency', span: 3 }, { key: 'date', label: 'Date Given', type: 'date', span: 2 },
   { key: 'place', label: 'Place Given', span: 2 }, { key: 'remarks', label: 'Remarks', span: 3 }
 ];
@@ -51,12 +66,13 @@ const skillsCols = [
   { key: 'level', label: 'Level of Expertise', span: 4, placeholder: 'Beginner/Intermediate/Advance/Expert' }
 ];
 const langCols = [
-  { key: 'language', label: 'Language', span: 4 }, { key: 'literacy', label: 'Literacy (Speak/Read/Write)', span: 4 },
+  { key: 'language', label: 'Language', span: 4 }, { key: 'literacy', label: 'Literacy', span: 4, placeholder: 'Speak/Read/Write' },
   { key: 'fluency', label: 'Fluency Scale', span: 4, placeholder: 'Beginner/Intermediate/Advance/Expert' }
 ];
 const affiliationCols = [
   { key: 'org', label: 'Organization', span: 4 }, { key: 'place', label: 'Place/Station', span: 3 },
-  { key: 'position', label: 'Position', span: 3 }, { key: 'dates', label: 'Inclusive Dates', span: 2 }
+  { key: 'position', label: 'Position', span: 3 }, 
+  { key: 'start_date', label: 'Start Date', type: 'date', span: 1 }, { key: 'end_date', label: 'End Date', type: 'date', span: 1 }
 ];
 const extraCols = [
   { key: 'type', label: 'Service/Activity Type', span: 4 }, { key: 'nature_act', label: 'Nature of Activity/Project', span: 8 },
@@ -64,40 +80,47 @@ const extraCols = [
   { key: 'remarks', label: 'Remarks', span: 4 }
 ];
 const prevEmpCols = [
-  { key: 'company', label: 'Company Name & Address', span: 6 }, { key: 'position', label: 'Position', span: 3 }, { key: 'status', label: 'Emp Status', span: 3 },
-  { key: 'dept', label: 'Office/Dept', span: 2 }, { key: 'salary', label: 'Salary', span: 2 }, { key: 'start', label: 'Date of Emp', type: 'date', span: 2 },
-  { key: 'end', label: 'Date Resigned', type: 'date', span: 2 }, { key: 'resp', label: 'Responsibility', span: 2 }, { key: 'reason', label: 'Reason for Leaving', span: 2 }
+  { key: 'company', label: 'Company Name', span: 4 }, { key: 'address', label: 'Address', span: 4 }, 
+  { key: 'position', label: 'Position', span: 4 },
+  { key: 'status', label: 'Emp Status', span: 3 }, { key: 'phone', label: 'Phone No.', span: 3 },
+  { key: 'dept', label: 'Office/Dept', span: 3 }, { key: 'salary', label: 'Salary', span: 3 }, 
+  { key: 'start', label: 'Date of Emp', type: 'date', span: 2 },
+  { key: 'end', label: 'Date Resigned', type: 'date', span: 2 }, 
+  { key: 'awards', label: 'Achievements/Awards', span: 3 },
+  { key: 'resp', label: 'Responsibility', span: 3 }, { key: 'reason', label: 'Reason for Leaving', span: 2 }
 ];
 const eduCols = [
   { key: 'level', label: 'Level', span: 3 }, { key: 'school', label: 'Name of School', span: 5 }, { key: 'address', label: 'School Address', span: 4 },
-  { key: 'degree', label: 'Degree Earned', span: 3 }, { key: 'gradYear', label: 'Grad Year', span: 2 }, { key: 'units', label: 'Units Completed', span: 2 },
-  { key: 'thesis', label: 'Thesis/Dissertation', span: 2 }, { key: 'gwa', label: 'GWA', span: 1 }, { key: 'inclusive', label: 'Inclusive Dates', span: 2 }
+  { key: 'degree', label: 'Degree Earned', span: 4 }, { key: 'gradYear', label: 'Grad Date', type: 'date', span: 2 }, { key: 'units', label: 'Units Completed', span: 2 },
+  { key: 'gwa', label: 'GWA', span: 1 }, { key: 'inclusive', label: 'Inclusive Date of Attendance', span: 3 },
+  { key: 'thesis', label: 'Thesis/Dissertation', span: 4 }, { key: 'honors', label: 'Graduation Honors', span: 3 }, 
+  { key: 'awards', label: 'Awards', span: 3 }, { key: 'remarks', label: 'Remarks', span: 2 }
 ];
 const trainCols = [
-  { key: 'name', label: 'Seminar/Training Name', span: 5 }, { key: 'type', label: 'Type', span: 3 }, { key: 'budget', label: 'Approved Budget', span: 4 },
-  { key: 'venue', label: 'Venue', span: 3 }, { key: 'duration', label: 'Duration', span: 2 }, { key: 'conducted', label: 'Conducted By', span: 2 },
-  { key: 'dates', label: 'Inclusive Dates', span: 2 }, { key: 'notes', label: 'Notes', span: 3 }
+  { key: 'name', label: 'Seminar/Training Name', span: 4 }, { key: 'type', label: 'Type', span: 2 }, { key: 'budget', label: 'Approved Budget', span: 2 },
+  { key: 'venue', label: 'Venue', span: 2 }, { key: 'duration', label: 'Duration', span: 2 }, 
+  { key: 'conducted', label: 'Conducted By', span: 3 },
+  { key: 'start_date', label: 'Start Date', type: 'date', span: 2 }, { key: 'end_date', label: 'End Date', type: 'date', span: 2 }, 
+  { key: 'notes', label: 'Notes', span: 5 }
 ];
 
 export default function EmployeeRegistration() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState("personal");
+  const [isDiscarding, setIsDiscarding] = useState(false);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState("profiling");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [certified, setCertified] = useState(false);
   const [signatureName, setSignatureName] = useState("");
   const [signatureUrl, setSignatureUrl] = useState("");
   const [signaturePreviewUrl, setSignaturePreviewUrl] = useState("");
   const [isUploadingSignature, setIsUploadingSignature] = useState(false);
-  const [isDiscarding, setIsDiscarding] = useState(false);
 
+  // Signature preview management handled directly by state and public URL to avoid revocation issues
   useEffect(() => {
-    return () => {
-      if (signaturePreviewUrl) {
-        URL.revokeObjectURL(signaturePreviewUrl);
-      }
-    };
-  }, [signaturePreviewUrl]);
+    // Component handles URL state directly
+  }, []);
 
   // Flat State Dictionary carrying ALL elements
   const [formData, setFormData] = useState({
@@ -110,8 +133,11 @@ export default function EmployeeRegistration() {
     contact_phone: "", contact_email: "",
 
     // Parents
-    father_name: "", father_status: "Living",
-    mother_maiden_name: "", mother_status: "Living",
+    father_name: "", father_status: "Living", father_occupation: "",
+    mother_maiden_name: "", mother_status: "Living", mother_occupation: "",
+
+    // Admin Only fields (for मास्टरlist/profile)
+    classification_ii: "", present_rank_start: "", present_rank_end: "",
 
     // Tax & IDs
     sss: "", tin: "", philhealth: "", pag_ibig: "", peraa: "", tax_status: "Single",
@@ -168,6 +194,13 @@ export default function EmployeeRegistration() {
       return;
     }
 
+    // Set preview immediately
+    if (signaturePreviewUrl) {
+      URL.revokeObjectURL(signaturePreviewUrl);
+    }
+    const preview = URL.createObjectURL(file);
+    setSignaturePreviewUrl(preview);
+
     setIsUploadingSignature(true);
     try {
       const fileExt = (file.name.split('.').pop() || "png").toLowerCase();
@@ -191,10 +224,9 @@ export default function EmployeeRegistration() {
         throw new Error("Signature upload succeeded but file URL was not generated.");
       }
 
-      if (signaturePreviewUrl) {
+      if (signaturePreviewUrl && signaturePreviewUrl !== preview) {
         URL.revokeObjectURL(signaturePreviewUrl);
       }
-      setSignaturePreviewUrl(URL.createObjectURL(file));
       setSignatureUrl(publicUrl);
       toast.success("E-signature uploaded successfully.");
     } catch (err) {
@@ -310,64 +342,59 @@ export default function EmployeeRegistration() {
   };
 
   const handleDiscardRegistration = async () => {
-    if (isDiscarding) return;
-
-    const shouldDiscard = window.confirm(
-      "Discard your registration and permanently delete this account?"
-    );
-    if (!shouldDiscard) return;
-
     setIsDiscarding(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      if (!accessToken) {
-        await logout();
-        navigate("/login");
-        return;
+      if (user?.id) {
+        // 1. Delete from employees table
+        await supabase.from('employees').delete().eq('id', user.id);
+        
+        // 2. Delete Auth user using Admin client
+        if (supabaseAdmin) {
+          const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+          if (deleteError) throw deleteError;
+        } else {
+          throw new Error("Admin service unavailable.");
+        }
       }
 
-      const response = await fetch("/api/delete-auth-user", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error(
-            "Your session expired. Please log in again, then discard your registration."
-          );
-        }
-        if (response.status === 500) {
-          throw new Error(
-            "Could not delete your account right now. Please try again in a few moments or contact HR support."
-          );
-        }
-        throw new Error(result?.error || "Unable to discard registration.");
-      }
-
-      toast.success("Registration discarded. Account deleted.");
+      toast.success("Registration discarded and account deleted.");
       await logout();
       navigate("/login");
     } catch (err) {
+      console.error("Discard Error:", err);
       toast.error(err.message || "Failed to discard registration.");
-      toast.info("If this keeps happening, log out and back in, then try Discard again.");
     } finally {
       setIsDiscarding(false);
+      setShowDiscardDialog(false);
     }
   };
 
   const tabs = [
-    { id: "personal", label: "Personal Data", icon: User },
-    { id: "family", label: "Family & Contacts", icon: Users },
-    { id: "history", label: "Previous Employment", icon: BookOpen },
-    { id: "education", label: "Education, Training & Skills", icon: GraduationCap },
-    { id: "certify", label: "Submission", icon: CheckCircle },
+    { id: "profiling", label: "Personal Details", icon: User },
+    { id: "education", label: "Educational Record", icon: GraduationCap },
+    { id: "training", label: "Trainings and Development", icon: Award },
+    { id: "employment", label: "Employment Info", icon: Briefcase },
   ];
+
+  const handleNextTab = () => {
+    const currentIndex = tabs.findIndex(t => t.id === activeTab);
+    if (currentIndex < tabs.length - 1) {
+      setActiveTab(tabs[currentIndex + 1].id);
+    } else {
+      setActiveTab("certify");
+    }
+  };
+
+  const handleBackTab = () => {
+    if (activeTab === "certify") {
+      setActiveTab("employment");
+      return;
+    }
+    const currentIndex = tabs.findIndex(t => t.id === activeTab);
+    if (currentIndex > 0) {
+      setActiveTab(tabs[currentIndex - 1].id);
+    }
+  };
 
   return (
     <div className="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden">
@@ -391,106 +418,169 @@ export default function EmployeeRegistration() {
           </div>
         </div>
         <div className="flex gap-4 items-center">
-          <Button
-            type="button"
-            onClick={handleDiscardRegistration}
-            disabled={isDiscarding}
-            className="bg-red-500 hover:bg-red-600 text-white h-10 font-bold"
-          >
-            {isDiscarding ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Discarding...
-              </>
-            ) : (
-              "Discard"
-            )}
-          </Button>
+          <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+            <AlertDialogTrigger asChild>
+              <Button
+                type="button"
+                disabled={isDiscarding}
+                className="bg-red-500 hover:bg-red-600 text-white h-10 font-bold"
+              >
+                {isDiscarding ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Discarding...
+                  </>
+                ) : (
+                  "Discard"
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="bg-white border-slate-200">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-[#0C005F] flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-red-500" />
+                  Discard Registration?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete your account and all the information you've entered.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="border-slate-200 hover:bg-slate-50">Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDiscardRegistration}
+                  className="bg-red-600 hover:bg-red-700 text-white border-none"
+                >
+                  Confirm Discard
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           <Button onClick={() => setActiveTab("certify")} className="bg-white text-[#0C005F] hover:bg-white/90 h-10 font-bold">
             Go to Submit
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+          {activeTab !== "certify" && (
+            <div className="bg-white border-b border-slate-200 px-8 py-2 shrink-0">
+              <TabsList className="w-full justify-center bg-transparent h-auto flex-wrap gap-2 p-0">
+                {tabs.map(tab => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger 
+                      key={tab.id} 
+                      value={tab.id}
+                      className="gap-2 rounded-lg data-[state=active]:bg-[#0C005F] data-[state=active]:shadow-none data-[state=active]:text-white py-2 px-4 border border-transparent"
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="font-semibold text-xs">{tab.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
+          )}
 
-        {/* Left Vertical Stepper Menu */}
-        <div className="w-72 bg-white border-r border-slate-200 overflow-y-auto flex-shrink-0 z-0">
-          <div className="p-4 space-y-2 mt-4">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">Sections</p>
-            {tabs.map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              const isInc = isSectionIncomplete(tab.id);
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-colors ${isActive ? "bg-[#0C005F] text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
-                    }`}
+          <ScrollArea className="flex-1 bg-slate-50 relative">
+            <div className="max-w-5xl mx-auto p-8 pb-32">
+              <TabsContent value="profiling" className="m-0 focus-visible:ring-0 space-y-8">
+                <PersonalSection formData={formData} handleChange={handleChange} handleSelect={handleSelect} handleGrid={handleGrid} langCols={langCols} />
+                <FamilySection 
+                  formData={formData} 
+                  handleChange={handleChange} 
+                  handleSelect={handleSelect} 
+                  handleGrid={handleGrid} 
+                  emergencyCols={emergencyCols} 
+                  childrenCols={childrenCols} 
+                />
+              </TabsContent>
+
+              <TabsContent value="education" className="m-0 focus-visible:ring-0">
+                <div className="bg-white rounded-xl border shadow-sm">
+                  <DynamicGrid title="Educational Background" columns={eduCols} data={formData.educational_record} onChange={(d) => handleGrid('educational_record', d)} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="training" className="m-0 focus-visible:ring-0 space-y-8">
+                <div className="bg-white rounded-xl border shadow-sm">
+                  <DynamicGrid title="Internal Trainings" columns={trainCols} data={formData.internal_trainings} onChange={(d) => handleGrid('internal_trainings', d)} />
+                </div>
+                <div className="bg-white rounded-xl border shadow-sm">
+                  <DynamicGrid title="External Trainings (within 5 years)" columns={trainCols} data={formData.external_trainings} onChange={(d) => handleGrid('external_trainings', d)} />
+                </div>
+                <div className="bg-white rounded-xl border shadow-sm">
+                  <DynamicGrid title="Awards & Citations" columns={awardsCols} data={formData.awards_citations} onChange={(d) => handleGrid('awards_citations', d)} />
+                </div>
+                <div className="bg-white rounded-xl border shadow-sm">
+                  <DynamicGrid title="Scholarships & Research Work" columns={scholarCols} data={formData.scholarships_research} onChange={(d) => handleGrid('scholarships_research', d)} />
+                </div>
+                <div className="bg-white rounded-xl border shadow-sm">
+                  <DynamicGrid title="Professional Licenses" columns={licenseCols} data={formData.licenses} onChange={(d) => handleGrid('licenses', d)} />
+                </div>
+                <div className="bg-white rounded-xl border shadow-sm">
+                  <DynamicGrid title="Government & Board Examinations" columns={examsCols} data={formData.exams_taken} onChange={(d) => handleGrid('exams_taken', d)} />
+                </div>
+                <div className="bg-white rounded-xl border shadow-sm">
+                  <DynamicGrid title="Specific Skills" columns={skillsCols} data={formData.skills} onChange={(d) => handleGrid('skills', d)} />
+                </div>
+                <div className="bg-white rounded-xl border shadow-sm">
+                  <DynamicGrid title="Group Affiliations" columns={affiliationCols} data={formData.group_affiliations} onChange={(d) => handleGrid('group_affiliations', d)} />
+                </div>
+                <div className="bg-white rounded-xl border shadow-sm">
+                  <DynamicGrid title="Extra Activities / Services" columns={extraCols} data={formData.extra_activities} onChange={(d) => handleGrid('extra_activities', d)} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="employment" className="m-0 focus-visible:ring-0">
+                <HistorySection formData={formData} handleGrid={handleGrid} prevEmpCols={prevEmpCols} />
+              </TabsContent>
+
+              {activeTab === "certify" && (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <SubmissionSection 
+                    certified={certified} 
+                    setCertified={setCertified} 
+                    signatureName={signatureName} 
+                    setSignatureName={setSignatureName} 
+                    signatureUrl={signatureUrl} 
+                    signaturePreviewUrl={signaturePreviewUrl}
+                    handleSignatureUpload={handleSignatureUpload} 
+                    isUploadingSignature={isUploadingSignature} 
+                    submitRegistration={submitRegistration} 
+                    isSubmitting={isSubmitting} 
+                  />
+                </div>
+              )}
+            </div>
+            
+            <div className="fixed bottom-0 right-0 left-0 bg-white border-t p-4 flex justify-center z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+              <div className="max-w-5xl w-full flex justify-between">
+                <Button 
+                  onClick={handleBackTab} 
+                  disabled={activeTab === "profiling"}
+                  className="px-8 h-12 font-bold rounded-lg group bg-red-600 hover:bg-red-700 text-white border-none shadow-md disabled:bg-slate-300 disabled:text-slate-500"
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                    {tab.label}
-                  </div>
-                  {isInc && !isActive && <AlertCircle className="w-4 h-4 text-red-500" />}
-                  {isInc && isActive && <AlertCircle className="w-4 h-4 text-white/80" />}
-                </button>
-              )
-            })}
-          </div>
-        </div>
+                  <ChevronLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                  Back
+                </Button>
 
-        {/* Right Content Area */}
-        <ScrollArea className="flex-1 bg-slate-50 relative p-4 md:p-8">
-          <div className="max-w-5xl mx-auto pb-32">
-            {activeTab === "personal" && (
-              <PersonalSection formData={formData} handleChange={handleChange} handleSelect={handleSelect} handleGrid={handleGrid} langCols={langCols} />
-            )}
-            {activeTab === "family" && (
-              <FamilySection 
-                formData={formData} 
-                handleChange={handleChange} 
-                handleSelect={handleSelect} 
-                handleGrid={handleGrid} 
-                emergencyCols={emergencyCols} 
-                childrenCols={childrenCols} 
-              />
-            )}
-            {activeTab === "history" && (
-              <HistorySection formData={formData} handleGrid={handleGrid} prevEmpCols={prevEmpCols} />
-            )}
-            {activeTab === "education" && (
-              <EducationSection 
-                formData={formData} 
-                handleGrid={handleGrid} 
-                eduCols={eduCols} 
-                trainCols={trainCols} 
-                skillsCols={skillsCols}
-                awardsCols={awardsCols}
-                extraCols={extraCols}
-                affiliationCols={affiliationCols}
-                licenseCols={licenseCols}
-                examsCols={examsCols}
-                scholarCols={scholarCols}
-              />
-            )}
-            {activeTab === "certify" && (
-              <SubmissionSection 
-                certified={certified} 
-                setCertified={setCertified} 
-                signatureName={signatureName} 
-                setSignatureName={setSignatureName} 
-                signatureUrl={signatureUrl} 
-                signaturePreviewUrl={signaturePreviewUrl}
-                handleSignatureUpload={handleSignatureUpload} 
-                isUploadingSignature={isUploadingSignature} 
-                submitRegistration={submitRegistration} 
-                isSubmitting={isSubmitting} 
-              />
-            )}
-          </div>
-        </ScrollArea>
+                {activeTab !== "certify" && (
+                  <Button 
+                    onClick={handleNextTab} 
+                    className="bg-[#0C005F] hover:bg-[#0C005F]/90 text-white px-8 h-12 font-bold rounded-lg shadow-lg group"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </ScrollArea>
+        </Tabs>
       </div>
     </div>
   );

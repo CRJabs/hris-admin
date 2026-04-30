@@ -54,9 +54,17 @@ export default function ProfileUpdates() {
   const handleUpdateAction = async (req, status) => {
     try {
       if (status === 'approved') {
+        // Sanitize changes: convert empty strings to nulls for DB compatibility
+        const sanitizedChanges = Object.fromEntries(
+          Object.entries(req.requested_changes).map(([key, value]) => [
+            key,
+            value === "" ? null : value
+          ])
+        );
+
         const { error: updateError } = await supabase
           .from('employees')
-          .update(req.requested_changes)
+          .update(sanitizedChanges)
           .eq('id', req.employee_id);
           
         if (updateError) throw updateError;

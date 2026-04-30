@@ -255,7 +255,15 @@ export default function EmployeeProfile() {
   const confirmSave = async () => {
     setIsSaving(true);
     try {
-      const requestedChanges = buildRequestedChanges(employeeData, editedData);
+      // Sanitize empty strings to null for better database compatibility
+      const sanitizedEditedData = Object.fromEntries(
+        Object.entries(editedData).map(([key, value]) => [
+          key,
+          value === "" ? null : value
+        ])
+      );
+
+      const requestedChanges = buildRequestedChanges(employeeData, sanitizedEditedData);
       if (Object.keys(requestedChanges).length === 0) {
         toast({
           title: "No changes to submit",
@@ -533,6 +541,7 @@ export default function EmployeeProfile() {
                     isEditMode={isEditing}
                     showPhotoUpload={true}
                     onChange={handleFieldChange}
+                    isAdminView={false}
                   />
                 </TabsContent>
                 <TabsContent value="education" className="m-0 space-y-6">
@@ -552,7 +561,12 @@ export default function EmployeeProfile() {
                   />
                 </TabsContent>
                 <TabsContent value="employment" className="m-0 space-y-6">
-                  <EmploymentInfoTab employee={isEditing ? editedData : employeeData} isReadOnly={true} />
+                  <EmploymentInfoTab 
+                    employee={isEditing ? editedData : employeeData} 
+                    isReadOnly={!isEditing} 
+                    isAdminView={false}
+                    onChange={handleFieldChange}
+                  />
                 </TabsContent>
                 <TabsContent value="leave" className="m-0 space-y-6">
                   <LeaveTab 

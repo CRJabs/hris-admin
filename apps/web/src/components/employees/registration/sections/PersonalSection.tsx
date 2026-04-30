@@ -29,10 +29,7 @@ export const PersonalSection: React.FC<PersonalDataProps> = ({ formData, handleC
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           <div className="space-y-1">
             <Label>Gender</Label>
-            <Select value={formData.gender} onValueChange={(val) => handleSelect("gender", val)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="Male">Male</SelectItem><SelectItem value="Female">Female</SelectItem></SelectContent>
-            </Select>
+            <Input name="gender" value={formData.gender} onChange={handleChange} />
           </div>
 
           <div className="space-y-1">
@@ -42,8 +39,7 @@ export const PersonalSection: React.FC<PersonalDataProps> = ({ formData, handleC
               <SelectContent>
                 <SelectItem value="Single">Single</SelectItem>
                 <SelectItem value="Married">Married</SelectItem>
-                <SelectItem value="Widow/Widower">Widow/Widower</SelectItem>
-                <SelectItem value="Separated/Divorced">Separated/Divorced</SelectItem>
+                <SelectItem value="Widowed">Widowed</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -68,6 +64,7 @@ export const PersonalSection: React.FC<PersonalDataProps> = ({ formData, handleC
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-4">
             <div className="space-y-1"><Label>Father's Full Name</Label><Input name="father_name" value={formData.father_name} onChange={handleChange} /></div>
+            <div className="space-y-1"><Label>Father's Occupation</Label><Input name="father_occupation" value={formData.father_occupation} onChange={handleChange} /></div>
             <div className="flex items-center gap-6 px-1">
               <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                 <Checkbox 
@@ -88,6 +85,7 @@ export const PersonalSection: React.FC<PersonalDataProps> = ({ formData, handleC
 
           <div className="space-y-4">
             <div className="space-y-1"><Label>Mother's Maiden Name</Label><Input name="mother_maiden_name" value={formData.mother_maiden_name} onChange={handleChange} /></div>
+            <div className="space-y-1"><Label>Mother's Occupation</Label><Input name="mother_occupation" value={formData.mother_occupation} onChange={handleChange} /></div>
             <div className="flex items-center gap-6 px-1">
               <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                 <Checkbox 

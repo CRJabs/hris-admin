@@ -32,6 +32,12 @@ export default function Employees() {
       if (error) throw error;
       setEmployees(data || []);
       
+      setSelectedEmployee(prev => {
+        if (!prev) return null;
+        const updated = data?.find(e => e.id === prev.id);
+        return updated || prev;
+      });
+      
       const { data: reqData, error: reqError } = await supabase
         .from('employee_update_requests')
         .select('*')

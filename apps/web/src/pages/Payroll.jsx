@@ -70,10 +70,10 @@ export default function Payroll() {
                       <TableCell className="text-sm">{formatPHP(allowances)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={`text-[11px] ${
-                          emp.employment_status === "Regular" ? "bg-green-50 text-green-700 border-green-200" :
-                          emp.employment_status === "Probationary" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                          emp.employment_tenure === "Regular" ? "bg-green-50 text-green-700 border-green-200" :
+                          emp.employment_tenure === "Probationary" ? "bg-amber-50 text-amber-700 border-amber-200" :
                           "bg-blue-50 text-blue-700 border-blue-200"
-                        }`}>{emp.employment_status}</Badge>
+                        }`}>{emp.employment_tenure}</Badge>
                       </TableCell>
                       <TableCell className="text-sm font-semibold">{formatPHP(emp.monthly_rate + allowances)}</TableCell>
                     </TableRow>
