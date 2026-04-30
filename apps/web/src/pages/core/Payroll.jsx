@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, TrendingUp, Users, Calendar } from "lucide-react";
-import mockEmployees from "@/lib/mockEmployees";
+import mockEmployees from "@/data/mockEmployees";
 
 function formatPHP(amount) {
   return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(amount || 0);

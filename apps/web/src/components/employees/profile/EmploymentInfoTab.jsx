@@ -4,7 +4,8 @@ import { Plus, Briefcase, CalendarClock, PenTool } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { EMPLOYMENT_CLASSIFICATIONS, DEPARTMENTS } from "@/lib/constants";
+import { EMPLOYMENT_CLASSIFICATIONS, DEPARTMENTS } from "@/utils/constants";
+import mockEmployees from "@/data/mockEmployees";
 
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 

@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
-import { DEPARTMENTS, EMPLOYMENT_CLASSIFICATIONS } from "@/lib/constants";
+import { DEPARTMENTS, EMPLOYMENT_CLASSIFICATIONS } from "@/utils/constants";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 

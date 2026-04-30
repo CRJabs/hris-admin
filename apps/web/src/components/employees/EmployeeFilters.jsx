@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { useState, useMemo } from "react";
-import { DEPARTMENTS, EMPLOYMENT_CLASSIFICATIONS } from "@/lib/constants";
+import { DEPARTMENTS, EMPLOYMENT_CLASSIFICATIONS } from "@/utils/constants";
 
 const statuses = ["Regular", "Probationary", "Contractual"];
 const activeStatuses = ["Active", "Inactive"];
