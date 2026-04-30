@@ -22,11 +22,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase, supabaseAdmin } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
-import { PersonalSection } from "../components/employees/registration/sections/PersonalSection";
-import { FamilySection } from "../components/employees/registration/sections/FamilySection";
-import { HistorySection } from "../components/employees/registration/sections/HistorySection";
-import { EducationSection } from "../components/employees/registration/sections/EducationSection";
-import { SubmissionSection } from "../components/employees/registration/sections/SubmissionSection";
+import { PersonalSection } from "@/components/employees/registration/sections/PersonalSection";
+import { FamilySection } from "@/components/employees/registration/sections/FamilySection";
+import { HistorySection } from "@/components/employees/registration/sections/HistorySection";
+import { EducationSection } from "@/components/employees/registration/sections/EducationSection";
+import { SubmissionSection } from "@/components/employees/registration/sections/SubmissionSection";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 
 // Grid Span Distributions
