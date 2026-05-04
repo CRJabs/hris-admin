@@ -123,7 +123,7 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={emp.photo_url} alt={emp.first_name} />
+                      <AvatarImage key={emp.photo_url} src={emp.photo_url} alt={emp.first_name} />
                       <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
                         {emp.first_name?.[0]}{emp.last_name?.[0]}
                       </AvatarFallback>

@@ -174,7 +174,7 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
         </CardHeader>
         <CardContent className="p-4 pt-4">
           <div className="space-y-4">
-            {isEmployeeEditing ? (
+            {!isReadOnly ? (
               <DynamicGrid 
                 title="Previous Employment" 
                 columns={prevEmpCols} 

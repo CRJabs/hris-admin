@@ -119,13 +119,20 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
 
   const skillsCols = [
     { key: 'skill', label: 'Skill', span: 6 }, { key: 'years', label: 'Years of Use', span: 2 },
-    { key: 'level', label: 'Level of Expertise', span: 4, placeholder: 'Beginner/Intermediate/Advance/Expert' }
+    { 
+      key: 'level', 
+      label: 'Level of Expertise', 
+      span: 4, 
+      type: 'select',
+      options: ["Beginner", "Intermediate", "Advanced", "Expert"],
+      placeholder: 'Select Level' 
+    }
   ];
 
   const affiliationCols = [
-    { key: 'org', label: 'Organization', span: 4 }, { key: 'place', label: 'Place/Station', span: 3 },
-    { key: 'position', label: 'Position', span: 3 }, 
-    { key: 'start_date', label: 'Start Date', type: 'date', span: 1 }, { key: 'end_date', label: 'End Date', type: 'date', span: 1 }
+    { key: 'org', label: 'Organization', span: 6 }, { key: 'place', label: 'Place/Station', span: 6 },
+    { key: 'position', label: 'Position', span: 6 }, 
+    { key: 'start_date', label: 'Start Date', type: 'date', span: 3 }, { key: 'end_date', label: 'End Date', type: 'date', span: 3 }
   ];
 
   const awardsCols = [

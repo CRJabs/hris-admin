@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { 
   User, GraduationCap, Award, Briefcase, CalendarDays, 
   ShieldCheck, Save, Check, X, Loader2, Mail, Lock, UserPlus,
-  ArrowLeft
+  ArrowLeft, Eye, EyeOff
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase, supabaseAdmin } from "@/lib/supabase";
@@ -23,6 +23,7 @@ const defaultEmployee = {
   contact_phone: "", contact_email: "",
   sss: "", tin: "", philhealth: "", pag_ibig: "", peraa: "", tax_status: "Single",
   height: "", weight: "", blood_type: "", distinguishing_marks: "",
+  employee_id: "",
   educational_record: [],
   internal_trainings: [],
   external_trainings: [],
@@ -56,7 +57,38 @@ export default function AddEmployee() {
   
   // Account State
   const [accountData, setAccountData] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+
+  useEffect(() => {
+    const generateNextId = async () => {
+      try {
+        const year = new Date().getFullYear();
+        const { data: lastEmp, error: lastEmpError } = await supabase
+          .from('employees')
+          .select('employee_id')
+          .ilike('employee_id', `${year} - %`)
+          .order('employee_id', { ascending: false })
+          .limit(1);
+        
+        if (lastEmpError) throw lastEmpError;
+        
+        let nextIdNumber = 1;
+        if (lastEmp && lastEmp.length > 0) {
+          const lastId = lastEmp[0].employee_id;
+          const parts = lastId.split(' - ');
+          if (parts.length === 2) {
+            nextIdNumber = parseInt(parts[1], 10) + 1;
+          }
+        }
+        const generatedId = `${year} - ${String(nextIdNumber).padStart(3, '0')}`;
+        setEmployeeData(prev => ({ ...prev, employee_id: generatedId }));
+      } catch (err) {
+        console.error("Error generating next ID:", err);
+      }
+    };
+    generateNextId();
+  }, []);
 
   const handleFieldChange = (field, value) => {
     setEmployeeData(prev => ({ ...prev, [field]: value }));
@@ -96,26 +128,9 @@ export default function AddEmployee() {
     setIsSaving(true);
     try {
       const year = new Date().getFullYear();
-      const { data: lastEmp, error: lastEmpError } = await supabase
-        .from('employees')
-        .select('employee_id')
-        .ilike('employee_id', `${year} - %`)
-        .order('employee_id', { ascending: false })
-        .limit(1);
-      
-      if (lastEmpError) throw lastEmpError;
-      
-      let nextIdNumber = 1;
-      if (lastEmp && lastEmp.length > 0) {
-        const lastId = lastEmp[0].employee_id;
-        const parts = lastId.split(' - ');
-        if (parts.length === 2) {
-          nextIdNumber = parseInt(parts[1], 10) + 1;
-        }
-      }
-      const generatedId = `${year} - ${String(nextIdNumber).padStart(3, '0')}`;
+      const generatedId = employeeData.employee_id || `${year} - 001`;
 
-       const sanitizedData = Object.fromEntries(
+      const sanitizedData = Object.fromEntries(
         Object.entries(employeeData)
           .filter(([key]) => !['photo_file', 'signature_file', 'photo_url', 'signature_url'].includes(key))
           .map(([key, value]) => [
@@ -351,12 +366,19 @@ export default function AddEmployee() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input 
                     id="password" 
-                    type="password" 
+                    type={showPassword ? "text" : "password"}
                     placeholder="••••••••" 
-                    className="pl-10 h-11"
+                    className="pl-10 pr-10 h-11"
                     value={accountData.password}
                     onChange={(e) => setAccountData(prev => ({ ...prev, password: e.target.value }))}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
                 <p className="text-[11px] text-muted-foreground italic bg-slate-50 p-2 rounded border border-slate-100">
                   Tip: Employees are advised to change this upon first login for security.
@@ -378,13 +400,6 @@ export default function AddEmployee() {
                  ) : (
                    "Complete & Assign Account"
                  )}
-               </Button>
-               <Button 
-                 variant="ghost" 
-                 onClick={() => navigate("/employees")}
-                 className="text-muted-foreground hover:bg-transparent hover:text-foreground"
-               >
-                 Skip for now and return to list
                </Button>
             </div>
           </div>

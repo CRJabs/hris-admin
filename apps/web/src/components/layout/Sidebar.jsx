@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/AuthContext";
 const navItems = [
   { label: "Home", icon: Zap, path: "/" },
   { label: "Reports & Analytics", icon: BarChart3, path: "/reports" },
-  { label: "Company", icon: Building2, path: "/company" },
+  { label: "University Chart", icon: Building2, path: "/company" },
   { 
     label: "Pending Approvals", 
     icon: CheckSquare, 

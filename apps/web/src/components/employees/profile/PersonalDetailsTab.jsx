@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { User, Heart, MapPin, Shield, Users, Plus, X, Briefcase } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
@@ -83,7 +83,6 @@ function InfoRow({ label, value, name, onChange, isEditing, type = "text", class
 }
 
 export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnly = false, showPhotoUpload = false, onChange, isEditMode = false, isAdminView = false, requestedChanges = null, errors = {} }) {
-  const { toast } = useToast();
   const [showSpouse, setShowSpouse] = useState(!!employee.spouse_name || !!employee.spouse_employer);
 
   const statusColor = {
@@ -108,13 +107,13 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
     const acceptedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 
     if (!acceptedTypes.includes(file.type)) {
-      toast({ title: "Invalid file type", description: "Please upload a PNG or JPG image.", variant: "destructive" });
+      toast.error("Invalid file type", { description: "Please upload a PNG or JPG image." });
       return;
     }
 
     const maxSizeBytes = 5 * 1024 * 1024;
     if (file.size > maxSizeBytes) {
-      toast({ title: "File too large", description: "Please upload an image under 5MB.", variant: "destructive" });
+      toast.error("File too large", { description: "Please upload an image under 5MB." });
       return;
     }
     
@@ -143,15 +142,15 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
 
       if (updateError) throw updateError;
       
-      toast({ title: "Profile picture updated successfully!" });
-      window.location.reload(); 
+      toast.success("Profile picture updated successfully!");
+      onChange('photo_url', publicUrl);
     } catch(err) {
       console.error(err);
       const msg = err?.message || "Upload failed";
       if (msg.toLowerCase().includes("row-level security")) {
-        toast({ title: "Upload blocked", description: "Storage policy denied this upload. Please check bucket permissions.", variant: "destructive" });
+        toast.error("Upload blocked", { description: "Storage policy denied this upload. Please check bucket permissions." });
       } else {
-        toast({ title: "Failed to upload photo", description: msg, variant: "destructive" });
+        toast.error("Failed to upload photo", { description: msg });
       }
     }
   };
@@ -172,7 +171,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
     const acceptedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 
     if (!acceptedTypes.includes(file.type)) {
-      toast({ title: "Invalid file type", description: "Please upload a PNG or JPG image.", variant: "destructive" });
+      toast.error("Invalid file type", { description: "Please upload a PNG or JPG image." });
       return;
     }
     
@@ -201,11 +200,11 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
 
       if (updateError) throw updateError;
       
-      toast({ title: "Signature updated successfully!" });
-      window.location.reload(); 
+      toast.success("Signature updated successfully!");
+      onChange('signature_url', publicUrl);
     } catch(err) {
       console.error(err);
-      toast({ title: "Failed to upload signature", description: err.message, variant: "destructive" });
+      toast.error("Failed to upload signature", { description: err.message });
     }
   };
 
@@ -226,8 +225,23 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
     { key: 'enrolled', label: 'Enrolled At', span: 4 }, { key: 'course', label: 'Course & YR', span: 3 }
   ];
   const langCols = [
-    { key: 'language', label: 'Language', span: 4 }, { key: 'literacy', label: 'Literacy', span: 4, placeholder: 'Speak/Read/Write' },
-    { key: 'fluency', label: 'Fluency Scale', span: 4, placeholder: 'Beginner/Intermediate/Advance/Expert' }
+    { key: 'language', label: 'Language', span: 4 }, 
+    { 
+      key: 'literacy', 
+      label: 'Literacy', 
+      span: 4, 
+      type: 'select',
+      options: ["Speak", "Read", "Write"],
+      placeholder: 'Select Mode' 
+    },
+    { 
+      key: 'fluency', 
+      label: 'Fluency Scale', 
+      span: 4, 
+      type: 'select',
+      options: ["Beginner", "Intermediate", "Advanced", "Expert"],
+      placeholder: 'Select Scale' 
+    }
   ];
 
   const checkUpdated = (name) => {
@@ -253,7 +267,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
             <CardContent className="p-6">
               <div className="relative w-32 h-32 mx-auto mb-4 group">
                 <Avatar className="w-full h-full ring-4 ring-primary/10">
-                  <AvatarImage src={employee.photo_url} alt={employee.first_name} className="object-cover" />
+                  <AvatarImage key={employee.photo_url} src={employee.photo_url} alt={employee.first_name} className="object-cover" />
                   <AvatarFallback className="text-3xl bg-primary/10 text-primary font-bold">
                     {employee.first_name?.[0]}{employee.last_name?.[0]}
                   </AvatarFallback>
@@ -675,7 +689,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                    <p className="text-[11px] text-muted-foreground uppercase tracking-widest">Certification Signature</p>
                    <div className="relative group border rounded-xl p-4 bg-white shadow-sm flex items-center justify-center min-h-[140px]">
                       {employee.signature_url ? (
-                        <img src={employee.signature_url} alt="E-signature" className="max-h-24 w-auto object-contain mix-blend-multiply" />
+                        <img key={employee.signature_url} src={employee.signature_url} alt="E-signature" className="max-h-24 w-auto object-contain mix-blend-multiply" />
                       ) : (
                         <div className="text-center">
                            <Shield className="w-8 h-8 mb-2 opacity-20 mx-auto" />

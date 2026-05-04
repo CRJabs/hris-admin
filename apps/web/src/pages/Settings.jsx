@@ -10,41 +10,69 @@ import {
 
 export default function Settings() {
   return (
-    <div className="relative h-full overflow-hidden">
-      {/* Page Content (Empty/Skeleton State) */}
-      <div className="p-8 max-w-[1200px] mx-auto space-y-12 opacity-70 blur-[1px] grayscale select-none pointer-events-none">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-slate-200" />
-          <div className="space-y-2">
-            <div className="h-8 w-48 bg-slate-200 rounded-lg" />
-            <div className="h-4 w-64 bg-slate-100 rounded-lg" />
+        <div className="h-full overflow-y-auto">
+      <div className="p-8 max-w-[1200px] mx-auto space-y-12">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b pb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-[#0C005F]/5 flex items-center justify-center">
+              <SettingsIcon className="w-8 h-8 text-[#0C005F]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">System Settings</h1>
+                <Badge variant="destructive" className="text-[10px] h-4 px-1.5 font-black uppercase tracking-tighter animate-pulse">Unfinished</Badge>
+              </div>
+              <p className="text-slate-500 font-medium">Configure global HRIS parameters and preferences.</p>
+            </div>
           </div>
+          <Button className="bg-[#0C005F] hover:bg-[#0C005F]/90 gap-2">
+            <Save className="w-4 h-4" />
+            Save Changes
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2 space-y-6">
-            <Card className="border-slate-100 shadow-none h-48 bg-slate-50" />
-            <Card className="border-slate-100 shadow-none h-64 bg-slate-50" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            {[
+              { title: "General Configuration", description: "Basic system information and branding.", icon: Globe },
+              { title: "Authentication & Security", description: "Manage login methods and session policies.", icon: Shield },
+              { title: "Data Management", description: "Database backups and export settings.", icon: Database },
+            ].map((section) => (
+              <Card key={section.title} className="border-slate-200/60 shadow-sm hover:border-slate-300 transition-colors cursor-pointer group">
+                <CardContent className="p-6 flex items-start gap-4">
+                  <div className="p-3 bg-slate-50 rounded-xl group-hover:bg-white transition-colors">
+                    <section.icon className="w-6 h-6 text-slate-400 group-hover:text-[#0C005F]" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-slate-900">{section.title}</h3>
+                    <p className="text-sm text-slate-500">{section.description}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
+
           <div className="space-y-6">
-            <Card className="border-slate-100 shadow-none h-96 bg-slate-100" />
-          </div>
-        </div>
-      </div>
-
-      {/* Overlay */}
-      <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/10 backdrop-blur-[2px]">
-        <div className="flex flex-col items-center gap-6 animate-in zoom-in-95 duration-500">
-          <div className="w-20 h-20 rounded-3xl bg-white shadow-2xl flex items-center justify-center ring-1 ring-slate-100">
-            <Lock className="w-10 h-10 text-slate-300" />
-          </div>
-          <div className="text-center">
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2 uppercase">Settings Coming Soon</h2>
-            <p className="text-slate-500 font-medium text-lg">System configurations are currently being finalized.</p>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full">
-            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Security Audit in Progress</span>
+            <Card className="border-slate-200/60 shadow-sm bg-slate-50/50">
+              <CardHeader>
+                <CardTitle className="text-sm font-semibold uppercase tracking-wider text-slate-500">System Info</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Version</span>
+                  <span className="font-mono font-bold text-slate-900">v2.4.0-stable</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Environment</span>
+                  <Badge variant="outline" className="text-blue-600 bg-blue-50 border-blue-100">Production</Badge>
+                </div>
+                <div className="pt-4 border-t border-slate-200">
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Last security audit was performed on May 1st, 2026. All systems are operational.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

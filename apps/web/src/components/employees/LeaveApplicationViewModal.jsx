@@ -154,6 +154,7 @@ export default function LeaveApplicationViewModal({
             <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200">
               {emp.photo_url ? (
                 <img
+                  key={emp.photo_url}
                   src={emp.photo_url}
                   alt=""
                   className="w-full h-full object-cover"

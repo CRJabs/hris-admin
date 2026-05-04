@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { navigateToLogin, user } = useAuth(); // Using your existing context function for now
+  const { user } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,9 +49,6 @@ export default function Login() {
       }
 
       toast.success("Successfully logged in!");
-
-      // 3. Update your AuthContext (for now, we'll use your mock function to trigger the state change)
-      navigateToLogin();
 
       // We do not navigate manually here.
       // We will let the useEffect listen for the AuthContext 'user' to populate, 

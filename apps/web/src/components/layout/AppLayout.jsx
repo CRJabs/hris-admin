@@ -29,7 +29,7 @@ export default function AppLayout() {
     subtitle = "Generate and view institutional HR analytics.";
     icon = BarChart3;
   } else if (path === '/company') {
-    title = "Company Structure";
+    title = "University Chart";
     subtitle = "View organization hierarchy and department alignment.";
     icon = Building2;
   } else if (path === '/approvals/updates') {

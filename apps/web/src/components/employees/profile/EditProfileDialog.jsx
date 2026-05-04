@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Pencil, Loader2, Plus, Trash2, Heart, GraduationCap, Award, Shield, Users, User, Briefcase, Zap, Globe, FileText, Activity } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 
@@ -52,15 +52,38 @@ const examsCols = [
 ];
 const skillsCols = [
   { key: 'skill', label: 'Skill', span: 6 }, { key: 'years', label: 'Years of Use', span: 2 },
-  { key: 'level', label: 'Level of Expertise', span: 4, placeholder: 'Beginner/Intermediate/Advance/Expert' }
+  { 
+    key: 'level', 
+    label: 'Level of Expertise', 
+    span: 4, 
+    type: 'select',
+    options: ["Beginner", "Intermediate", "Advanced", "Expert"],
+    placeholder: 'Select Level' 
+  }
 ];
 const langCols = [
-  { key: 'language', label: 'Language', span: 4 }, { key: 'literacy', label: 'Literacy (Speak/Read/Write)', span: 4 },
-  { key: 'fluency', label: 'Fluency Scale', span: 4, placeholder: 'Beginner/Intermediate/Advance/Expert' }
+  { key: 'language', label: 'Language', span: 4 }, 
+  { 
+    key: 'literacy', 
+    label: 'Literacy (Speak/Read/Write)', 
+    span: 4, 
+    type: 'select',
+    options: ["Speak", "Read", "Write"],
+    placeholder: 'Select Mode' 
+  },
+  { 
+    key: 'fluency', 
+    label: 'Fluency Scale', 
+    span: 4, 
+    type: 'select',
+    options: ["Beginner", "Intermediate", "Advanced", "Expert"],
+    placeholder: 'Select Scale' 
+  }
 ];
 const affiliationCols = [
-  { key: 'org', label: 'Organization', span: 4 }, { key: 'place', label: 'Place/Station', span: 3 },
-  { key: 'position', label: 'Position', span: 3 }, { key: 'dates', label: 'Inclusive Dates', span: 2 }
+  { key: 'org', label: 'Organization', span: 6 }, { key: 'place', label: 'Place/Station', span: 6 },
+  { key: 'position', label: 'Position', span: 6 }, 
+  { key: 'dates', label: 'Inclusive Dates', span: 6 }
 ];
 const extraCols = [
   { key: 'type', label: 'Service/Activity Type', span: 4 }, { key: 'nature_act', label: 'Nature of Activity/Project', span: 8 },
@@ -71,7 +94,6 @@ const extraCols = [
 export default function EditProfileDialog({ employee, buttonLabel = "Edit Personal Details" }) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     // Profiling
@@ -174,18 +196,15 @@ export default function EditProfileDialog({ employee, buttonLabel = "Edit Person
 
       if (error) throw error;
 
-      toast({
-        title: "Master Request Submitted",
+      toast.success("Master Request Submitted", {
         description: "Your information update has been sent to HR. It will be verified shortly.",
       });
       
       setOpen(false);
     } catch (error) {
       console.error("Error submitting request:", error);
-      toast({
-        title: "Submission Failed",
+      toast.error("Submission Failed", {
         description: error.message,
-        variant: "destructive",
       });
     } finally {
       setIsLoading(false);

@@ -19,7 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format, differenceInDays, isAfter, isBefore, addDays } from "date-fns";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,7 +62,6 @@ export default function EmployeeProfile() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const { user, logout } = useAuth();
-  const { toast } = useToast();
   const [employeeData, setEmployeeData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -265,8 +264,7 @@ export default function EmployeeProfile() {
 
       const requestedChanges = buildRequestedChanges(employeeData, sanitizedEditedData);
       if (Object.keys(requestedChanges).length === 0) {
-        toast({
-          title: "No changes to submit",
+        toast("No changes to submit", {
           description: "Update at least one field before submitting for approval.",
         });
         return;
@@ -300,18 +298,15 @@ export default function EmployeeProfile() {
         employee_id: employeeData.id
       });
 
-      toast({
-        title: "Changes Submitted",
+      toast.success("Changes Submitted", {
         description: "Your updates have been sent for HR approval.",
       });
       setIsEditing(false);
       setEditedData(null);
     } catch (err) {
       console.error(err);
-      toast({
-        title: "Error saving changes",
+      toast.error("Error saving changes", {
         description: err.message,
-        variant: "destructive"
       });
     } finally {
       setIsSaving(false);
@@ -320,7 +315,15 @@ export default function EmployeeProfile() {
   };
 
   const handleFieldChange = (name, value) => {
-    setEditedData(prev => ({ ...prev, [name]: value }));
+    if (isEditing) {
+      setEditedData(prev => ({ ...prev, [name]: value }));
+      // For immediate DB updates like photo/signature, also update source of truth
+      if (name === 'photo_url' || name === 'signature_url') {
+        setEmployeeData(prev => ({ ...prev, [name]: value }));
+      }
+    } else {
+      setEmployeeData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   // Refresh leave data after filing a leave

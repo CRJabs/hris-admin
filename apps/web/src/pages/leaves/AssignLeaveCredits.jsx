@@ -254,7 +254,7 @@ export default function AssignLeaveCredits() {
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200">
                         {emp.photo_url ? (
-                          <img src={emp.photo_url} alt="" className="w-full h-full object-cover" />
+                          <img key={emp.photo_url} src={emp.photo_url} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <span className="text-[10px] font-bold text-slate-600 uppercase">
                             {emp.first_name[0]}{emp.last_name[0]}
@@ -293,7 +293,7 @@ export default function AssignLeaveCredits() {
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
                     {selectedEmployee.photo_url ? (
-                      <img src={selectedEmployee.photo_url} alt="" className="w-full h-full object-cover" />
+                      <img key={selectedEmployee.photo_url} src={selectedEmployee.photo_url} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-xl font-black text-[#0C005F] uppercase">
                         {selectedEmployee.first_name[0]}{selectedEmployee.last_name[0]}

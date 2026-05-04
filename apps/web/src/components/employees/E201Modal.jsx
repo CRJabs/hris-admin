@@ -18,6 +18,7 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
   const [isSaving, setIsSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [leaveCredits, setLeaveCredits] = useState([]);
+  const [headOfUnit, setHeadOfUnit] = useState(null);
 
   const pendingRequests = employee?.pendingRequests || [];
   const activeRequest = pendingRequests[0];
@@ -49,6 +50,27 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
       setEditedEmployee(getReviewEmployee());
       setIsEditMode(false);
       fetchLeaveData();
+
+      // Fetch head status
+      const fetchHeadStatus = async () => {
+        const { data } = await supabase
+          .from('org_units')
+          .select('name, parent_id')
+          .eq('head_id', employee.id)
+          .maybeSingle();
+        
+        if (data) {
+          let isExecutive = !data.parent_id;
+          if (data.parent_id) {
+            const { data: parent } = await supabase.from('org_units').select('parent_id').eq('id', data.parent_id).single();
+            if (parent && !parent.parent_id) isExecutive = true;
+          }
+          setHeadOfUnit({ name: data.name, isExecutive });
+        } else {
+          setHeadOfUnit(null);
+        }
+      };
+      fetchHeadStatus();
     }
   }, [employee, open, activeRequest?.id]);
 
@@ -151,6 +173,10 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
 
   const handleFieldChange = (field, value) => {
     setEditedEmployee(prev => ({ ...prev, [field]: value }));
+    // For direct DB updates in the tab (photo/signature), notify parent to refresh list
+    if ((field === 'photo_url' || field === 'signature_url') && onSave) {
+      onSave();
+    }
   };
 
   return (
@@ -176,7 +202,12 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
         <DialogHeader className="p-6 pb-0 flex flex-row items-center justify-between">
           <div>
             <DialogTitle className="text-xl font-bold flex items-center gap-3">
-              {editedEmployee.first_name} {editedEmployee.last_name}
+              {editedEmployee.first_name} {editedEmployee.last_name}{editedEmployee.titles ? `, ${editedEmployee.titles}` : ""}
+              {headOfUnit && (
+                <Badge className="bg-indigo-600 text-white border-none text-[10px] px-2 py-0.5 uppercase tracking-wider font-black">
+                  {headOfUnit.isExecutive ? headOfUnit.name : `Head of ${headOfUnit.name}`}
+                </Badge>
+              )}
               {(() => {
                 const todayStr = new Date().toISOString().split('T')[0];
                 const activeLeave = leaveApps.find(app => 

@@ -39,13 +39,24 @@ export default function DynamicGrid({ title, columns, data, onChange, emptyState
               {columns.map((col) => (
                 <div key={col.key} className="space-y-1.5" style={{ gridColumn: `span ${col.span || Math.max(1, Math.floor(12 / columns.length))}` }}>
                   <Label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider whitespace-nowrap overflow-hidden text-ellipsis block">{col.label}</Label>
-                  <Input 
-                    value={row[col.key] || ""} 
-                    onChange={(e) => updateRow(index, col.key, e.target.value)} 
-                    type={col.type || "text"}
-                    placeholder={col.placeholder || ""}
-                    className="h-8 text-sm focus-visible:ring-[#0C005F]/50"
-                  />
+                  {col.type === 'select' ? (
+                    <select
+                      value={row[col.key] || ""}
+                      onChange={(e) => updateRow(index, col.key, e.target.value)}
+                      className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#0C005F]/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="" disabled>{col.placeholder || "Select option"}</option>
+                      {col.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  ) : (
+                    <Input 
+                      value={row[col.key] || ""} 
+                      onChange={(e) => updateRow(index, col.key, e.target.value)} 
+                      type={col.type || "text"}
+                      placeholder={col.placeholder || ""}
+                      className="h-8 text-sm focus-visible:ring-[#0C005F]/50"
+                    />
+                  )}
                 </div>
               ))}
             </div>

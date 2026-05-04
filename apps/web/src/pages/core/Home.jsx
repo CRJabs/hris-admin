@@ -396,6 +396,7 @@ export default function Home() {
                         <div className="flex items-center gap-3">
                           {request.photoUrl ? (
                             <img 
+                              key={request.photoUrl}
                               src={request.photoUrl} 
                               alt={request.name} 
                               className="w-8 h-8 rounded-full object-cover shrink-0"

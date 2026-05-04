@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
-import { toast as popupToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 // Map action types to navigation targets
 const ACTION_NAV = {
@@ -91,8 +91,7 @@ export default function Header({ onSearch, title, subtitle, icon: Icon }) {
       if (hasBootstrappedNotifications.current) {
         const newNotifs = notifs.filter(n => !seenNotificationIds.current.has(n.id));
         newNotifs.forEach(notif => {
-          popupToast({
-            title: notif.title,
+          toast(notif.title, {
             description: notif.message,
             duration: 6000,
           });
@@ -141,11 +140,18 @@ export default function Header({ onSearch, title, subtitle, icon: Icon }) {
   return (
     <header className="h-20 bg-card text-foreground border-b border-border flex items-center justify-between px-8 sticky top-0 z-30 shrink-0">
       <div className="flex items-center gap-3">
-        {Icon && <Icon className="w-6 h-6 text-[#0C005F]" />}
-        <div>
-          {title && <h1 className="text-xl font-bold text-[#0C005F]">{title}</h1>}
-          {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
-        </div>
+        {title !== "Home" && (
+          <>
+            {Icon && <Icon className="w-6 h-6 text-[#0C005F]" />}
+            <div>
+              <div className="flex items-center gap-2">
+                {title && <h1 className="text-xl font-bold text-[#0C005F]">{title}</h1>}
+                <Badge variant="destructive" className="text-[10px] h-4 px-1.5 font-black uppercase tracking-tighter animate-pulse">Unfinished</Badge>
+              </div>
+              {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex items-center gap-3">

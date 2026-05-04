@@ -228,6 +228,7 @@ export default function LeaveApplications() {
                   <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
                     {app.employees?.photo_url ? (
                       <img
+                        key={app.employees.photo_url}
                         src={app.employees.photo_url}
                         alt=""
                         className="w-full h-full object-cover"
