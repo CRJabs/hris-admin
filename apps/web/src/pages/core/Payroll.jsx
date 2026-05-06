@@ -56,6 +56,7 @@ export default function Payroll() {
                   <TableHead className="text-xs">Monthly Rate</TableHead>
                   <TableHead className="text-xs">Allowances</TableHead>
                   <TableHead className="text-xs">Status</TableHead>
+                  <TableHead className="text-xs">Tenure</TableHead>
                   <TableHead className="text-xs">Total Gross</TableHead>
                 </TableRow>
               </TableHeader>
@@ -68,12 +69,13 @@ export default function Payroll() {
                       <TableCell className="text-sm text-muted-foreground">{emp.department}</TableCell>
                       <TableCell className="text-sm">{formatPHP(emp.monthly_rate)}</TableCell>
                       <TableCell className="text-sm">{formatPHP(allowances)}</TableCell>
+                      <TableCell className="text-[11px] text-muted-foreground uppercase font-bold">{emp.employment_status || "Fulltime"}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={`text-[11px] ${
+                        <Badge variant="outline" className={`text-[10px] ${
                           emp.employment_tenure === "Regular" ? "bg-green-50 text-green-700 border-green-200" :
                           emp.employment_tenure === "Probationary" ? "bg-amber-50 text-amber-700 border-amber-200" :
                           "bg-blue-50 text-blue-700 border-blue-200"
-                        }`}>{emp.employment_tenure}</Badge>
+                        }`}>{emp.employment_tenure || "Probationary"}</Badge>
                       </TableCell>
                       <TableCell className="text-sm font-semibold">{formatPHP(emp.monthly_rate + allowances)}</TableCell>
                     </TableRow>

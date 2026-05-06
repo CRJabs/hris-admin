@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   MoreHorizontal, Eye, Archive, UserCheck, AlertCircle, 
-  Trash2, ArrowUpDown 
+  Trash2, ArrowUpDown, Crown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,7 +22,7 @@ const statusStyles = {
   Contractual: "bg-blue-50 text-blue-700 border-blue-200",
 };
 
-export default function EmployeeTable({ employees, onViewE201, onToggleActive, onDelete, isLoading, onSort, sortConfig }) {
+export default function EmployeeTable({ employees, onViewE201, onToggleActive, onDelete, isLoading, onSort, sortConfig, headEmployeeIds = new Set() }) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
 
@@ -72,6 +72,9 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
             </TableHead>
             <TableHead className="text-xs font-semibold uppercase tracking-wider">
               <SortButton column="employment_status" label="Status" />
+            </TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider">
+              <SortButton column="employment_tenure" label="Tenure" />
             </TableHead>
             <TableHead className="text-xs font-semibold uppercase tracking-wider text-center w-15">Active</TableHead>
             <TableHead className="text-xs font-semibold uppercase tracking-wider w-15"></TableHead>
@@ -129,7 +132,14 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm font-medium">{emp.last_name}, {emp.first_name} {emp.middle_name?.[0]}.</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{emp.last_name}, {emp.first_name} {emp.middle_name?.[0]}.</p>
+                        {headEmployeeIds.has(emp.id) && (
+                          <Badge className="h-4 text-[9px] px-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 gap-1 font-bold uppercase tracking-wider">
+                            <Crown className="w-2.5 h-2.5" /> Head
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-[11px] text-muted-foreground">{emp.email}</p>
                     </div>
                   </div>
@@ -137,8 +147,13 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
                 <TableCell className="text-sm">{emp.department}</TableCell>
                 <TableCell className="text-sm">{emp.position}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={`text-[11px] ${statusStyles[emp.employment_tenure] || ""}`}>
-                    {emp.employment_tenure}
+                  <Badge variant="secondary" className="text-[10px] bg-slate-50 text-slate-600 border-slate-200">
+                    {emp.employment_status || "Fulltime"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={`text-[10px] ${statusStyles[emp.employment_tenure] || ""}`}>
+                    {emp.employment_tenure || "Probationary"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-center">

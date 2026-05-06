@@ -8,11 +8,14 @@ import { Input } from "@/components/ui/input";
 import { useState, useMemo } from "react";
 import { DEPARTMENTS, EMPLOYMENT_CLASSIFICATIONS } from "@/utils/constants";
 
-const statuses = ["Regular", "Probationary", "Contractual"];
+const tenures = ["Regular", "Probationary", "Contractual"];
+const employmentStatuses = ["Fulltime", "Parttime"];
 const activeStatuses = ["Active", "Inactive"];
 
-export default function EmployeeFilters({ filters, onFilterChange, onClear }) {
+export default function EmployeeFilters({ filters, onFilterChange, onClear, departments: departmentsProp }) {
   const [searchTerm, setSearchTerm] = useState("");
+  // Use live departments if provided, fall back to static list
+  const allDepartments = departmentsProp?.length ? departmentsProp : DEPARTMENTS;
 
   const activeCount = 
     (filters.departments?.length || 0) + 
@@ -28,8 +31,11 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear }) {
   };
 
   const filteredDepartments = useMemo(() => 
-    DEPARTMENTS.filter(d => d.toLowerCase().includes(searchTerm.toLowerCase())),
-    [searchTerm]
+    allDepartments.filter(d => {
+      const name = typeof d === 'string' ? d : d.name;
+      return name.toLowerCase().includes(searchTerm.toLowerCase());
+    }),
+    [searchTerm, allDepartments]
   );
 
   const filteredClassifications = useMemo(() => 
@@ -40,18 +46,21 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear }) {
   const renderFilterGrid = (items, filterKey, currentFilters) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-6">
-        {items.map((item) => (
-          <div key={item} className="flex items-center space-x-2">
+        {items.map((item) => {
+          const label = typeof item === 'string' ? item : item.name;
+          return (
+          <div key={label} className="flex items-center space-x-2">
             <Checkbox 
-              id={`${filterKey}-${item}`} 
-              checked={currentFilters?.includes(item)}
-              onCheckedChange={() => onFilterChange(filterKey, toggleArrayItem(currentFilters || [], item))}
+              id={`${filterKey}-${label}`} 
+              checked={currentFilters?.includes(label)}
+              onCheckedChange={() => onFilterChange(filterKey, toggleArrayItem(currentFilters || [], label))}
             />
-            <label htmlFor={`${filterKey}-${item}`} className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer hover:text-primary transition-colors">
-              {item}
+            <label htmlFor={`${filterKey}-${label}`} className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer hover:text-primary transition-colors">
+              {label}
             </label>
           </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
@@ -127,15 +136,34 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear }) {
                <div className="space-y-4">
                   <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Employment Status</h4>
                   <div className="space-y-3">
-                    {statuses.map((status) => (
+                    {employmentStatuses.map((status) => (
                       <div key={status} className="flex items-center space-x-2">
                         <Checkbox 
-                          id={`status-${status}`} 
+                          id={`estatus-${status}`} 
                           checked={filters.statuses?.includes(status)}
                           onCheckedChange={() => onFilterChange("statuses", toggleArrayItem(filters.statuses || [], status))}
                         />
-                        <label htmlFor={`status-${status}`} className="text-sm font-medium leading-none cursor-pointer hover:text-primary transition-colors">
+                        <label htmlFor={`estatus-${status}`} className="text-sm font-medium leading-none cursor-pointer hover:text-primary transition-colors">
                           {status}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+               </div>
+
+               {/* Tenure */}
+               <div className="space-y-4">
+                  <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Employment Tenure</h4>
+                  <div className="space-y-3">
+                    {tenures.map((tenure) => (
+                      <div key={tenure} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`tenure-${tenure}`} 
+                          checked={filters.tenures?.includes(tenure)}
+                          onCheckedChange={() => onFilterChange("tenures", toggleArrayItem(filters.tenures || [], tenure))}
+                        />
+                        <label htmlFor={`tenure-${tenure}`} className="text-sm font-medium leading-none cursor-pointer hover:text-primary transition-colors">
+                          {tenure}
                         </label>
                       </div>
                     ))}

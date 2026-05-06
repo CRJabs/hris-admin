@@ -71,6 +71,7 @@ export default function EmployeeProfile() {
   const [isSaving, setIsSaving] = useState(false);
   const [leaveCredits, setLeaveCredits] = useState([]); // Leave credits balance from DB
   const [leaveApplications, setLeaveApplications] = useState([]); // Leave applications from DB
+  const [headOfUnit, setHeadOfUnit] = useState(null);
 
   useEffect(() => {
     async function loadProfile() {
@@ -104,6 +105,22 @@ export default function EmployeeProfile() {
         
         if (!appsError) {
           setLeaveApplications(apps || []);
+        }
+
+        // Fetch head-of-office status
+        const { data: headUnit } = await supabase
+          .from('org_units')
+          .select('name, parent_id')
+          .eq('head_id', data.id)
+          .maybeSingle();
+
+        if (headUnit) {
+          // Only the head of the absolute root node (parent_id IS NULL) is the University President.
+          // All other heads — deans, directors, registrars, etc. — are Heads of Office.
+          const isPresident = headUnit.parent_id === null;
+          setHeadOfUnit({ name: headUnit.name, isPresident });
+        } else {
+          setHeadOfUnit(null);
         }
       } catch (err) {
         console.error("Error loading employee profile", err);
@@ -535,6 +552,7 @@ export default function EmployeeProfile() {
                     notifications={notifications}
                     leaveCredits={leaveCredits}
                     leaveApplications={leaveApplications}
+                    headOfUnit={headOfUnit}
                   />
                 </TabsContent>
                 <TabsContent value="profiling" className="m-0 space-y-6">

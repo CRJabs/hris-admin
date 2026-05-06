@@ -61,7 +61,11 @@ export default function NewRegistrations() {
       if (action === 'approved') {
         const { error } = await supabase
           .from('employees')
-          .update({ is_active: true, employment_status: 'Probationary' })
+          .update({ 
+            is_active: true, 
+            employment_status: emp.employment_status === 'Pending' ? 'Fulltime' : emp.employment_status,
+            employment_tenure: 'Probationary'
+          })
           .eq('id', emp.id);
         if (error) throw error;
 

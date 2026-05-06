@@ -226,7 +226,7 @@ export default function EmployeeRegistration() {
     setIsUploadingSignature(true);
     try {
       const fileExt = (file.name.split('.').pop() || "png").toLowerCase();
-      const objectPath = `${user.id}/signatures/sig_${Date.now()}.${fileExt}`;
+      const objectPath = `signatures/${user.id}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')

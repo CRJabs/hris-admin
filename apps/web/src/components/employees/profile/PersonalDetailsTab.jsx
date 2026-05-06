@@ -30,29 +30,9 @@ function SectionBlock({ title, icon: Icon, children, action }) {
   );
 }
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
-const getDepartmentLogo = (dept) => {
-  const mapping = {
-    "College of Engineering, Technology, Architecture, and Fine Arts": "cetafa.png",
-    "College of Allied Health Sciences": "cahs.png",
-    "College of Arts, Sciences, and Education": "case.png",
-    "College of Business and Accountancy": "cba.png",
-    "College of Criminal Justice": "ccj.png",
-    "College of Hospitality Management, Tourism, and Nutrition": "chmtn.png",
-    "College of Law": "col.png",
-    "College of Pharmacy": "cop.png",
-    "College of Physical Therapy and Occupational Therapy": "cptot.png",
-    "Graduate School": "gsps.png",
-    "UBVDTALC Junior High School": "vdtjhs.png",
-    "UBVDTALC Senior High School": "vdtshs.png",
-    "UB Junior High School": "ubjhs.png",
-    "UB Grade School": "ubgs.png"
-  };
+const UB_LOGO_URL = supabase.storage.from('department-logos').getPublicUrl('ub.png').data.publicUrl;
 
-  const filename = mapping[dept] || "ub.png";
-  return `${supabaseUrl}/storage/v1/object/public/department-logos/${filename}`;
-};
 
 function InfoRow({ label, value, name, onChange, isEditing, type = "text", className = "", isUpdated = false, isError = false, children }) {
   return (
@@ -84,6 +64,22 @@ function InfoRow({ label, value, name, onChange, isEditing, type = "text", class
 
 export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnly = false, showPhotoUpload = false, onChange, isEditMode = false, isAdminView = false, requestedChanges = null, errors = {} }) {
   const [showSpouse, setShowSpouse] = useState(!!employee.spouse_name || !!employee.spouse_employer);
+  const [deptLogoUrl, setDeptLogoUrl] = useState(UB_LOGO_URL);
+
+  useEffect(() => {
+    async function fetchDeptLogo() {
+      if (!employee?.department) { setDeptLogoUrl(UB_LOGO_URL); return; }
+      const { data, error } = await supabase
+        .from('org_units')
+        .select('logo_url')
+        .ilike('name', employee.department)
+        .limit(1)
+        .maybeSingle();
+      if (error) console.warn('PersonalDetailsTab fetchDeptLogo error:', error);
+      setDeptLogoUrl(data?.logo_url || UB_LOGO_URL);
+    }
+    fetchDeptLogo();
+  }, [employee?.department]);
 
   const statusColor = {
     Regular: "bg-green-50 text-green-700 border-green-200",
@@ -119,7 +115,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
     
     try {
       const fileExt = (file.name.split('.').pop() || "png").toLowerCase();
-      const objectPath = `${ownerId}/photos/profile_${Date.now()}.${fileExt}`;
+      const objectPath = `profiles/${employee.id}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -135,15 +131,18 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
         .from('avatars')
         .getPublicUrl(objectPath);
 
+      // Append cache-buster so the CDN always serves the latest version
+      const cachedUrl = `${publicUrl}?t=${Date.now()}`;
+
       const { error: updateError } = await supabase
         .from('employees')
-        .update({ photo_url: publicUrl })
+        .update({ photo_url: cachedUrl })
         .eq('id', employee.id);
 
       if (updateError) throw updateError;
       
       toast.success("Profile picture updated successfully!");
-      onChange('photo_url', publicUrl);
+      onChange('photo_url', cachedUrl);
     } catch(err) {
       console.error(err);
       const msg = err?.message || "Upload failed";
@@ -177,7 +176,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
     
     try {
       const fileExt = (file.name.split('.').pop() || "png").toLowerCase();
-      const objectPath = `${ownerId}/signatures/sig_${Date.now()}.${fileExt}`;
+      const objectPath = `signatures/${employee.id}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -193,22 +192,23 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
         .from('avatars')
         .getPublicUrl(objectPath);
 
+      // Append cache-buster so the CDN always serves the latest version
+      const cachedUrl = `${publicUrl}?t=${Date.now()}`;
+
       const { error: updateError } = await supabase
         .from('employees')
-        .update({ signature_url: publicUrl })
+        .update({ signature_url: cachedUrl })
         .eq('id', employee.id);
 
       if (updateError) throw updateError;
       
       toast.success("Signature updated successfully!");
-      onChange('signature_url', publicUrl);
+      onChange('signature_url', cachedUrl);
     } catch(err) {
       console.error(err);
       toast.error("Failed to upload signature", { description: err.message });
     }
   };
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://your-project.supabase.co";
 
   const isEditing = !isReadOnly;
 
@@ -333,12 +333,10 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
           <div className="flex flex-col items-center justify-center text-center p-6">
             <div className="w-48 h-48 flex items-center justify-center mb-4 overflow-hidden bg-transparent">
                <img 
-                 src={getDepartmentLogo(employee.department)} 
+                 src={deptLogoUrl}
                  alt={employee.department || "University of Bohol"} 
                  className="w-full h-full object-contain p-2"
-                 onError={(e) => { 
-                   e.currentTarget.src = `${supabaseUrl}/storage/v1/object/public/department-logos/ub.png`;
-                 }}
+                 onError={(e) => { e.currentTarget.src = UB_LOGO_URL; }}
                />
             </div>
             {isEditMode ? (

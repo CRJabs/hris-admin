@@ -1,4 +1,10 @@
+/**
+ * @deprecated Use the `useOrgDepartments` hook instead.
+ * This static list is kept as a fallback only and will be removed once
+ * all consumers have been fully migrated to the live Supabase-driven hook.
+ */
 export const DEPARTMENTS = [
+
   "College of Engineering, Technology, Architecture, and Fine Arts",
   "College of Allied Health Sciences",
   "College of Arts, Sciences, and Education",

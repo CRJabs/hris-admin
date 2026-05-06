@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { 
   Building2, Users, Plus, Edit2, Check,
   ChevronDown, Mail as MailIcon, Search, Filter,
-  Globe, Phone as PhoneIcon, Smartphone, X, Save,
+  Globe, Phone as PhoneIcon, Smartphone, X, Save, Upload,
   Trash2, UserPlus, MapPin, Briefcase, Award, MinusCircle, UserMinus, AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,8 @@ const EmptyAvatar = () => (
   </div>
 );
 
+const UB_LOGO = supabase.storage.from('department-logos').getPublicUrl('ub.png').data.publicUrl;
+
 export default function UniversityChart() {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
@@ -49,6 +51,7 @@ export default function UniversityChart() {
   const [isEditingDetail, setIsEditingDetail] = useState(false);
   const [editName, setEditName] = useState("");
   const [editHeadId, setEditHeadId] = useState("");
+  const [headAssignmentSearch, setHeadAssignmentSearch] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -59,6 +62,7 @@ export default function UniversityChart() {
       setEditName(selectedNode.name);
       setEditHeadId(selectedNode.head_id || "");
       setAssignmentSearch("");
+      setHeadAssignmentSearch("");
     }
   }, [selectedNode]);
 
@@ -76,8 +80,9 @@ export default function UniversityChart() {
       if (leaveRes.error) throw leaveRes.error;
 
       setOrgUnits(orgRes.data || []);
-      setEmployees(empRes.data || []);
       setLeaveApps(leaveRes.data || []);
+
+      setEmployees(empRes.data || []);
       
       if (!selectedNode && orgRes.data?.length > 0) {
         const root = orgRes.data.find(u => !u.parent_id) || orgRes.data[0];
@@ -111,16 +116,27 @@ export default function UniversityChart() {
       level = grandParent ? 2 : 1;
     }
 
-    if (level === 1) {
+    // Only enforce the 3-child limit on the executive branch.
+    // Walk ancestors to check if this node is under an Academic or Non-Academic hub.
+    const isUnderInstitutionalHub = (() => {
+      let current = parent;
+      while (current) {
+        if (current.name?.toLowerCase().includes('academic')) return true;
+        current = orgUnits.find(u => u.id === current.parent_id);
+      }
+      return false;
+    })();
+    if (level === 1 && !isUnderInstitutionalHub) {
       const childrenCount = orgUnits.filter(u => u.parent_id === parentId).length;
-      if (childrenCount >= 5) {
-        toast.error("Maximum limit reached for the President.");
+      if (childrenCount >= 3) {
+        toast.error("Maximum limit of 3 reached for the Executive Office.");
         return;
       }
     }
 
+    // Keep the max 3-tier depth
     if (level >= 3) {
-      toast.error("Maximum hierarchy depth (3 tiers) reached.");
+      toast.error("Maximum hierarchy depth reached.");
       return;
     }
 
@@ -137,6 +153,63 @@ export default function UniversityChart() {
       toast.success(`Added ${name}`);
     } catch (err) {
       toast.error("Failed to add organizational unit");
+    }
+  };
+
+  const isAcademicBranch = useCallback((nodeId) => {
+    if (!nodeId) return false;
+    const node = orgUnits.find(u => u.id === nodeId);
+    if (!node) return false;
+    if (node.name?.toLowerCase().includes("academic departments")) return true;
+    let current = node;
+    while (current && current.parent_id) {
+      const parent = orgUnits.find(u => u.id === current.parent_id);
+      if (!parent) break;
+      if (parent.name?.toLowerCase().includes("academic departments")) return true;
+      current = parent;
+    }
+    return false;
+  }, [orgUnits]);
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${selectedNode.id}-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      console.log("Uploading to department-logos:", filePath);
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('department-logos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error("Supabase Upload Error Details:", uploadError);
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('department-logos')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('org_units')
+        .update({ logo_url: publicUrl })
+        .eq('id', selectedNode.id);
+
+      if (updateError) throw updateError;
+
+      setOrgUnits(prev => prev.map(u => u.id === selectedNode.id ? { ...u, logo_url: publicUrl } : u));
+      setSelectedNode(prev => ({ ...prev, logo_url: publicUrl }));
+      toast.success("Department logo updated");
+    } catch (err) {
+      console.error("Logo Upload Error:", err);
+      toast.error("Failed to upload logo: " + (err.message || "Unknown error"));
     }
   };
 
@@ -194,15 +267,73 @@ export default function UniversityChart() {
     }
   };
 
-  const handleAssignEmployee = async (employeeId) => {
+  const handleAppointHead = async (employeeId) => {
     try {
       const { error } = await supabase
+        .from('org_units')
+        .update({ head_id: employeeId })
+        .eq('id', selectedNode.id);
+
+      if (error) throw error;
+      setOrgUnits(prev => prev.map(u => u.id === selectedNode.id ? { ...u, head_id: employeeId } : u));
+      setSelectedNode(prev => ({ ...prev, head_id: employeeId }));
+      setEditHeadId(employeeId);
+      toast.success("Head of Office appointed");
+    } catch (err) {
+      toast.error("Failed to appoint head");
+    }
+  };
+
+  const handleRemoveHead = async () => {
+    try {
+      const { error } = await supabase
+        .from('org_units')
+        .update({ head_id: null })
+        .eq('id', selectedNode.id);
+
+      if (error) throw error;
+      setOrgUnits(prev => prev.map(u => u.id === selectedNode.id ? { ...u, head_id: null } : u));
+      setSelectedNode(prev => ({ ...prev, head_id: null }));
+      setEditHeadId("");
+      toast.success("Head of Office removed");
+    } catch (err) {
+      toast.error("Failed to remove head");
+    }
+  };
+
+  const handleAssignEmployee = async (employeeId) => {
+    try {
+      // Determine department name: use the selected node's name if it's a
+      // direct child of Academic/Non-Academic, otherwise walk up the tree.
+      const getDeptName = () => {
+        let current = selectedNode;
+        while (current) {
+          const parent = orgUnits.find(u => u.id === current.parent_id);
+          if (!parent) return null;
+          if (
+            parent.name?.toLowerCase().includes('academic departments') ||
+            parent.name?.toLowerCase().includes('non-academic departments')
+          ) {
+            return current.name;
+          }
+          current = parent;
+        }
+        return null;
+      };
+      const deptName = getDeptName();
+
+      const updatePayload = { org_unit_id: selectedNode.id };
+      if (deptName) updatePayload.department = deptName;
+
+      const { error } = await supabase
         .from('employees')
-        .update({ org_unit_id: selectedNode.id })
+        .update(updatePayload)
         .eq('id', employeeId);
 
       if (error) throw error;
-      setEmployees(prev => prev.map(e => e.id === employeeId ? { ...e, org_unit_id: selectedNode.id } : e));
+      setEmployees(prev => prev.map(e =>
+        e.id === employeeId ? { ...e, ...updatePayload } : e
+      ));
       toast.success("Employee assigned");
     } catch (err) {
       toast.error("Failed to assign employee");
@@ -213,11 +344,13 @@ export default function UniversityChart() {
     try {
       const { error } = await supabase
         .from('employees')
-        .update({ org_unit_id: null })
+        .update({ org_unit_id: null, department: null })
         .eq('id', employeeId);
 
       if (error) throw error;
-      setEmployees(prev => prev.map(e => e.id === employeeId ? { ...e, org_unit_id: null } : e));
+      setEmployees(prev => prev.map(e =>
+        e.id === employeeId ? { ...e, org_unit_id: null, department: null } : e
+      ));
       toast.success("Employee removed from unit");
     } catch (err) {
       toast.error("Failed to unassign employee");
@@ -232,7 +365,7 @@ export default function UniversityChart() {
 
   const getStatusColor = (emp) => {
     if (!emp) return "bg-slate-200";
-    if (!emp.is_active) return "bg-red-500";
+    if (!emp.is_active) return "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.4)]";
     
     const todayStr = new Date().toISOString().split('T')[0];
     const isOnLeave = leaveApps.some(app => 
@@ -241,7 +374,9 @@ export default function UniversityChart() {
       app.end_date >= todayStr
     );
     
-    return isOnLeave ? "bg-amber-500" : "bg-green-500";
+    return isOnLeave 
+      ? "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]" 
+      : "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]";
   };
 
   const calculateTenure = (dateHired) => {
@@ -260,92 +395,175 @@ export default function UniversityChart() {
   }, [employees, selectedNode]);
 
   const availableEmployees = useMemo(() => {
-    if (!assignmentSearch) return [];
-    const search = assignmentSearch.toLowerCase();
-    return employees.filter(e => 
-      e.org_unit_id !== selectedNode?.id && 
+    const search = (assignmentSearch || "").toLowerCase();
+    const filtered = employees.filter(e => 
+      e.id !== selectedNode?.head_id && // Exclude the current head
       (getFullName(e).toLowerCase().includes(search) || e.employee_id?.toLowerCase().includes(search))
     );
+    
+    // Sort so unassigned employees come first
+    return filtered.sort((a, b) => {
+      if (!a.org_unit_id && b.org_unit_id) return -1;
+      if (a.org_unit_id && !b.org_unit_id) return 1;
+      return 0;
+    });
   }, [employees, assignmentSearch, selectedNode]);
 
   const renderNode = (node, level = 0) => {
-    const children = orgUnits.filter(u => u.parent_id === node.id);
+    const children = orgUnits.filter(u => u.parent_id === node.id && !u.name?.toLowerCase().includes("departments"));
     const isSelected = selectedNode?.id === node.id;
     const isExpanded = expandedNodes.has(node.id);
     const head = employees.find(e => e.id === node.head_id);
+    const levelStyles = [
+      { 
+        border: "border-l-4 border-l-amber-400", 
+        bg: "bg-[#0C005F]", 
+        text: "text-white", 
+        subtext: "text-slate-400",
+        label: "Executive",
+        labelColor: "text-amber-400"
+      },
+      { 
+        border: "border-l-4 border-l-indigo-500", 
+        bg: "bg-white", 
+        text: "text-slate-900", 
+        subtext: "text-slate-500",
+        label: "Executive Office",
+        labelColor: "text-indigo-600"
+      },
+      { 
+        border: "border-l-4 border-l-emerald-500", 
+        bg: "bg-white", 
+        text: "text-slate-900", 
+        subtext: "text-slate-500",
+        label: "Department",
+        labelColor: "text-emerald-600"
+      }
+    ];
+
+    const isAcademic = node.name?.toLowerCase().includes("academic departments");
+    const isNonAcademic = node.name?.toLowerCase().includes("non-academic departments");
+    const isSpecialL0 = isAcademic || isNonAcademic;
+    // Nodes whose parent is an academic/non-academic hub are departments, not executive offices
+    const parentNode = orgUnits.find(u => u.id === node.parent_id);
+    const isUnderAcademicHub = parentNode?.name?.toLowerCase().includes('academic');
+
+    let style = { ...levelStyles[Math.min(level, 2)] };
+    // Override level-1 label to "Department" for nodes directly under academic/non-academic hubs
+    if (level === 1 && isUnderAcademicHub) {
+      style = { ...style, label: "Department" };
+    }
+    
+    // Apply special L0 styles
+    if (isSpecialL0) {
+      style = { ...levelStyles[0] }; // Start with L0 base
+      style.label = "Institutional";
+      if (isNonAcademic) {
+        style.bg = "bg-gradient-to-br from-rose-600 via-rose-700 to-[#800020]";
+        style.text = "text-white";
+        style.subtext = "text-white/60";
+        style.labelColor = "text-white";
+        style.border = "border-l-4 border-l-rose-300";
+      } else if (isAcademic) {
+        style.bg = "bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500";
+        style.text = "text-[#0C005F]";
+        style.subtext = "text-[#0C005F]/60";
+        style.labelColor = "text-[#0C005F]";
+        style.border = "border-l-4 border-l-[#0C005F]";
+      }
+    }
 
     return (
       <div key={node.id} className="space-y-4">
         <div className="relative group/node">
-          {level > 0 && <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-6 h-[2px] bg-slate-200" />}
-          
           <Card 
             className={cn(
-              "border-slate-200 shadow-sm hover:border-[#0C005F]/30 transition-all cursor-pointer relative z-10",
-              isSelected && "ring-2 ring-[#0C005F] ring-offset-2 border-transparent"
+              "shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer relative z-10 overflow-hidden",
+              style.bg,
+              style.border,
+              isSelected ? "ring-2 ring-indigo-500 ring-offset-2 scale-[1.02]" : "border-slate-200"
             )}
             onClick={() => setSelectedNode(node)}
           >
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  {level === 0 ? "Institution" : (level === 1 ? "Executive Office" : "Department")}
+            <CardContent className="p-5">
+              <div className="flex justify-between items-start mb-3">
+                <span className={cn("text-[10px] font-black uppercase tracking-[0.2em]", style.labelColor)}>
+                  {style.label}
                 </span>
                 <div className="flex items-center gap-2">
                   {isEditing && level > 0 && (
-                    <>
+                    <div className="flex items-center bg-slate-50 rounded-full px-1 py-0.5 border border-slate-100 shadow-sm">
                       {level < 2 && (
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-6 w-6 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50"
+                          className="h-7 w-7 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-full"
                           onClick={(e) => { e.stopPropagation(); handleAddUnit(node.id); }}
                         >
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className="w-4 h-4" />
                         </Button>
                       )}
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50"
+                        className="h-7 w-7 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full"
                         onClick={(e) => { e.stopPropagation(); handleDeleteUnit(node); }}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </Button>
-                    </>
+                    </div>
                   )}
                   <div 
-                    className="flex items-center gap-1 text-[10px] font-bold text-blue-600 uppercase cursor-pointer hover:bg-blue-50 px-1 rounded transition-colors"
+                    className="flex items-center gap-1.5 text-[10px] font-black text-indigo-600 uppercase cursor-pointer hover:bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 transition-all bg-white shadow-sm"
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleExpand(node.id);
                     }}
                   >
                     <span>{children.length} Units</span>
-                    <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", isExpanded ? "rotate-0" : "-rotate-90")} />
+                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-500", isExpanded ? "rotate-180" : "rotate-0")} />
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10 border border-slate-100">
-                  <AvatarImage src={head?.photo_url} />
-                  <AvatarFallback className="bg-slate-50 text-slate-400">
-                    <Users className="w-4 h-4" />
-                  </AvatarFallback>
-                </Avatar>
+              <div className="flex items-center gap-4">
+                {(isSpecialL0 || !isSpecialL0) && (
+                  <div className="relative">
+                    <Avatar className="h-12 w-12 border-2 border-white shadow-md">
+                      <AvatarImage src={isSpecialL0 ? UB_LOGO : (isAcademicBranch(node.id) ? node.logo_url : head?.photo_url)} className="object-cover" />
+                      <AvatarFallback className="bg-slate-50 text-slate-400">
+                        {isAcademicBranch(node.id) ? <Building2 className="w-6 h-6" /> : <Users className="w-5 h-5" />}
+                      </AvatarFallback>
+                    </Avatar>
+                    {!isSpecialL0 && !isAcademicBranch(node.id) && (
+                      <div className={cn("absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white", getStatusColor(head))} />
+                    )}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-slate-900 truncate">{node.name || "Untitled"}</h4>
-                  <p className="text-[11px] text-slate-500 truncate">{head ? getFullName(head) : "No Head Assigned"}</p>
+                  <h4 className={cn("text-sm font-black truncate leading-tight", style.text)}>{node.name || "Untitled"}</h4>
+                  {!isSpecialL0 && !isAcademicBranch(node.id) && (
+                    <p className={cn("text-[11px] font-bold truncate mt-0.5", style.subtext)}>{head ? getFullName(head) : "Position Pending"}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {isExpanded && children.length > 0 && (
-            <div className="ml-6 border-l-2 border-slate-200 mt-4 pt-2 space-y-4 animate-in slide-in-from-left-2 duration-300">
-              {children.map(child => renderNode(child, level + 1))}
-              {isEditing && level < 2 && (
-                 level === 0 && children.length >= 5 ? null : (
+            <div className="ml-5 border-l-2 border-slate-100 mt-2 pl-4 space-y-4 animate-in slide-in-from-left-2 duration-300 relative">
+              {children.map((child, idx) => (
+                <div key={child.id} className="relative">
+                  {/* Horizontal Connector */}
+                  <div className="absolute -left-[18px] top-1/2 -translate-y-1/2 w-4 h-[2px] bg-slate-100" />
+                  {/* Vertical line cutter for last child */}
+                  {idx === children.length - 1 && (
+                    <div className="absolute -left-[18px] top-1/2 bottom-0 w-[4px] bg-white z-10" />
+                  )}
+                  {renderNode(child, level + 1)}
+                </div>
+              ))}
+              {isEditing && (
+                 level === 0 && !isUnderAcademicHub ? (children.length >= 3 ? null : (
                    <div className="relative pl-6">
                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-6 h-[2px] bg-slate-200" />
                      <Button 
@@ -354,7 +572,19 @@ export default function UniversityChart() {
                        onClick={() => handleAddUnit(node.id)}
                      >
                        <Plus className="w-3.5 h-3.5" />
-                       Add {level === 0 ? "Executive Office" : "Department"}
+                       Add Executive Office
+                     </Button>
+                   </div>
+                 )) : (
+                   <div className="relative pl-6">
+                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-6 h-[2px] bg-slate-200" />
+                     <Button 
+                       variant="outline" 
+                       className="w-full border-dashed border-2 hover:border-[#0C005F] hover:bg-[#0C005F]/5 text-slate-400 hover:text-[#0C005F] gap-2 h-12 transition-all text-xs"
+                       onClick={() => handleAddUnit(node.id)}
+                     >
+                       <Plus className="w-3.5 h-3.5" />
+                       Add {level === 1 ? "Department" : "Sub-Department"}
                      </Button>
                    </div>
                  )
@@ -362,7 +592,7 @@ export default function UniversityChart() {
             </div>
           )}
           
-          {isExpanded && isEditing && children.length === 0 && level < 2 && (
+          {isExpanded && isEditing && children.length === 0 && (
             <div className="ml-6 border-l-2 border-slate-200 mt-4 pt-2">
                <div className="relative pl-6">
                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-6 h-[2px] bg-slate-200" />
@@ -372,7 +602,7 @@ export default function UniversityChart() {
                    onClick={() => handleAddUnit(node.id)}
                  >
                    <Plus className="w-3.5 h-3.5" />
-                   Add {level === 0 ? "Executive Office" : "Department"}
+                   Add {level === 0 ? "Executive Office" : (level === 1 ? "Department" : "Sub-Department")}
                  </Button>
                </div>
             </div>
@@ -384,48 +614,44 @@ export default function UniversityChart() {
 
   const selectedHead = employees.find(e => e.id === selectedNode?.head_id);
   const isExecutiveNode = selectedNode && (!selectedNode.parent_id || orgUnits.find(u => u.id === selectedNode.parent_id && !u.parent_id));
+  
+  const isInstitutional = useMemo(() => {
+    if (!selectedNode) return false;
+    const name = selectedNode.name?.toLowerCase() || "";
+    return name.includes("academic departments") || name.includes("non-academic departments");
+  }, [selectedNode]);
 
   return (
     <div className="h-full flex flex-col bg-slate-50/50">
-      {/* Compact Search & Filters Header */}
-      <div className="px-8 py-3 bg-white border-b flex items-center justify-between shrink-0 gap-4">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="relative w-full max-sm:hidden max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input 
-              placeholder="Search units..." 
-              value={globalSearch}
-              onChange={(e) => setGlobalSearch(e.target.value)}
-              className="pl-9 h-9 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button 
-            variant={isEditing ? "default" : "outline"}
-            className={cn(
-              "h-9 gap-2 transition-all duration-300", 
-              isEditing ? "bg-amber-500 hover:bg-amber-600 border-amber-600 text-white shadow-md" : "text-slate-600"
-            )}
-            onClick={handleToggleEdit}
-          >
-            {isEditing ? <Check className="w-3.5 h-3.5" /> : <Edit2 className="w-3.5 h-3.5" />}
-            {isEditing ? "Done Chart" : "Edit Chart"}
-          </Button>
-          <Button 
-            onClick={() => navigate("/employees/add")}
-            className="h-9 bg-[#0C005F] hover:bg-[#0C005F]/90 gap-2 text-white shadow-sm"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Add Employee
-          </Button>
-        </div>
-      </div>
 
       <div className="flex-1 overflow-hidden flex">
         {/* Left Sidebar: Cascading Tree */}
-        <div className="w-[450px] border-r bg-white overflow-y-auto p-8 custom-scrollbar">
+        <div className="w-[450px] border-r bg-white flex flex-col">
+          {/* Sidebar Search & Edit Header */}
+          <div className="p-6 border-b flex items-center gap-3 bg-slate-50/30">
+            <div className="relative flex-[2]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input 
+                placeholder="Search units..." 
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+                className="pl-9 h-11 bg-white border-slate-200 shadow-sm focus:ring-1 focus:ring-[#0C005F]/20 transition-all"
+              />
+            </div>
+            <Button 
+              variant={isEditing ? "default" : "outline"}
+              className={cn(
+                "flex-1 h-11 gap-2 transition-all duration-300 font-bold", 
+                isEditing ? "bg-amber-500 hover:bg-amber-600 border-amber-600 text-white shadow-lg shadow-amber-500/20" : "text-[#0C005F] border-[#0C005F]/10 hover:bg-[#0C005F]/5"
+              )}
+              onClick={handleToggleEdit}
+            >
+              {isEditing ? <Check className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+              {isEditing ? "Done" : "Edit"}
+            </Button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
           <div className="space-y-6 relative">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400 animate-pulse">
@@ -440,134 +666,322 @@ export default function UniversityChart() {
                 </Button>
               </div>
             ) : (
-              orgUnits.filter(u => !u.parent_id).map(root => renderNode(root))
+              orgUnits
+                .filter(u => !u.parent_id || u.name?.toLowerCase().includes("departments"))
+                .map(root => renderNode(root))
             )}
+          </div>
           </div>
         </div>
 
         {/* Right Detail Pane */}
-        <div className="flex-1 bg-slate-50/50 overflow-y-auto p-12 custom-scrollbar">
+        <div className="flex-1 bg-white overflow-y-auto custom-scrollbar">
           {!selectedNode ? (
-            <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-50">
-              <Building2 className="w-20 h-20 mb-6 opacity-20" />
-              <h2 className="text-xl font-bold">Select a unit</h2>
+            <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50">
+              <div className="w-24 h-24 bg-white rounded-3xl shadow-xl flex items-center justify-center mb-8 border border-slate-100">
+                <Building2 className="w-12 h-12 opacity-20 text-indigo-600" />
+              </div>
+              <h2 className="text-xl font-black uppercase tracking-[0.3em] text-slate-300">Select an Office</h2>
             </div>
           ) : (
-            <div className="max-w-5xl mx-auto space-y-12">
+            <div className="p-12 space-y-12">
               {/* Detail Header */}
-              <div className="flex items-center justify-between pb-6 border-b border-slate-200">
-                <div className="flex-1 mr-8">
-                  {isEditingDetail ? (
-                    <Input 
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="text-3xl font-bold h-14 bg-white shadow-inner"
-                      placeholder="Enter name..."
-                    />
-                  ) : (
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tight">{selectedNode.name}</h2>
+              <div className="flex items-center justify-between pb-8 border-b-2 border-slate-100 relative">
+                <div className="absolute -top-12 -left-12 -right-12 h-32 bg-gradient-to-b from-slate-50 to-white -z-10" />
+                <div className="flex-1 mr-8 flex items-center gap-6">
+                  {(isInstitutional || isAcademicBranch(selectedNode.id)) && (
+                    <div className="relative group/logo">
+                      <Avatar className="h-20 w-20 border-2 border-white shadow-xl ring-4 ring-slate-50">
+                        <AvatarImage src={isInstitutional ? UB_LOGO : selectedNode.logo_url} className="object-cover" />
+                        <AvatarFallback className="bg-slate-50 text-slate-400">
+                          <Building2 className="w-8 h-8 opacity-20" />
+                        </AvatarFallback>
+                      </Avatar>
+                      {isEditingDetail && !isInstitutional && (
+                        <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Upload className="w-6 h-6 text-white" />
+                          <input type="file" className="hidden" onChange={handleLogoUpload} accept="image/*" />
+                        </label>
+                      )}
+                    </div>
                   )}
+                  <div className="flex-1">
+                    {isEditingDetail ? (
+                      <Input 
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="text-3xl font-black h-16 bg-white shadow-xl border-indigo-200 focus:ring-4 focus:ring-indigo-100 transition-all"
+                        placeholder="Enter office name..."
+                      />
+                    ) : (
+                      <div className="space-y-1">
+                        <h2 className="text-5xl font-black text-slate-900 tracking-tighter drop-shadow-sm">{selectedNode.name}</h2>
+                        <p className="text-xs font-black text-indigo-500 uppercase tracking-[0.4em] ml-1">Organizational Unit Details</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  {isEditingDetail ? (
-                    <>
-                      <Button variant="ghost" onClick={() => setIsEditingDetail(false)}>Cancel</Button>
-                      <Button onClick={handleSaveDetail} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
-                        <Save className="w-4 h-4" />
-                        Save
+                <div className="flex items-center gap-4">
+                  {!isInstitutional && (
+                    isEditingDetail ? (
+                      <>
+                        <Button variant="outline" onClick={() => setIsEditingDetail(false)} className="h-11 px-6 font-bold text-slate-500">Cancel</Button>
+                        <Button onClick={handleSaveDetail} className="h-11 px-8 bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-black shadow-lg shadow-emerald-600/20 transition-all hover:scale-105 active:scale-95">
+                          <Save className="w-5 h-5" />
+                          Save Changes
+                        </Button>
+                      </>
+                    ) : (
+                      <Button 
+                        onClick={() => setIsEditingDetail(true)}
+                        className="h-11 px-8 bg-indigo-600 hover:bg-indigo-700 text-white gap-2 font-black shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Modify Office
                       </Button>
-                    </>
-                  ) : (
-                    <Button 
-                      onClick={() => setIsEditingDetail(true)}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 shadow-md"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      Edit Details
-                    </Button>
+                    )
                   )}
                 </div>
               </div>
 
-              {/* Head of Office Section */}
-              <div className="space-y-6">
+              {isInstitutional ? (
+                <div className="space-y-12 animate-in fade-in duration-700">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-6">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">Institutional Sub-Offices</h3>
+                      <p className="text-xs text-slate-400 italic">Select an office to view or manage its specific assignments.</p>
+                    </div>
+                    <div className="bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+                      <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">
+                        {orgUnits.filter(u => u.parent_id === selectedNode.id).length} Active Units
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {orgUnits
+                      .filter(u => u.parent_id === selectedNode.id)
+                      .map(unit => {
+                        const head = employees.find(e => e.id === unit.head_id);
+                        const unitStaffCount = employees.filter(e => e.org_unit_id === unit.id).length;
+                        
+                        return (
+                          <Card 
+                            key={unit.id} 
+                            onClick={() => setSelectedNode(unit)}
+                            className="group cursor-pointer hover:shadow-2xl transition-all duration-500 border-slate-200 overflow-hidden bg-white hover:-translate-y-2 relative"
+                          >
+                            <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <CardContent className="p-8 space-y-6">
+                              <div className="space-y-2">
+                                <h4 className="text-xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-2 leading-tight tracking-tight">
+                                  {unit.name}
+                                </h4>
+                              </div>
+                              
+                              <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-3xl border border-slate-100 group-hover:bg-indigo-50/50 transition-colors">
+                                <Avatar className="h-12 w-12 border-2 border-white shadow-md">
+                                  <AvatarImage src={isAcademicBranch(selectedNode.id) ? unit.logo_url : head?.photo_url} />
+                                  <AvatarFallback className="bg-white">
+                                    {isAcademicBranch(selectedNode.id) ? <Building2 className="w-5 h-5 text-slate-200" /> : <Users className="w-5 h-5 text-slate-200" />}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0">
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">
+                                    {isAcademicBranch(selectedNode.id) ? "Department" : "Head of Office"}
+                                  </p>
+                                  <p className="text-sm font-bold text-slate-900 truncate">
+                                    {isAcademicBranch(selectedNode.id) ? unit.name : (head ? getFullName(head) : "Pending")}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                  <Users className="w-4 h-4 text-indigo-400" />
+                                  {unitStaffCount} Personnel
+                                </div>
+                                <div className="text-[10px] font-black uppercase tracking-widest text-indigo-600 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                                  View Details →
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    {orgUnits.filter(u => u.parent_id === selectedNode.id).length === 0 && (
+                      <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-100 rounded-[32px]">
+                        <Building2 className="w-16 h-16 mb-4 opacity-10" />
+                        <p className="text-sm font-black uppercase tracking-[0.2em]">No departments found</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Head of Office Section */}
+                  <div className="space-y-6">
                 <div className="flex items-center justify-between">
                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">Head of Office</h3>
-                   {isEditingDetail && (
-                     <div className="flex items-center gap-2">
-                       <span className="text-xs font-medium text-slate-500">Assign Head:</span>
-                       <select 
-                         className="h-8 rounded-md border border-slate-200 bg-white px-3 text-xs shadow-sm outline-none focus:ring-1 focus:ring-indigo-500"
-                         value={editHeadId}
-                         onChange={(e) => setEditHeadId(e.target.value)}
-                       >
-                         <option value="">No Head Assigned</option>
-                         {employees.map(emp => (
-                           <option key={emp.id} value={emp.id}>{getFullName(emp)}</option>
-                         ))}
-                       </select>
-                     </div>
-                   )}
                 </div>
-                <Card className="border-slate-200 shadow-md overflow-hidden bg-white group transition-all duration-300 hover:shadow-xl">
-                  <CardContent className="p-8">
-                    <div className="flex flex-col md:flex-row gap-12">
-                      <div className="shrink-0 flex flex-col items-center gap-6">
-                        <div className="relative">
-                          <Avatar className="h-40 w-40 border-4 border-white shadow-2xl ring-1 ring-slate-100">
-                            <AvatarImage src={selectedHead?.photo_url} className="object-cover" />
-                            <AvatarFallback className="bg-slate-50">
-                              <Users className="w-16 h-16 text-slate-200" />
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className={cn(
-                            "absolute bottom-2 right-2 w-10 h-10 border-4 border-white rounded-full shadow-lg",
-                            getStatusColor(selectedHead)
-                          )} />
-                        </div>
-                      </div>
-                      
-                      <div className="flex-1 space-y-8 relative">
-                        {/* Position Badge moved to TOP */}
-                        <div className="flex flex-wrap gap-2">
-                          <span className="px-4 py-1.5 bg-[#0C005F]/5 text-[#0C005F] text-[10px] font-black uppercase tracking-widest rounded-full border border-[#0C005F]/10">
-                            {isExecutiveNode ? selectedNode.name : "Department Head"}
-                          </span>
-                        </div>
+                {(() => {
+                  const nodeLevel = !selectedNode?.parent_id ? 0 : 
+                                   orgUnits.find(u => u.id === selectedNode.parent_id && !u.parent_id) ? 1 : 2;
+                  
+                  const cardStyles = [
+                    { bg: "bg-[#0C005F]", text: "text-white", subtext: "text-white/60", badge: "bg-amber-400 text-[#0C005F]", border: "border-amber-400/20" },
+                    { bg: "bg-white", text: "text-slate-900", subtext: "text-slate-500", badge: "bg-indigo-600 text-white", border: "border-slate-200" },
+                    { bg: "bg-white", text: "text-slate-900", subtext: "text-slate-500", badge: "bg-emerald-600 text-white", border: "border-slate-200" }
+                  ];
+                  const s = cardStyles[nodeLevel];
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                          <div className="space-y-2">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee Name</p>
-                            <h4 className="text-3xl font-black text-slate-900 leading-tight">
-                              {selectedHead ? getFullName(selectedHead) : "Pending Assignment"}
-                            </h4>
-                            <p className="text-indigo-600 font-bold uppercase tracking-widest text-xs">
-                              {selectedHead?.position || "Position to be defined"}
-                            </p>
+                  return (
+                    <Card className={cn("shadow-xl overflow-hidden group transition-all duration-500 hover:shadow-2xl border-2", s.bg, s.border)}>
+                      <CardContent className="p-8">
+                        <div className="flex flex-col md:flex-row gap-12">
+                          <div className="shrink-0 flex flex-col items-center gap-6">
+                            <div className="relative">
+                              <Avatar className="h-40 w-40 border-4 border-white shadow-2xl ring-1 ring-slate-100">
+                                <AvatarImage src={selectedHead?.photo_url} className="object-cover" />
+                                <AvatarFallback className="bg-slate-50">
+                                  <Users className="w-16 h-16 text-slate-200" />
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className={cn(
+                                "absolute bottom-2 right-2 w-10 h-10 border-4 border-white rounded-full shadow-lg",
+                                getStatusColor(selectedHead)
+                              )} />
+                            </div>
                           </div>
                           
-                          <div className="space-y-4 pt-4 md:pt-0">
-                             {[
-                               { label: "Email", icon: MailIcon, value: selectedHead?.contact_email },
-                               { label: "Phone", icon: PhoneIcon, value: selectedHead?.contact_phone },
-                             ].map((info) => (
-                               <div key={info.label} className="flex items-center gap-8 justify-between group/row border-b border-slate-50 pb-2">
-                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{info.label}</span>
-                                 <div className="flex items-center gap-3">
-                                   <span className="text-sm font-bold text-slate-900 group-hover/row:text-indigo-600 transition-colors">
-                                     {info.value || "—"}
-                                   </span>
-                                   <info.icon className="w-3.5 h-3.5 text-slate-300" />
-                                 </div>
-                               </div>
-                             ))}
+                          <div className="flex-1 space-y-8 relative">
+                            {/* Position Badge moved to TOP */}
+                            <div className="flex flex-wrap gap-2">
+                              <span className={cn("px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg", s.badge)}>
+                                {isExecutiveNode ? selectedNode.name : "Department Head"}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                              <div className="space-y-2">
+                                <p className={cn("text-[10px] font-black uppercase tracking-widest", s.subtext)}>Employee Name</p>
+                                <h4 className={cn("text-3xl font-black leading-tight", s.text)}>
+                                  {selectedHead ? getFullName(selectedHead) : "Pending Assignment"}
+                                </h4>
+                                <p className={cn("font-bold uppercase tracking-widest text-xs", nodeLevel === 0 ? "text-amber-400" : "text-indigo-600")}>
+                                  {selectedHead?.position || "Position to be defined"}
+                                </p>
+                              </div>
+                              
+                              <div className="space-y-4 pt-4 md:pt-0">
+                                 {[
+                                   { label: "Email", icon: MailIcon, value: selectedHead?.contact_email },
+                                   { label: "Phone", icon: PhoneIcon, value: selectedHead?.contact_phone },
+                                 ].map((info) => (
+                                   <div key={info.label} className={cn("flex items-center gap-8 justify-between group/row border-b pb-2", nodeLevel === 0 ? "border-white/10" : "border-slate-50")}>
+                                     <span className={cn("text-[10px] font-black uppercase tracking-widest", s.subtext)}>{info.label}</span>
+                                     <div className="flex items-center gap-3">
+                                       <span className={cn("text-sm font-bold transition-colors", s.text)}>
+                                         {info.value || "—"}
+                                       </span>
+                                       <info.icon className={cn("w-3.5 h-3.5", s.subtext)} />
+                                     </div>
+                                   </div>
+                                 ))}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
               </div>
+
+              {isEditingDetail && (
+                <div className="space-y-6 p-8 bg-slate-100/50 rounded-3xl border border-slate-200 border-dashed">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Assign Head of Office</p>
+                      <p className="text-[10px] text-slate-400 font-medium italic">Selecting a new head will replace the current one.</p>
+                    </div>
+                    <div className="relative w-64">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                      <Input 
+                        placeholder="Search leaders..."
+                        value={headAssignmentSearch}
+                        onChange={(e) => setHeadAssignmentSearch(e.target.value)}
+                        className="pl-9 h-8 text-xs bg-white"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {employees
+                      .filter(emp => {
+                        if (!headAssignmentSearch) return true;
+                        const term = headAssignmentSearch.toLowerCase();
+                        return (
+                          emp.first_name?.toLowerCase().includes(term) ||
+                          emp.last_name?.toLowerCase().includes(term) ||
+                          emp.employee_id?.toLowerCase().includes(term)
+                        );
+                      })
+                      .slice(0, 8).map(emp => {
+                        const isCurrentlyHead = emp.id === selectedNode?.head_id;
+                        
+                        return (
+                          <Card 
+                            key={emp.id} 
+                            className={cn(
+                              "border-slate-200 bg-white transition-all group",
+                              isCurrentlyHead ? "border-[#0C005F] bg-[#0C005F]/5 shadow-sm" : "hover:border-amber-100 hover:shadow-md"
+                            )}
+                          >
+                            <CardContent className="p-4 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={emp.photo_url} />
+                                  <AvatarFallback><Users className="w-4 h-4" /></AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="text-sm font-bold text-slate-900">{getFullName(emp)}</p>
+                                  <p className={cn(
+                                    "text-[10px] uppercase font-bold tracking-tight",
+                                    isCurrentlyHead ? "text-[#0C005F]" : "text-slate-400"
+                                  )}>
+                                    {isCurrentlyHead ? "Current Head" : (emp.position || "Staff")}
+                                  </p>
+                                </div>
+                              </div>
+                              {isCurrentlyHead ? (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-9 px-4 text-red-400 hover:text-red-600 hover:bg-red-50 gap-2 font-black text-[10px] uppercase tracking-wider transition-all"
+                                  onClick={handleRemoveHead}
+                                >
+                                  <UserMinus className="w-4 h-4" />
+                                  Remove
+                                </Button>
+                              ) : (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-9 px-4 border-2 border-dashed border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-400 gap-2 font-black text-[10px] uppercase tracking-wider transition-all"
+                                  onClick={() => handleAppointHead(emp.id)}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  Appoint
+                                </Button>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Employees Section */}
               <div className="space-y-8">
@@ -615,54 +1029,86 @@ export default function UniversityChart() {
                       </div>
                     </div>
 
+
                     {/* Available Employees Picker */}
                     <div className="space-y-6 p-8 bg-slate-100/50 rounded-3xl border border-slate-200 border-dashed">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Assign Available Employees</p>
-                        <div className="relative w-64">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                          <Input 
-                            placeholder="Search by name or ID..."
-                            value={assignmentSearch}
-                            onChange={(e) => setAssignmentSearch(e.target.value)}
-                            className="pl-9 h-8 text-xs bg-white"
-                          />
+                      <div className="flex items-center justify-between gap-4">
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest shrink-0">Assign Available Employees</p>
+                        <div className="flex items-center gap-2 flex-1 justify-end">
+                           <Button 
+                             onClick={() => navigate("/employees/add")}
+                             variant="outline"
+                             className="h-8 border-[#0C005F]/10 text-[#0C005F] hover:bg-[#0C005F]/5 gap-2 text-[10px] font-bold uppercase tracking-wider"
+                           >
+                             <Plus className="w-3.5 h-3.5" />
+                             Add Employee
+                           </Button>
+                           <div className="relative w-64">
+                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                             <Input 
+                               placeholder="Search by name or ID..."
+                               value={assignmentSearch}
+                               onChange={(e) => setAssignmentSearch(e.target.value)}
+                               className="pl-9 h-8 text-xs bg-white"
+                             />
+                           </div>
                         </div>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {assignmentSearch && availableEmployees.map(emp => (
-                          <Card key={emp.id} className="border-slate-200 bg-white hover:border-indigo-100 transition-colors group">
-                            <CardContent className="p-4 flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-10 w-10">
-                                  <AvatarImage src={emp.photo_url} />
-                                  <AvatarFallback><Users className="w-4 h-4" /></AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="text-sm font-bold text-slate-900">{getFullName(emp)}</p>
-                                  <p className="text-[10px] text-slate-500 uppercase font-medium">{emp.org_unit_id ? "Currently Assigned" : "Unassigned"}</p>
+                        {availableEmployees.slice(0, 20).map(emp => {
+                          const isAlreadyInThisUnit = emp.org_unit_id === selectedNode?.id;
+                          const isAssignedElsewhere = emp.org_unit_id && emp.org_unit_id !== selectedNode?.id;
+                          
+                          return (
+                            <Card 
+                              key={emp.id} 
+                              className={cn(
+                                "border-slate-200 bg-white transition-all group",
+                                isAlreadyInThisUnit ? "opacity-40 pointer-events-none bg-slate-50" : 
+                                isAssignedElsewhere ? "opacity-60 grayscale-[0.5]" : "hover:border-indigo-100 hover:shadow-md"
+                              )}
+                            >
+                              <CardContent className="p-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-10 w-10">
+                                    <AvatarImage src={emp.photo_url} />
+                                    <AvatarFallback><Users className="w-4 h-4" /></AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <p className="text-sm font-bold text-slate-900">{getFullName(emp)}</p>
+                                    <p className={cn(
+                                      "text-[10px] uppercase font-bold tracking-tight",
+                                      isAlreadyInThisUnit ? "text-slate-400" :
+                                      isAssignedElsewhere ? "text-amber-600" : "text-emerald-600"
+                                    )}>
+                                      {isAlreadyInThisUnit ? "Currently in this Unit" : 
+                                       isAssignedElsewhere ? `Assigned: ${orgUnits.find(u => u.id === emp.org_unit_id)?.name}` : "Available for Assignment"}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="border-dashed border-indigo-200 text-indigo-600 hover:bg-indigo-50 gap-2 font-bold text-[10px]"
-                                onClick={() => handleAssignEmployee(emp.id)}
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                Assign
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        ))}
-                        {!assignmentSearch && (
-                          <div className="col-span-full py-8 text-center">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Start searching to see available employees</p>
-                          </div>
-                        )}
-                        {assignmentSearch && availableEmployees.length === 0 && (
-                          <p className="text-xs text-slate-400 italic">No matching employees found.</p>
+                                {!isAlreadyInThisUnit && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className={cn(
+                                      "h-9 px-4 border-2 border-dashed gap-2 font-black text-[10px] uppercase tracking-wider transition-all",
+                                      isAssignedElsewhere 
+                                        ? "border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-400" 
+                                        : "border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-400 shadow-sm"
+                                    )}
+                                    onClick={() => handleAssignEmployee(emp.id)}
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                    {isAssignedElsewhere ? "Transfer" : "Assign Now"}
+                                  </Button>
+                                )}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                        {availableEmployees.length === 0 && (
+                          <p className="text-xs text-slate-400 italic col-span-full py-8 text-center">No matching employees found.</p>
                         )}
                       </div>
                     </div>
@@ -707,7 +1153,7 @@ export default function UniversityChart() {
                               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[10px] bg-slate-50/50 p-3 rounded-xl border border-slate-100">
                                  <div className="space-y-1">
                                    <p className="font-bold text-slate-400 uppercase">Tenure</p>
-                                   <p className="font-black text-slate-900">{calculateTenure(emp.date_hired)}</p>
+                                   <p className="font-black text-slate-900 truncate">{emp.employment_tenure || "—"}</p>
                                  </div>
                                  <div className="space-y-1">
                                    <p className="font-bold text-slate-400 uppercase">Status</p>
@@ -724,6 +1170,11 @@ export default function UniversityChart() {
                               </div>
 
                               <div className="space-y-1.5 border-t border-slate-100 pt-3">
+                                 <div className="flex items-center gap-3 text-slate-500 mb-2">
+                                   <Briefcase className="w-3 h-3 shrink-0" />
+                                   <span className="text-[10px] font-bold uppercase tracking-tight text-slate-400 mr-2">In Service for</span>
+                                   <span className="text-[11px] font-black text-slate-900">{calculateTenure(emp.date_hired)}</span>
+                                 </div>
                                  <div className="flex items-center gap-3 text-slate-500 overflow-hidden">
                                    <MailIcon className="w-3 h-3 shrink-0" />
                                    <span className="text-[11px] font-medium truncate">{emp.contact_email || "—"}</span>
@@ -741,8 +1192,10 @@ export default function UniversityChart() {
                   </div>
                 )}
               </div>
-            </div>
+            </>
           )}
+        </div>
+      )}
         </div>
       </div>
 

@@ -60,12 +60,9 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
           .maybeSingle();
         
         if (data) {
-          let isExecutive = !data.parent_id;
-          if (data.parent_id) {
-            const { data: parent } = await supabase.from('org_units').select('parent_id').eq('id', data.parent_id).single();
-            if (parent && !parent.parent_id) isExecutive = true;
-          }
-          setHeadOfUnit({ name: data.name, isExecutive });
+          // Only the head of the absolute root node (parent_id IS NULL) is the University President.
+          const isPresident = data.parent_id === null;
+          setHeadOfUnit({ name: data.name, isPresident });
         } else {
           setHeadOfUnit(null);
         }
@@ -205,7 +202,7 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
               {editedEmployee.first_name} {editedEmployee.last_name}{editedEmployee.titles ? `, ${editedEmployee.titles}` : ""}
               {headOfUnit && (
                 <Badge className="bg-indigo-600 text-white border-none text-[10px] px-2 py-0.5 uppercase tracking-wider font-black">
-                  {headOfUnit.isExecutive ? headOfUnit.name : `Head of ${headOfUnit.name}`}
+                  {headOfUnit.isPresident ? headOfUnit.name : `Head of ${headOfUnit.name}`}
                 </Badge>
               )}
               {(() => {

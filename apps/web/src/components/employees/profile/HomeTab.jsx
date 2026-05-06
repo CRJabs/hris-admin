@@ -6,13 +6,34 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   User, Briefcase, Calendar, Award, BookOpen, 
   ChevronRight, Star, Clock, ShieldCheck, TrendingUp,
-  FileText, Activity, Heart, CheckCircle
+  FileText, Activity, Heart, CheckCircle, Crown
 } from "lucide-react";
 import { format } from "date-fns";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
-export default function HomeTab({ employee, onViewProfile, notifications = [], leaveCredits = [], leaveApplications = [] }) {
+const UB_LOGO_URL = supabase.storage.from('department-logos').getPublicUrl('ub.png').data.publicUrl;
+
+export default function HomeTab({ employee, onViewProfile, notifications = [], leaveCredits = [], leaveApplications = [], headOfUnit = null }) {
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
+  const [deptLogoUrl, setDeptLogoUrl] = useState(null);
+
+  useEffect(() => {
+    async function fetchDeptLogo() {
+      if (!employee?.department) { setDeptLogoUrl(UB_LOGO_URL); return; }
+      const { data, error } = await supabase
+        .from('org_units')
+        .select('logo_url')
+        .ilike('name', employee.department)
+        .limit(1)
+        .maybeSingle();
+      if (error) console.warn('fetchDeptLogo error:', error);
+      setDeptLogoUrl(data?.logo_url || UB_LOGO_URL);
+    }
+    fetchDeptLogo();
+  }, [employee?.department]);
+
 
   // Check if employee is currently on leave
   const activeLeave = leaveApplications.find(app => 
@@ -65,6 +86,15 @@ export default function HomeTab({ employee, onViewProfile, notifications = [], l
               <p className="text-white/60 text-sm font-medium uppercase tracking-widest mb-2">Welcome Back,</p>
               <h2 className="text-4xl md:text-5xl font-black tracking-tight flex items-center gap-4 flex-wrap">
                 {employee.first_name} {employee.last_name}
+                {headOfUnit?.isPresident ? (
+                  <Badge className="bg-amber-500 text-white border-none px-3 py-1 gap-1.5 text-sm">
+                    <Crown className="w-3.5 h-3.5" /> University President
+                  </Badge>
+                ) : headOfUnit ? (
+                  <Badge className="bg-indigo-600 text-white border-none px-3 py-1 gap-1.5 text-sm">
+                    <Crown className="w-3.5 h-3.5" /> Head – {headOfUnit.name}
+                  </Badge>
+                ) : null}
                 {activeLeave ? (
                   <Badge className="bg-amber-500 text-white border-none px-3 py-1 animate-pulse">
                     On Leave
@@ -85,11 +115,13 @@ export default function HomeTab({ employee, onViewProfile, notifications = [], l
                 </p>
               )}
             </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/10 text-center min-w-[240px]">
+            <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/10 text-center min-w-[240px] flex flex-col items-center">
               <p className="text-white/60 text-xs uppercase font-bold tracking-widest mb-1">Employee ID</p>
               <p className="text-3xl font-black tracking-tighter">{employee.employee_id || "PENDING"}</p>
-              <div className="h-px bg-white/20 my-4" />
-              <p className="text-white/60 text-xs uppercase font-bold tracking-widest mb-1">Department</p>
+              <div className="h-px bg-white/20 my-4 w-full" />
+              {deptLogoUrl && (
+                <img src={deptLogoUrl} alt="Department Logo" className="w-16 h-16 object-contain rounded-full mb-2 border-2 border-white/20" />
+              )}
               <p className="text-lg font-bold truncate">{employee.department || "General Administration"}</p>
             </div>
           </div>

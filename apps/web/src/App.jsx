@@ -14,7 +14,6 @@ const Home = lazy(() => import('@/pages/core/Home'));
 const Dashboard = lazy(() => import('@/pages/core/Dashboard'));
 
 const Employees = lazy(() => import('@/pages/employees/Employees'));
-const Payroll = lazy(() => import('@/pages/core/Payroll'));
 const Reports = lazy(() => import('@/pages/core/Reports'));
 const Approvals = lazy(() => import('@/pages/Approvals'));
 const EmployeeProfile = lazy(() => import('@/pages/employees/EmployeeProfile'));
@@ -80,7 +79,6 @@ const AuthenticatedApp = () => {
           <Route path="/employees/add" element={<AddEmployee />} />
           <Route path="/leaves/assign" element={<AssignLeaveCredits />} />
           <Route path="/company" element={<Company />} />
-          <Route path="/payroll" element={<Payroll />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
         </Route>

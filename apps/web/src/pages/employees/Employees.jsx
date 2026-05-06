@@ -9,6 +9,7 @@ import E201Modal from "@/components/employees/E201Modal";
 import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserPlus } from "lucide-react";
+import { useOrgDepartments } from "@/hooks/useOrgDepartments";
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -16,11 +17,13 @@ export default function Employees() {
   const [isLoading, setIsLoading] = useState(true);
   
   const [globalSearch, setGlobalSearch] = useState("");
-  const [filters, setFilters] = useState({ departments: [], statuses: [], classifications: [], active: "All" });
+  const [filters, setFilters] = useState({ departments: [], statuses: [], tenures: [], classifications: [], active: "All" });
   
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'last_name', direction: 'asc' });
+  const { departments: liveDepartments } = useOrgDepartments();
+  const [headEmployeeIds, setHeadEmployeeIds] = useState(new Set());
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -45,6 +48,15 @@ export default function Employees() {
         
       if (!reqError) {
         setPendingRequests(reqData || []);
+      }
+
+      // Fetch org_units to identify heads of office
+      const { data: orgData } = await supabase
+        .from('org_units')
+        .select('head_id')
+        .not('head_id', 'is', null);
+      if (orgData) {
+        setHeadEmployeeIds(new Set(orgData.map(u => u.head_id)));
       }
     } catch (err) {
       console.error("Error fetching employees:", err);
@@ -75,7 +87,7 @@ export default function Employees() {
   };
 
   const clearFilters = () => {
-    setFilters({ departments: [], statuses: [], classifications: [], active: "All" });
+    setFilters({ departments: [], statuses: [], tenures: [], classifications: [], active: "All" });
     setGlobalSearch("");
   };
 
@@ -91,12 +103,13 @@ export default function Employees() {
 
       const matchesDept = !filters.departments?.length || filters.departments.includes(emp.department);
       const matchesStatus = !filters.statuses?.length || filters.statuses.includes(emp.employment_status);
+      const matchesTenure = !filters.tenures?.length || filters.tenures.includes(emp.employment_tenure);
       const matchesClassification = !filters.classifications?.length || filters.classifications.includes(emp.employment_classification);
       const matchesActive = filters.active === "All" ||
         (filters.active === "Active" && emp.is_active) ||
         (filters.active === "Inactive" && !emp.is_active);
 
-      return matchesSearch && matchesDept && matchesStatus && matchesClassification && matchesActive;
+      return matchesSearch && matchesDept && matchesStatus && matchesTenure && matchesClassification && matchesActive;
     }).map(emp => {
        const empPendingRequests = pendingRequests.filter(req => req.employee_id === emp.id);
        return { ...emp, pendingRequests: empPendingRequests };
@@ -198,7 +211,7 @@ export default function Employees() {
               </button>
             )}
           </div>
-          <EmployeeFilters filters={filters} onFilterChange={handleFilterChange} onClear={clearFilters} />
+          <EmployeeFilters filters={filters} onFilterChange={handleFilterChange} onClear={clearFilters} departments={liveDepartments} />
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button onClick={() => navigate("/employees/add")} className="gap-2 text-xs bg-[#0C005F] hover:bg-[#0C005F]/90">
@@ -224,6 +237,7 @@ export default function Employees() {
         isLoading={isLoading}
         onSort={handleSort}
         sortConfig={sortConfig}
+        headEmployeeIds={headEmployeeIds}
       />
 
       <E201Modal

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { assignDefaultLeaveCredits, DEFAULT_LEAVE_CREDITS } from "@/utils/leaveUtils";
 import { cn } from "@/lib/utils";
+import { useOrgDepartments } from "@/hooks/useOrgDepartments";
 
 
 export default function AssignLeaveCredits() {
@@ -18,7 +19,8 @@ export default function AssignLeaveCredits() {
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   const [globalSearch, setGlobalSearch] = useState("");
-  const [filters, setFilters] = useState({ departments: [], statuses: [], classifications: [], active: "Active" });
+  const [filters, setFilters] = useState({ departments: [], statuses: [], tenures: [], classifications: [], active: "Active" });
+  const { departments: liveDepartments } = useOrgDepartments();
 
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [leaveCredits, setLeaveCredits] = useState([]);
@@ -74,7 +76,7 @@ export default function AssignLeaveCredits() {
   };
 
   const clearFilters = () => {
-    setFilters({ departments: [], statuses: [], classifications: [], active: "Active" });
+    setFilters({ departments: [], statuses: [], tenures: [], classifications: [], active: "Active" });
     setGlobalSearch("");
   };
 
@@ -87,12 +89,13 @@ export default function AssignLeaveCredits() {
 
       const matchesDept = !filters.departments?.length || filters.departments.includes(emp.department);
       const matchesStatus = !filters.statuses?.length || filters.statuses.includes(emp.employment_status);
+      const matchesTenure = !filters.tenures?.length || filters.tenures.includes(emp.employment_tenure);
       const matchesClassification = !filters.classifications?.length || filters.classifications.includes(emp.employment_classification);
       const matchesActive = filters.active === "All" ||
         (filters.active === "Active" && emp.is_active) ||
         (filters.active === "Inactive" && !emp.is_active);
 
-      return matchesSearch && matchesDept && matchesStatus && matchesClassification && matchesActive;
+      return matchesSearch && matchesDept && matchesStatus && matchesTenure && matchesClassification && matchesActive;
     });
   }, [employees, filters, globalSearch]);
 
@@ -218,7 +221,7 @@ export default function AssignLeaveCredits() {
               />
             </div>
             <div className="flex items-center justify-between">
-              <EmployeeFilters filters={filters} onFilterChange={handleFilterChange} onClear={clearFilters} />
+              <EmployeeFilters filters={filters} onFilterChange={handleFilterChange} onClear={clearFilters} departments={liveDepartments} />
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
                 {filteredEmployees.length} Found
               </span>

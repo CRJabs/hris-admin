@@ -42,8 +42,10 @@ const defaultEmployee = {
   emergency_contacts: [],
   department: "Human Resources",
   position: "Employee",
-  employment_status: "Regular",
+  employment_status: "Fulltime",
+  employment_tenure: "Probationary",
   employment_classification: "Non-Teaching",
+  classification_ii: "Academic Official",
   is_active: true
 };
 
@@ -155,8 +157,8 @@ export default function AddEmployee() {
 
       if (employeeData.photo_file) {
         const fileExt = employeeData.photo_file.name.split('.').pop();
-        const filePath = `${data.id}/photo_${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, employeeData.photo_file);
+        const filePath = `profiles/${data.id}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, employeeData.photo_file, { upsert: true });
         if (!uploadError) {
           const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
           photoUrl = publicUrl;
@@ -165,8 +167,8 @@ export default function AddEmployee() {
 
       if (employeeData.signature_file) {
         const fileExt = employeeData.signature_file.name.split('.').pop();
-        const filePath = `${data.id}/signatures/sig_${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, employeeData.signature_file);
+        const filePath = `signatures/${data.id}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, employeeData.signature_file, { upsert: true });
         if (!uploadError) {
           const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
           signatureUrl = publicUrl;
