@@ -55,7 +55,8 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <Table>
+      <div className="overflow-x-auto">
+      <Table className="min-w-[700px]">
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead className="text-xs font-semibold uppercase tracking-wider w-25">
@@ -67,13 +68,13 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
             <TableHead className="text-xs font-semibold uppercase tracking-wider">
               <SortButton column="department" label="Department" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">
+            <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">
               <SortButton column="position" label="Position" />
             </TableHead>
             <TableHead className="text-xs font-semibold uppercase tracking-wider">
               <SortButton column="employment_status" label="Status" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">
+            <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">
               <SortButton column="employment_tenure" label="Tenure" />
             </TableHead>
             <TableHead className="text-xs font-semibold uppercase tracking-wider text-center w-15">Active</TableHead>
@@ -145,13 +146,13 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
                   </div>
                 </TableCell>
                 <TableCell className="text-sm">{emp.department}</TableCell>
-                <TableCell className="text-sm">{emp.position}</TableCell>
+                <TableCell className="text-sm hidden sm:table-cell">{emp.position}</TableCell>
                 <TableCell>
                   <Badge variant="secondary" className="text-[10px] bg-slate-50 text-slate-600 border-slate-200">
                     {emp.employment_status || "Fulltime"}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden sm:table-cell">
                   <Badge variant="outline" className={`text-[10px] ${statusStyles[emp.employment_tenure] || ""}`}>
                     {emp.employment_tenure || "Probationary"}
                   </Badge>
@@ -194,6 +195,7 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
           )}
         </TableBody>
       </Table>
+      </div>
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>

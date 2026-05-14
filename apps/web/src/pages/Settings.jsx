@@ -11,7 +11,7 @@ import {
 export default function Settings() {
   return (
         <div className="h-full overflow-y-auto">
-      <div className="p-8 max-w-[1200px] mx-auto space-y-12">
+      <div className="p-4 md:p-8 max-w-[1200px] mx-auto space-y-8 md:space-y-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b pb-8">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-[#0C005F]/5 flex items-center justify-center">

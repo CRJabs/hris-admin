@@ -207,9 +207,9 @@ export default function AssignLeaveCredits() {
 
   return (
     <div className="flex h-full overflow-hidden">
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Side: Employee List */}
-        <div className="w-1/3 border-r bg-slate-50/50 flex flex-col overflow-hidden">
+      <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
+        {/* Left Side: Employee List — hidden on mobile when an employee is selected */}
+        <div className={`${selectedEmployee ? 'hidden lg:flex' : 'flex'} w-full lg:w-1/3 border-r bg-slate-50/50 flex-col overflow-hidden`}>
           <div className="h-[105px] p-4 flex flex-col justify-center gap-3 border-b bg-white">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -283,7 +283,7 @@ export default function AssignLeaveCredits() {
         {/* Right Side: Leave Credit Table */}
         <div className="flex-1 bg-white flex flex-col overflow-hidden relative">
           {!selectedEmployee ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-12 text-center">
+            <div className="hidden lg:flex flex-1 flex-col items-center justify-center text-muted-foreground p-12 text-center">
               <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4">
                 <CalendarDays className="w-8 h-8 opacity-20" />
               </div>
@@ -292,9 +292,16 @@ export default function AssignLeaveCredits() {
             </div>
           ) : (
             <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="h-[105px] px-6 py-4 border-b flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
+              <div className="h-auto lg:h-[105px] px-4 md:px-6 py-3 md:py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+                {/* Mobile back button */}
+                <button
+                  className="lg:hidden flex items-center gap-1 text-xs font-bold text-[#0C005F] mb-1 self-start"
+                  onClick={() => setSelectedEmployee(null)}
+                >
+                  ← Back to employees
+                </button>
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="w-10 h-10 lg:w-14 lg:h-14 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
                     {selectedEmployee.photo_url ? (
                       <img key={selectedEmployee.photo_url} src={selectedEmployee.photo_url} alt="" className="w-full h-full object-cover" />
                     ) : (
@@ -396,7 +403,7 @@ export default function AssignLeaveCredits() {
 
               {/* Batch Actions Bar */}
               {hasDirty && (
-                <div className="fixed bottom-10 left-[66.6%] -translate-x-1/2 max-w-xl w-[calc(66.6%-4rem)] bg-white/95 backdrop-blur-md p-5 rounded-3xl border-2 border-amber-400/50 shadow-[0_20px_60px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom-10 duration-500 z-[100] ring-1 ring-amber-400/10">
+                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 max-w-xl w-[calc(100%-2rem)] lg:w-[calc(66.6%-4rem)] bg-white/95 backdrop-blur-md p-4 md:p-5 rounded-3xl border-2 border-amber-400/50 shadow-[0_20px_60px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom-10 duration-500 z-[100] ring-1 ring-amber-400/10">
                   <div className="flex items-center justify-between gap-6">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">

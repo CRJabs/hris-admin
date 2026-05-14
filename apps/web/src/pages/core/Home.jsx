@@ -198,23 +198,23 @@ export default function Home() {
   ];
 
   return (
-    <div className="p-8 max-w-[1440px] mx-auto space-y-10 animate-in fade-in duration-700">
+    <div className="p-4 md:p-8 max-w-[1440px] mx-auto space-y-6 md:space-y-10 animate-in fade-in duration-700">
       {/* Top Section: Hero/Actions & Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Column: Hero & Quick Actions */}
         <div className="lg:col-span-2 space-y-8 flex flex-col">
           {/* Hero Section */}
-          <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0C005F] to-[#1a0b8c] p-8 md:p-12 text-white shadow-2xl shadow-[#0C005F]/20 flex-1 min-h-[400px] flex flex-col justify-center">
+          <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0C005F] to-[#1a0b8c] p-6 md:p-12 text-white shadow-2xl shadow-[#0C005F]/20 flex-1 min-h-[260px] md:min-h-[400px] flex flex-col justify-center">
             <div className="relative z-10 space-y-6 max-w-2xl">
               <Badge className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md px-4 py-1 text-xs font-bold uppercase tracking-widest">
                 Administrator Portal
               </Badge>
               <div className="space-y-2">
-                <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
+                <h1 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight leading-tight">
                   Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-200">{user?.first_name || "Admin"}</span>!
                 </h1>
-                <p className="text-blue-100/70 text-lg md:text-xl font-medium">
+                <p className="text-blue-100/70 text-base md:text-xl font-medium">
                   You have <span className="text-white font-bold">{stats.pendingRegistrations + stats.pendingUpdates} pending tasks</span> that require your immediate attention.
                 </p>
               </div>
@@ -246,7 +246,7 @@ export default function Home() {
 
         {/* Right Column: Recent Activity & General Analytics */}
         <div className="lg:col-span-1">
-          <Tabs defaultValue="activity" className="h-[550px] flex flex-col">
+          <Tabs defaultValue="activity" className="h-auto lg:h-[550px] flex flex-col">
             <Card className="border-none shadow-sm bg-white overflow-hidden h-full flex flex-col">
               <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-center shrink-0">
                 <TabsList className="bg-slate-100/50 p-1 h-9">
@@ -370,15 +370,15 @@ export default function Home() {
           </div>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full text-left min-w-[600px]">
                 <thead className="bg-slate-50/50 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-50">
                   <tr>
                     <th className="px-6 py-4">Name</th>
-                    <th className="px-6 py-4">Position</th>
+                    <th className="px-6 py-4 hidden sm:table-cell">Position</th>
                     <th className="px-6 py-4">Type</th>
                     <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4">Date</th>
-                    <th className="px-6 py-4">Notes</th>
+                    <th className="px-6 py-4 hidden sm:table-cell">Date</th>
+                    <th className="px-6 py-4 hidden md:table-cell">Notes</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -412,7 +412,7 @@ export default function Home() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 hidden sm:table-cell">
                         <span className="text-xs font-medium text-slate-600">
                           {request.position}
                         </span>
@@ -432,10 +432,10 @@ export default function Home() {
                           {request.status?.toUpperCase() || 'PENDING'}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-xs font-medium text-slate-500">
+                      <td className="px-6 py-4 hidden sm:table-cell text-xs font-medium text-slate-500">
                         {request.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 hidden md:table-cell">
                         <p className="text-xs text-slate-500">
                           {request.notes}
                         </p>

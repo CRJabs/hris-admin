@@ -147,7 +147,7 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
         </CardHeader>
         <CardContent className="p-4 pt-2">
           <div className="space-y-1 mt-2">
-             <div className="grid grid-cols-2 gap-x-8">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
                <InfoRow label="Employee ID" value={employee.employee_id} name="employee_id" onChange={onChange} isReadOnly={!isAdminEditing} isUpdated={checkUpdated('employee_id')} />
                <InfoRow 
                  label="Date of Employment" 
@@ -160,7 +160,7 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
                />
              </div>
 
-             <div className="grid grid-cols-2 gap-x-8">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
                <InfoRow label="Employment Status" value={employee.employment_status} name="employment_status" onChange={onChange} isReadOnly={!isAdminEditing} isUpdated={checkUpdated('employment_status')}>
                   <select 
                     className="flex h-8 w-full max-w-sm items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring mt-1"
@@ -181,7 +181,7 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
                </InfoRow>
              </div>
 
-             <div className="grid grid-cols-2 gap-x-8 border-t pt-2 mt-2">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 border-t pt-2 mt-2">
                <InfoRow label="Classification I" value={employee.employment_classification} name="employment_classification" onChange={onChange} isReadOnly={!isAdminEditing} isUpdated={checkUpdated('employment_classification')}>
                   <select 
                     className="flex h-8 w-full max-w-sm items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring mt-1"
@@ -202,13 +202,13 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
                 </InfoRow>
              </div>
 
-             <div className="grid grid-cols-3 gap-x-4 border-t pt-2 mt-2">
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 border-t pt-2 mt-2">
                 <InfoRow label="Present Rank" value={employee.present_rank} name="present_rank" onChange={onChange} isReadOnly={!isAdminEditing} isUpdated={checkUpdated('present_rank')} />
                 <InfoRow label="Rank Start" value={employee.present_rank_start} name="present_rank_start" type="date" onChange={onChange} isReadOnly={!isAdminEditing} isUpdated={checkUpdated('present_rank_start')} />
                 <InfoRow label="Rank End" value={employee.present_rank_end} name="present_rank_end" type="date" onChange={onChange} isReadOnly={!isAdminEditing} isUpdated={checkUpdated('present_rank_end')} />
              </div>
 
-             <div className="grid grid-cols-2 gap-x-8 border-t pt-2 mt-2">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 border-t pt-2 mt-2">
                 <InfoRow label="Position" value={employee.position} name="position" onChange={onChange} isReadOnly={!isAdminEditing} isUpdated={checkUpdated('position')} isError={!!errors.position}>
                   <textarea
                     className="flex min-h-[60px] w-full max-w-sm rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 mt-1"

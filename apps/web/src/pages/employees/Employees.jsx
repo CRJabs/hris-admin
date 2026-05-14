@@ -194,10 +194,10 @@ export default function Employees() {
   };
 
   return (
-    <div className="p-6 space-y-5 max-w-[1440px] mx-auto">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-3 flex-1 min-w-[300px]">
-          <div className="relative w-full max-w-md">
+    <div className="p-4 md:p-6 space-y-5 max-w-[1440px] mx-auto">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="relative w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search employees, departments..."
@@ -216,11 +216,11 @@ export default function Employees() {
         <div className="flex items-center gap-2 shrink-0">
           <Button onClick={() => navigate("/employees/add")} className="gap-2 text-xs bg-[#0C005F] hover:bg-[#0C005F]/90">
             <UserPlus className="w-3.5 h-3.5" />
-            Add Employee
+            <span className="hidden sm:inline">Add Employee</span>
           </Button>
           <Button onClick={() => navigate("/reports")} variant="outline" size="sm" className="gap-2 text-xs">
             <Download className="w-3.5 h-3.5" />
-            Export Report
+            <span className="hidden sm:inline">Export Report</span>
           </Button>
         </div>
       </div>

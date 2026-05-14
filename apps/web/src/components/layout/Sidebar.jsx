@@ -181,8 +181,8 @@ export default function Sidebar({ collapsed, setCollapsed }) {
   return (
     <aside 
       className={cn(
-        "h-screen bg-[#0C005F] text-white flex flex-col transition-all duration-300 sticky top-0 z-50",
-        collapsed ? "w-17" : "w-64 absolute md:relative"
+        "hidden md:flex h-screen bg-[#0C005F] text-white flex-col transition-all duration-300 sticky top-0 z-50",
+        collapsed ? "w-17" : "w-64"
       )}
     >
       {/* Toggle Button */}

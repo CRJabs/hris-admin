@@ -141,8 +141,21 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html, body {
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-inter);
+  }
+}
+
+/* Mobile bottom-nav safe-area spacing */
+@layer utilities {
+  .pb-safe {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+  .mb-nav {
+    margin-bottom: 5.5rem; /* clears the floating bottom nav */
   }
 }

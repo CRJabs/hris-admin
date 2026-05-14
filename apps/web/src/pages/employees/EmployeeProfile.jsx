@@ -390,32 +390,37 @@ export default function EmployeeProfile() {
   return (
     <div className="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden">
       {/* Top Standardized Header */}
-      <div className="bg-[#0C005F] text-white py-4 px-8 flex justify-between items-center shadow-md z-10 shrink-0">
-        <div className="flex items-center gap-6">
+      <div className="bg-[#0C005F] text-white py-3 md:py-4 px-4 md:px-8 flex justify-between items-center shadow-md z-10 shrink-0">
+        <div className="flex items-center gap-3 md:gap-6">
+          {/* Mobile: small ub.png; Desktop: full logo */}
+          <img
+            src="/assets/ub.png"
+            alt="UB"
+            className="h-8 w-8 object-contain md:hidden"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
           <img
             src="/assets/ub-hris-logo-white.png"
             alt="UB HRIS"
-            className="h-10 object-contain"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.nextSibling.style.display = 'block';
-            }}
+            className="hidden md:block h-10 object-contain"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
           <FileText className="w-8 h-8 text-white/80 hidden" />
           <div>
-            <h1 className="text-xl font-bold leading-none">Personnel Information</h1>
-            <p className="text-xs text-white/70 mt-1 uppercase tracking-wider">Digital 201 Form</p>
+            <h1 className="text-base md:text-xl font-bold leading-none">Personnel Information</h1>
+            <p className="text-[10px] md:text-xs text-white/70 mt-1 uppercase tracking-wider">Digital 201 Form</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4 flex-wrap justify-end">
           {!isEditing ? (
             <Button
               onClick={handleStartEdit}
-              className="bg-white text-[#0C005F] hover:bg-white/90 font-bold gap-2"
+              className="bg-white text-[#0C005F] hover:bg-white/90 font-bold gap-2 text-xs md:text-sm"
             >
               <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
-              Update Information
+              <span className="hidden sm:inline">Update Information</span>
+              <span className="sm:hidden">Update</span>
             </Button>
           ) : (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30 text-[10px] font-bold uppercase tracking-widest animate-pulse">
@@ -509,39 +514,42 @@ export default function EmployeeProfile() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden p-6 md:p-8">
+      <div className="flex-1 overflow-hidden p-3 md:p-8">
         <div className="max-w-[1800px] mx-auto h-full flex flex-col">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="w-full grid grid-cols-7 bg-white border shadow-sm h-10 p-1 mb-6">
-              <TabsTrigger value="home" className="gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white">
-                <Home className="w-4 h-4" />
-                Home
+            {/* Horizontally scrollable tab bar — icon-only on mobile */}
+            <div className="overflow-x-auto shrink-0 mb-4 md:mb-6">
+            <TabsList className="flex w-max min-w-full bg-white border shadow-sm h-10 p-1">
+              <TabsTrigger value="home" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+                <Home className="w-4 h-4 shrink-0" />
+                <span className="hidden md:inline">Home</span>
               </TabsTrigger>
-              <TabsTrigger value="profiling" className="gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white">
-                <User className="w-4 h-4" />
-                Personal Data
+              <TabsTrigger value="profiling" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+                <User className="w-4 h-4 shrink-0" />
+                <span className="hidden md:inline">Personal Data</span>
               </TabsTrigger>
-              <TabsTrigger value="education" className="gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white">
-                <GraduationCap className="w-4 h-4" />
-                Educational Record
+              <TabsTrigger value="education" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+                <GraduationCap className="w-4 h-4 shrink-0" />
+                <span className="hidden md:inline">Educational Record</span>
               </TabsTrigger>
-              <TabsTrigger value="training" className="gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white">
-                <Award className="w-4 h-4" />
-                Trainings and Development
+              <TabsTrigger value="training" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+                <Award className="w-4 h-4 shrink-0" />
+                <span className="hidden md:inline">Trainings</span>
               </TabsTrigger>
-              <TabsTrigger value="employment" className="gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white">
-                <Briefcase className="w-4 h-4" />
-                Employment Info
+              <TabsTrigger value="employment" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+                <Briefcase className="w-4 h-4 shrink-0" />
+                <span className="hidden md:inline">Employment Info</span>
               </TabsTrigger>
-              <TabsTrigger value="leave" className="gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white">
-                <CalendarDays className="w-4 h-4" />
-                Leave Credits
+              <TabsTrigger value="leave" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+                <CalendarDays className="w-4 h-4 shrink-0" />
+                <span className="hidden md:inline">Leave Credits</span>
               </TabsTrigger>
-              <TabsTrigger value="benefits" className="gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white">
-                <Gift className="w-4 h-4" />
-                Benefits
+              <TabsTrigger value="benefits" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+                <Gift className="w-4 h-4 shrink-0" />
+                <span className="hidden md:inline">Benefits</span>
               </TabsTrigger>
             </TabsList>
+            </div>
 
             <ScrollArea className="flex-1 pr-4">
               <Suspense fallback={<ProfileSkeleton />}>
@@ -609,13 +617,13 @@ export default function EmployeeProfile() {
 
       {/* Floating Action Bar */}
       {isEditing && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <Card className="bg-white/90 backdrop-blur-md shadow-2xl border-[#0C005F]/20 flex items-center gap-4 px-6 py-4 rounded-2xl">
-            <div className="flex flex-col mr-8">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 w-[calc(100%-2rem)] max-w-lg">
+          <Card className="bg-white/90 backdrop-blur-md shadow-2xl border-[#0C005F]/20 flex flex-wrap items-center gap-3 px-4 md:px-6 py-4 rounded-2xl">
+            <div className="flex flex-col flex-1 min-w-0">
               <p className="text-[10px] font-bold text-[#0C005F] uppercase tracking-widest opacity-60">Editing Profile</p>
-              <p className="text-xs font-medium">Unsaved changes will be lost on discard</p>
+              <p className="text-xs font-medium truncate">Unsaved changes will be lost on discard</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 onClick={handleDiscard}
@@ -627,7 +635,7 @@ export default function EmployeeProfile() {
               <Button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="bg-[#0C005F] text-white hover:bg-[#0C005F]/90 gap-2 px-8 shadow-lg shadow-[#0C005F]/20"
+                className="bg-[#0C005F] text-white hover:bg-[#0C005F]/90 gap-2 px-6 md:px-8 shadow-lg shadow-[#0C005F]/20"
               >
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

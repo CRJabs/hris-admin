@@ -59,30 +59,34 @@ export default function Approvals() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-6 pt-6 bg-white border-b shrink-0">
-        <Tabs value={activeTab} onValueChange={(val) => navigate(`/approvals/${val}`)} className="w-full">
+      <div className="px-4 md:px-6 pt-4 md:pt-6 bg-white border-b shrink-0">
+        <div className="overflow-x-auto">
+        <Tabs value={activeTab} onValueChange={(val) => navigate(`/approvals/${val}`)} className="w-full min-w-max">
           <TabsList className="bg-slate-100/50 p-1 h-12 mb-0">
-            <TabsTrigger value="updates" className="gap-2 px-6 h-10 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            <TabsTrigger value="updates" className="gap-2 px-4 md:px-6 h-10 data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <FileText className="w-4 h-4" /> 
-              Profile Updates
+              <span className="hidden sm:inline">Profile Updates</span>
+              <span className="sm:hidden">Updates</span>
               {counts.updates > 0 && (
                 <Badge className="ml-1 bg-[#0C005F] text-white hover:bg-[#0C005F]">
                   {counts.updates}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="registrations" className="gap-2 px-6 h-10 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            <TabsTrigger value="registrations" className="gap-2 px-4 md:px-6 h-10 data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <UserPlus className="w-4 h-4" /> 
-              New Registrations
+              <span className="hidden sm:inline">New Registrations</span>
+              <span className="sm:hidden">Registrations</span>
               {counts.registrations > 0 && (
                 <Badge className="ml-1 bg-[#0C005F] text-white hover:bg-[#0C005F]">
                   {counts.registrations}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="leaves" className="gap-2 px-6 h-10 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            <TabsTrigger value="leaves" className="gap-2 px-4 md:px-6 h-10 data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <CalendarDays className="w-4 h-4" /> 
-              Leave Applications
+              <span className="hidden sm:inline">Leave Applications</span>
+              <span className="sm:hidden">Leaves</span>
               {counts.leaves > 0 && (
                 <Badge className="ml-1 bg-[#0C005F] text-white hover:bg-[#0C005F]">
                   {counts.leaves}
@@ -91,6 +95,7 @@ export default function Approvals() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto bg-slate-50">

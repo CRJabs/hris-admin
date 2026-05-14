@@ -102,12 +102,12 @@ export default function Login() {
         <div className="flex-1 flex flex-col justify-between p-8 md:p-12 relative">
 
           {/* Top Logo Container Placeholder */}
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-6 md:mb-8">
             {/* The user will place 'ub-hris-logo.png' in the public/assets/ folder */}
             <img
               src="/assets/ub-hris-logo.png"
               alt="University of Bohol HRIS Logo"
-              className="h-16 object-contain"
+              className="h-10 sm:h-14 md:h-16 object-contain"
               onError={(e) => {
                 e.currentTarget.src = "https://via.placeholder.com/300x80?text=UB+HRIS+Logo+Placeholder";
               }}

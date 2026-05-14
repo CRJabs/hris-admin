@@ -624,11 +624,16 @@ export default function UniversityChart() {
   return (
     <div className="h-full flex flex-col bg-slate-50/50">
 
-      <div className="flex-1 overflow-hidden flex">
-        {/* Left Sidebar: Cascading Tree */}
-        <div className="w-[450px] border-r bg-white flex flex-col">
+      {/* Mobile hint banner */}
+      <div className="md:hidden flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs font-medium shrink-0">
+        <span>📱 For the best experience, view the University Chart on a desktop.</span>
+      </div>
+
+      <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+        {/* Left Sidebar: Cascading Tree — hidden on mobile when detail pane is open */}
+        <div className={`${selectedNode ? 'hidden md:flex' : 'flex'} w-full md:w-[450px] border-r bg-white flex-col`}>
           {/* Sidebar Search & Edit Header */}
-          <div className="p-6 border-b flex items-center gap-3 bg-slate-50/30">
+          <div className="p-4 md:p-6 border-b flex items-center gap-3 bg-slate-50/30">
             <div className="relative flex-[2]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input 
@@ -651,8 +656,8 @@ export default function UniversityChart() {
             </Button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-          <div className="space-y-6 relative">
+          <div className="flex-1 overflow-y-auto overflow-x-auto p-4 md:p-8 custom-scrollbar">
+          <div className="space-y-6 relative min-w-[320px]">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400 animate-pulse">
                 <Building2 className="w-12 h-12 mb-4 opacity-20" />
@@ -674,8 +679,17 @@ export default function UniversityChart() {
           </div>
         </div>
 
-        {/* Right Detail Pane */}
-        <div className="flex-1 bg-white overflow-y-auto custom-scrollbar">
+        {/* Right Detail Pane — full-width on mobile, flex-1 on desktop */}
+        <div className={`${selectedNode ? 'flex' : 'hidden md:flex'} flex-1 bg-white overflow-y-auto custom-scrollbar flex-col`}>
+          {/* Mobile back button */}
+          {selectedNode && (
+            <button
+              className="md:hidden flex items-center gap-1 text-xs font-bold text-[#0C005F] px-4 py-3 border-b bg-slate-50 self-start w-full"
+              onClick={() => setSelectedNode(null)}
+            >
+              ← Back to chart
+            </button>
+          )}
           {!selectedNode ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50">
               <div className="w-24 h-24 bg-white rounded-3xl shadow-xl flex items-center justify-center mb-8 border border-slate-100">

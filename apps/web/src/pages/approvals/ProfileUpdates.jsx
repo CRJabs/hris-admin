@@ -130,7 +130,7 @@ export default function ProfileUpdates() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-[1440px] mx-auto">
+    <div className="p-4 md:p-6 space-y-6 max-w-[1440px] mx-auto">
       {/* Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
