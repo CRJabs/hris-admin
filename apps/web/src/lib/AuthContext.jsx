@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { dismissAllToasts } from '@/components/ui/use-toast';
+import { runBenefitsComputation } from '@/utils/runBenefitsComputation';
 
 const AuthContext = createContext();
 
@@ -27,6 +28,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const handleAdminLoginEvents = (profileData) => {
+    if (profileData?.role === 'admin') {
+      const todayDateStr = new Date().toISOString().split('T')[0];
+      const lastRunStr = localStorage.getItem('lastBenefitsRun');
+      if (lastRunStr !== todayDateStr) {
+        // Run daily batch process in the background
+        runBenefitsComputation().then((res) => {
+          if (res.success) {
+             localStorage.setItem('lastBenefitsRun', todayDateStr);
+          }
+        });
+      }
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -40,6 +56,7 @@ export const AuthProvider = ({ children }) => {
           setUser(profileData);
           setIsAuthenticated(true);
           setIsLoadingAuth(false);
+          handleAdminLoginEvents(profileData);
         });
       } else {
         setIsLoadingAuth(false);
@@ -56,6 +73,7 @@ export const AuthProvider = ({ children }) => {
             if (!isMounted) return;
             setUser(profileData);
             setIsAuthenticated(true);
+            handleAdminLoginEvents(profileData);
           });
         } else {
           setUser(null);

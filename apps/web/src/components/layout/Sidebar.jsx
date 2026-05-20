@@ -99,7 +99,7 @@ const navItems = [
 export default function Sidebar({ collapsed, setCollapsed }) {
   const location = useLocation();
   const { logout } = useAuth();
-  const [expandedItems, setExpandedItems] = useState(["Employees", "Pending Approvals"]);
+  const [expandedItems, setExpandedItems] = useState(["Pending Approvals", "Employees", "Leaves"]);
   
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -132,7 +132,15 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       if (hasBootstrappedNotifications.current) {
         const newNotifs = notifs.filter(n => !seenNotificationIds.current.has(n.id));
         newNotifs.forEach(notif => {
-          toast(notif.title, {
+          const type = notif.type.toLowerCase();
+          let toastFn = toast.info;
+          if (type.includes('approved') || type.includes('added') || type.includes('edited')) {
+            toastFn = toast.success;
+          } else if (type.includes('rejected')) {
+            toastFn = toast.error;
+          }
+          
+          toastFn(notif.title, {
             description: notif.message,
             duration: 6000,
           });

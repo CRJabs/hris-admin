@@ -3,7 +3,7 @@ import {
   Users, UserPlus, CheckSquare, CalendarDays,
   TrendingUp, Clock, Activity, ShieldCheck, RefreshCw,
   UserX, CheckCircle2, Plane, Stethoscope, Sun,
-  XCircle, Edit3, ToggleRight, Zap, List
+  XCircle, Edit3, ToggleRight, Zap, List, Gift
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Link, useNavigate } from "react-router-dom";
@@ -27,6 +27,7 @@ const ACTION_CONFIG = {
   employee_filed_leave: { icon: CalendarDays, color: "bg-amber-50 text-amber-600", label: "Leave Filed" },
   admin_approved_leave: { icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600", label: "Leave Approved" },
   admin_rejected_leave: { icon: XCircle, color: "bg-red-50 text-red-600", label: "Leave Rejected" },
+  benefit_eligible_employee: { icon: Gift, color: "bg-pink-50 text-pink-600", label: "Benefit Eligible" },
 };
 
 export default function Home() {

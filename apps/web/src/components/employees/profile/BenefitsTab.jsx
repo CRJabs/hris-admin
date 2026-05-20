@@ -1,105 +1,140 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, Info, Gift, Heart, Calendar, Star, LogOut, Shirt, ShoppingBag } from "lucide-react";
+import { CheckCircle2, XCircle, Info, Gift, Heart, Calendar, Star, LogOut, Shirt, ShoppingBag, Clock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/lib/supabase";
+import { format } from "date-fns";
 
 const BENEFITS = [
-  { id: 'rice', label: 'Rice Allowance', icon: ShoppingBag, requirement: 'At least 1 year of service and Regular status.' },
-  { id: 'clothing', label: 'Clothing Allowance', icon: Shirt, requirement: 'Regular status.' },
-  { id: 'laundry', label: 'Laundry Allowance', icon: Shirt, requirement: 'Applicable for specific departments (Maintenance/Health).' },
-  { id: 'birthday', label: 'Birthday Bonus', icon: Gift, requirement: 'Active employment during birth month.' },
-  { id: 'thirteenth_month', label: '13th Month Pay', icon: Calendar, requirement: 'Pro-rated based on months worked during the calendar year.' },
-  { id: 'summer', label: 'Summer Pay', icon: Star, requirement: 'Applicable for Faculty during off-semester breaks.' },
-  { id: 'service_award', label: 'Service Awardee', icon: Heart, requirement: 'Every 5 years of continuous service.' },
-  { id: 'retirement', label: 'Retirement Benefit', icon: LogOut, requirement: 'Reaching 60 years old or 25 years of service.' },
+  { id: 'rice_clothing_laundry', label: 'Rice, Clothing & Laundry', icon: ShoppingBag, requirement: 'Requires Regular, Probationary, or Part-Time employment tenure.' },
+  { id: 'birthday_bonus', label: 'Birthday Bonus', icon: Gift, requirement: 'Requires more than 1 year of continuous service.' },
+  { id: 'summer_pay', label: 'Summer Pay', icon: Star, requirement: 'Requires more than 3 years of service as Probationary or Part-Time before May 31.' },
+  { id: 'thirteenth_month', label: '13th Month Pay', icon: Calendar, requirement: 'Requires at least 1 month of service rendered before December 31.' },
+  { id: 'midyear_bonus', label: 'Midyear Bonus', icon: Star, requirement: 'Requires Regular employment tenure and at least 1 month of service.' },
+  { id: 'service_award', label: 'Service Awardee', icon: Heart, requirement: 'Reaches a 10, 15, or 25-year service milestone before July 31.' },
+  { id: 'retirement', label: 'Retirement Benefit', icon: LogOut, requirement: 'Requires age 57 or above AND 25 years of service before May 31.' },
 ];
 
 export default function BenefitsTab({ employee }) {
-  // Logic for eligibility (Placeholders for now)
-  const checkEligibility = (benefitId) => {
-    // This is where the complex logic would go. For now, returning mock data.
-    const mockEligibility = {
-      rice: employee.employment_status === 'Regular',
-      clothing: employee.employment_status === 'Regular',
-      laundry: ['Human Resources', 'Maintenance'].includes(employee.department),
-      birthday: true,
-      thirteenth_month: true,
-      summer: employee.employment_classification === 'Faculty',
-      service_award: false, // Would check length of service
-      retirement: false, // Would check age
-    };
-    return mockEligibility[benefitId] || false;
-  };
+  const [eligibilityData, setEligibilityData] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchBenefits() {
+      if (!employee?.id) return;
+      setIsLoading(true);
+      try {
+        const currentYear = new Date().getFullYear();
+        const { data, error } = await supabase
+          .from('employee_benefits')
+          .select('*')
+          .eq('employee_id', employee.id)
+          .eq('eligibility_year', currentYear);
+
+        if (error) throw error;
+
+        const dataMap = (data || []).reduce((acc, row) => {
+          acc[row.benefit_key] = row;
+          return acc;
+        }, {});
+        
+        setEligibilityData(dataMap);
+      } catch (err) {
+        console.error("Error fetching benefits data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchBenefits();
+  }, [employee?.id]);
 
   return (
     <div className="space-y-6">
       <Card className="shadow-sm border-slate-300">
-        <CardHeader className="bg-[#0C005F]/5 p-4">
+        <CardHeader className="bg-[#0C005F]/5 p-4 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-bold flex items-center gap-2">
             <Gift className="w-4 h-4 text-primary" />
             Employee Benefits Eligibility Checklist
           </CardTitle>
+          {Object.keys(eligibilityData).length > 0 && (
+             <span className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium bg-white px-2 py-1 rounded border shadow-sm">
+                <Clock className="w-3 h-3" />
+                Updated for {new Date().getFullYear()}
+             </span>
+          )}
         </CardHeader>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <TooltipProvider>
-              {BENEFITS.map((benefit) => {
-                const isEligible = checkEligibility(benefit.id);
-                const Icon = benefit.icon;
-                
-                return (
-                  <div 
-                    key={benefit.id} 
-                    className={`flex flex-col p-4 rounded-xl border transition-all ${
-                      isEligible 
-                        ? 'bg-green-50/30 border-green-100 hover:border-green-200' 
-                        : 'bg-muted/30 border-muted-foreground/10 hover:border-muted-foreground/20'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className={`p-2 rounded-lg ${isEligible ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
-                        <Icon className="w-5 h-5" />
+          {isLoading ? (
+            <div className="py-12 flex justify-center text-muted-foreground text-sm flex-col items-center gap-2">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              Loading eligibility records...
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <TooltipProvider>
+                {BENEFITS.map((benefit) => {
+                  const record = eligibilityData[benefit.id];
+                  const isEligible = record?.is_eligible || false;
+                  const Icon = benefit.icon;
+                  
+                  return (
+                    <div 
+                      key={benefit.id} 
+                      className={`flex flex-col p-4 rounded-xl border transition-all ${
+                        isEligible 
+                          ? 'bg-green-50/30 border-green-100 hover:border-green-200' 
+                          : (!record ? 'bg-amber-50/30 border-amber-100' : 'bg-muted/30 border-muted-foreground/10 hover:border-muted-foreground/20')
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className={`p-2 rounded-lg ${isEligible ? 'bg-green-100 text-green-700' : (!record ? 'bg-amber-100 text-amber-700' : 'bg-muted text-muted-foreground')}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        {isEligible ? (
+                          <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        ) : !record ? (
+                          <Clock className="w-5 h-5 text-amber-500" />
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button className="cursor-help">
+                                <XCircle className="w-5 h-5 text-muted-foreground/40" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[200px] text-xs">
+                              <p className="font-bold mb-1">Ineligible / Pending</p>
+                              <p>{benefit.requirement}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
-                      {isEligible ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                      ) : (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button className="cursor-help">
-                              <XCircle className="w-5 h-5 text-muted-foreground/40" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-[200px] text-xs">
-                            <p className="font-bold mb-1">Ineligible</p>
-                            <p>{benefit.requirement}</p>
-                          </TooltipContent>
-                        </Tooltip>
+                      
+                      <div className="flex-1">
+                        <h4 className="font-bold text-sm mb-1">{benefit.label}</h4>
+                        {record?.award_level && (
+                          <p className="text-[10px] text-primary font-bold uppercase tracking-widest mb-2">
+                            {record.award_level}
+                          </p>
+                        )}
+                        <Badge variant={isEligible ? "success" : (!record ? "outline" : "secondary")} className={`w-fit text-[10px] uppercase ${!record && 'text-amber-600 border-amber-200 bg-amber-50'}`}>
+                          {isEligible ? "Eligible" : (!record ? "Pending Eval" : "Not Eligible")}
+                        </Badge>
+                      </div>
+
+                      {record?.computed_at && (
+                        <p className="text-[9px] text-muted-foreground mt-3 pt-2 border-t">
+                          Computed: {format(new Date(record.computed_at), "MMM d, yyyy")}
+                        </p>
                       )}
                     </div>
-                    
-                    <h4 className="font-bold text-sm mb-1">{benefit.label}</h4>
-                    <Badge variant={isEligible ? "success" : "secondary"} className="w-fit text-[10px] uppercase">
-                      {isEligible ? "Eligible" : "Not Eligible"}
-                    </Badge>
-                  </div>
-                );
-              })}
-            </TooltipProvider>
-          </div>
+                  );
+                })}
+              </TooltipProvider>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {/* Summary Section */}
-      <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-3">
-        <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-        <div className="text-sm">
-          <p className="font-bold text-blue-900">Note for HR Administrator</p>
-          <p className="text-blue-800 opacity-80 leading-relaxed mt-1">
-            Eligibility is automatically calculated based on the employee's current employment status, classification, and service records. 
-            Tooltip indicators provide requirements for currently ineligible benefits.
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

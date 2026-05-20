@@ -56,9 +56,10 @@ export default function Register() {
       // 2. Redirect to verification instructions page
       navigate("/verify-email");
 
-    } catch (error: any) {
-      console.error("Signup error:", error);
-      toast.error(error.message || "Failed to create account.");
+    } catch (error: unknown) {
+      const err = error as Error;
+      console.error("Signup error:", err);
+      toast.error(err.message || "Failed to create account.");
     } finally {
       setIsLoading(false);
     }

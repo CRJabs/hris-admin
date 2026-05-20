@@ -54,9 +54,10 @@ export default function Login() {
       // We will let the useEffect listen for the AuthContext 'user' to populate, 
       // which will happen after the root auth listener fetches the profile from Supabase.
 
-    } catch (error: any) {
-      const code = error?.code;
-      const message = error?.message || "";
+    } catch (error: unknown) {
+      const err = error as { code?: string; message?: string };
+      const code = err?.code;
+      const message = err?.message || "";
 
       if (code === "email_not_confirmed") {
         toast.error("Please verify your email before logging in.");

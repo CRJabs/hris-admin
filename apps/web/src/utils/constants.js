@@ -36,3 +36,44 @@ export const EMPLOYMENT_CLASSIFICATIONS = [
   "Non-Teaching",
   "Consultant"
 ];
+
+export const BENEFIT_KEYS = {
+  RICE_CLOTHING_LAUNDRY: 'rice_clothing_laundry',
+  BIRTHDAY_BONUS: 'birthday_bonus',
+  SUMMER_PAY: 'summer_pay',
+  THIRTEENTH_MONTH: 'thirteenth_month',
+  MIDYEAR_BONUS: 'midyear_bonus',
+  SERVICE_AWARD: 'service_award',
+  RETIREMENT: 'retirement'
+};
+
+export const BENEFIT_CONFIG = {
+  [BENEFIT_KEYS.RICE_CLOTHING_LAUNDRY]: {
+    label: 'Rice, Clothing & Laundry',
+    icon: 'ShoppingBag'
+  },
+  [BENEFIT_KEYS.BIRTHDAY_BONUS]: {
+    label: 'Birthday Bonus',
+    icon: 'Gift'
+  },
+  [BENEFIT_KEYS.SUMMER_PAY]: {
+    label: 'Summer Pay',
+    icon: 'Sun'
+  },
+  [BENEFIT_KEYS.THIRTEENTH_MONTH]: {
+    label: '13th Month Pay',
+    icon: 'Calendar'
+  },
+  [BENEFIT_KEYS.MIDYEAR_BONUS]: {
+    label: 'Midyear Bonus',
+    icon: 'Star'
+  },
+  [BENEFIT_KEYS.SERVICE_AWARD]: {
+    label: 'Service Award',
+    icon: 'Heart'
+  },
+  [BENEFIT_KEYS.RETIREMENT]: {
+    label: 'Retirement Benefit',
+    icon: 'LogOut'
+  }
+};

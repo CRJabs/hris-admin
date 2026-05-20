@@ -171,13 +171,13 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
                   </select>
                </InfoRow>
                <InfoRow label="Employment Tenure" value={employee.employment_tenure} name="employment_tenure" onChange={onChange} isReadOnly={!isAdminEditing} isUpdated={checkUpdated('employment_tenure')}>
-                  <select 
-                    className="flex h-8 w-full max-w-sm items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring mt-1"
-                    value={employee.employment_tenure || "Regular"}
-                    onChange={(e) => onChange('employment_tenure', e.target.value)}
-                  >
-                    {["Regular", "Probationary", "Contractual"].map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                    <select 
+                      className="flex h-8 w-full max-w-sm items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring mt-1"
+                      value={employee.employment_tenure || "Regular"}
+                      onChange={(e) => onChange('employment_tenure', e.target.value)}
+                    >
+                      {["Regular", "Probationary", "Contractual", "Part-Time"].map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
                </InfoRow>
              </div>
 
