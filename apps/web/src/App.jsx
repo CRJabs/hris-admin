@@ -81,6 +81,7 @@ const AuthenticatedApp = () => {
           <Route path="/company" element={<Company />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/notifications" element={<AllNotifications />} />
         </Route>
         <Route path="*" element={<PageNotFound />} />
       </Routes>
@@ -99,7 +100,8 @@ const AuthenticatedApp = () => {
   );
 };
 
-import { Toaster as SonnerToaster } from "sonner";
+import { Toaster as SonnerToaster, toast } from "sonner";
+const AllNotifications = lazy(() => import('@/pages/core/AllNotifications'));
 
 function App() {
   return (
@@ -118,7 +120,17 @@ function App() {
             </Routes>
           </Suspense>
         </Router>
-        <SonnerToaster position="top-right" richColors closeButton />
+        <SonnerToaster
+          position="bottom-right"
+          richColors
+          closeButton
+          toastOptions={{
+            action: {
+              label: "Dismiss all",
+              onClick: () => toast.dismiss(),
+            },
+          }}
+        />
       </QueryClientProvider>
     </AuthProvider>
   )

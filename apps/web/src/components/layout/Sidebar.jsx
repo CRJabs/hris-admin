@@ -85,8 +85,7 @@ const navItems = [
       { label: "Onboarding", icon: UserPlus, path: "/employees/add" },
     ]
   },
-  {
-    label: "Leaves",
+  { label: "Leaves",
     icon: CalendarDays,
     path: "/leaves",
     children: [
@@ -281,76 +280,85 @@ export default function Sidebar({ collapsed, setCollapsed }) {
             </Link>
           );
         })}
+
+        {/* Notifications — rendered inline in nav, above the footer */}
+        <Popover onOpenChange={handlePopoverOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 relative",
+                unreadCount > 0 ? "text-white bg-white/10" : "text-white/70 hover:text-white hover:bg-white/10",
+                collapsed && "justify-center px-0"
+              )}
+              title={collapsed ? "Notifications" : ""}
+            >
+              <div className="relative">
+                <Bell className="w-4.5 h-4.5 shrink-0" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white border border-[#0C005F] animate-in zoom-in duration-300">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              {!collapsed && <span className="truncate">Notifications</span>}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-80 p-0 overflow-hidden rounded-xl border-slate-200 shadow-2xl ml-2 animate-in slide-in-from-left-2 duration-300"
+            side="right"
+            align="end"
+            sideOffset={10}
+          >
+            <div className="bg-[#0C005F] p-4 text-white">
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <Bell className="w-4 h-4" /> Notifications
+              </h3>
+              <p className="text-xs text-blue-200/60 mt-0.5">{notifications.length} recent items</p>
+            </div>
+            <ScrollArea className="h-[350px]">
+              {notifications.length > 0 ? (
+                <div className="divide-y divide-slate-100">
+                  {notifications.map((n) => {
+                    const colorClass = ACTION_TITLE_COLORS[n.type] || 'text-primary';
+                    return (
+                      <div key={n.id} onClick={n.action} className="p-4 hover:bg-slate-50 transition-colors cursor-pointer group/item">
+                        <div className="flex justify-between items-start mb-1">
+                          <p className={`text-[10px] font-bold uppercase tracking-wider ${colorClass}`}>
+                            {n.title}
+                          </p>
+                          <span className="text-[9px] text-muted-foreground shrink-0 ml-2">
+                            {format(n.time, "MMM d")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-700 leading-snug line-clamp-2">{n.message}</p>
+                        <p className="text-[9px] text-slate-400 mt-1.5 flex items-center justify-between">
+                          <span>{formatDistanceToNow(n.time, { addSuffix: true })}</span>
+                          {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-red-500" />}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-muted-foreground">
+                  <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                  <p className="text-xs font-medium">All caught up!</p>
+                </div>
+              )}
+            </ScrollArea>
+            <div className="border-t border-slate-100 p-3">
+              <Link
+                to="/notifications"
+                className="block w-full text-center text-xs font-bold text-[#0C005F] hover:text-[#0C005F]/80 uppercase tracking-widest py-1.5 rounded-md hover:bg-slate-50 transition-colors"
+              >
+                View All Notifications
+              </Link>
+            </div>
+          </PopoverContent>
+        </Popover>
       </nav>
 
       <div className="p-3 border-t border-white/10 mt-auto space-y-1">
-         <Popover onOpenChange={handlePopoverOpen}>
-           <PopoverTrigger asChild>
-             <button
-               className={cn(
-                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 relative group",
-                 unreadCount > 0 ? "text-white bg-white/5" : "text-white/70 hover:text-white hover:bg-white/10",
-                 collapsed && "justify-center px-0"
-               )}
-               title={collapsed ? "Notifications" : ""}
-             >
-               <div className="relative">
-                 <Bell className="w-4.5 h-4.5 shrink-0" />
-                 {unreadCount > 0 && (
-                   <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white border border-[#0C005F] animate-in zoom-in duration-300">
-                     {unreadCount}
-                   </span>
-                 )}
-               </div>
-               {!collapsed && <span className="truncate">Notifications</span>}
-             </button>
-           </PopoverTrigger>
-           <PopoverContent 
-             className="w-80 p-0 overflow-hidden rounded-xl border-slate-200 shadow-2xl ml-2 animate-in slide-in-from-left-2 duration-300" 
-             side="right" 
-             align="end"
-             sideOffset={10}
-           >
-             <div className="bg-[#0C005F] p-4 text-white">
-               <h3 className="text-sm font-bold flex items-center gap-2">
-                 <Bell className="w-4 h-4" /> Notifications
-               </h3>
-               <p className="text-xs text-blue-200/60 mt-0.5">{notifications.length} recent items</p>
-             </div>
-             <ScrollArea className="h-[350px]">
-               {notifications.length > 0 ? (
-                 <div className="divide-y divide-slate-100">
-                   {notifications.map((n) => {
-                     const colorClass = ACTION_TITLE_COLORS[n.type] || 'text-primary';
-                     return (
-                       <div key={n.id} onClick={n.action} className="p-4 hover:bg-slate-50 transition-colors cursor-pointer group/item">
-                         <div className="flex justify-between items-start mb-1">
-                           <p className={`text-[10px] font-bold uppercase tracking-wider ${colorClass}`}>
-                             {n.title}
-                           </p>
-                           <span className="text-[9px] text-muted-foreground shrink-0 ml-2">
-                             {format(n.time, "MMM d")}
-                           </span>
-                         </div>
-                         <p className="text-xs text-slate-700 leading-snug line-clamp-2">{n.message}</p>
-                         <p className="text-[9px] text-slate-400 mt-1.5 flex items-center justify-between">
-                           <span>{formatDistanceToNow(n.time, { addSuffix: true })}</span>
-                           {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-red-500" />}
-                         </p>
-                       </div>
-                     );
-                   })}
-                 </div>
-               ) : (
-                 <div className="p-8 text-center text-muted-foreground">
-                   <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                   <p className="text-xs font-medium">All caught up!</p>
-                 </div>
-               )}
-             </ScrollArea>
-           </PopoverContent>
-         </Popover>
-
          <button
            onClick={logout}
            className={cn(

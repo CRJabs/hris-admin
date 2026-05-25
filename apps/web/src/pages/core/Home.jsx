@@ -5,13 +5,14 @@ import {
   UserX, CheckCircle2, Plane, Stethoscope, Sun,
   XCircle, Edit3, ToggleRight, Zap, List, Gift
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, format, addMonths, subMonths } from "date-fns";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const ACTION_CONFIG = {
   employee_submitted_update: { icon: RefreshCw, color: "bg-amber-50 text-amber-600", label: "Profile Update Request" },
@@ -197,60 +198,30 @@ export default function Home() {
   return (
     <div className="p-4 md:p-8 max-w-[1440px] mx-auto animate-in fade-in duration-700 flex flex-col gap-6 md:gap-8">
 
-      {/* ① Hero — always first */}
-      <section className="order-1 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0C005F] to-[#1a0b8c] p-6 md:p-12 text-white shadow-2xl shadow-[#0C005F]/20 min-h-[200px] md:min-h-[320px] flex flex-col justify-center">
-        <div className="relative z-10 space-y-4 max-w-2xl">
-          <Badge className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md px-4 py-1 text-xs font-bold uppercase tracking-widest">
-            Administrator Portal
-          </Badge>
-          <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight leading-tight">
-              Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-200">{user?.first_name || "Admin"}</span>!
-            </h1>
-            <p className="text-blue-100/70 text-base md:text-xl font-medium">
-              You have <span className="text-white font-bold">{stats.pendingRegistrations + stats.pendingUpdates} pending tasks</span> that require your immediate attention.
-            </p>
-          </div>
-        </div>
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-blue-400/20 rounded-full blur-[100px]" />
-        <div className="absolute bottom-0 left-1/2 -ml-20 -mb-20 w-60 h-60 bg-purple-500/20 rounded-full blur-[80px]" />
-        <ShieldCheck className="absolute bottom-10 right-10 w-64 h-64 text-white/5 -rotate-12" />
-      </section>
-
-      {/* ② Pending Requests — order-2 on mobile (right after hero), order-3 on lg (below analytics grid) */}
-      <div className="order-2 lg:order-3">
-        <PendingTable />
-      </div>
-
-      {/* ③ Analytics Stats + Recent Activity grid — order-3 on mobile, order-2 on lg */}
-      <div className="order-3 lg:order-2 grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-
-        {/* Analytics Stats Table */}
-        <Card className="lg:col-span-2 border-none shadow-sm bg-white overflow-hidden flex flex-col">
-          {/* Header row — Total Employees */}
-          <div className="bg-[#0C005F] px-6 py-5 flex items-center justify-between text-white">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Total Employees</span>
-              <p className="text-xs font-medium text-blue-200/60 italic">Active workforce count</p>
+      {/* ① Hero + Recent Activity side by side */}
+      <section className="order-1 flex flex-col lg:flex-row gap-6">
+        {/* Hero Banner */}
+        <div className="flex-1 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0C005F] to-[#1a0b8c] p-6 md:p-10 text-white shadow-2xl shadow-[#0C005F]/20 min-h-[180px] md:min-h-[260px] flex flex-col justify-center">
+          <div className="relative z-10 space-y-4 max-w-xl">
+            <Badge className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md px-4 py-1 text-xs font-bold uppercase tracking-widest">
+              Administrator Portal
+            </Badge>
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight">
+                Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-200">{user?.first_name || "Admin"}</span>!
+              </h1>
+              <p className="text-blue-100/70 text-base md:text-lg font-medium">
+                You have <span className="text-white font-bold">{stats.pendingRegistrations + stats.pendingUpdates} pending tasks</span> that require your immediate attention.
+              </p>
             </div>
-            <span className="text-4xl font-black">{stats.totalEmployees}</span>
           </div>
-          {/* Stats grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y divide-slate-50 flex-1">
-            {analyticsRows.map((row, i) => (
-              <div key={i} className="px-4 py-3 flex flex-col items-start gap-1.5 hover:bg-slate-50/50 transition-colors">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm bg-white border border-slate-100">
-                  <row.icon className="w-4 h-4 text-[#0C005F]" />
-                </div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">{row.label}</p>
-                <span className="text-3xl font-black text-slate-900 tracking-tight">{row.value}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-blue-400/20 rounded-full blur-[100px]" />
+          <div className="absolute bottom-0 left-1/2 -ml-20 -mb-20 w-60 h-60 bg-purple-500/20 rounded-full blur-[80px]" />
+          <ShieldCheck className="absolute bottom-6 right-6 w-48 h-48 text-white/5 -rotate-12" />
+        </div>
 
         {/* Recent Activity Feed */}
-        <Card className="lg:col-span-1 border-none shadow-sm bg-white overflow-hidden flex flex-col">
+        <Card className="lg:w-[340px] shrink-0 border-none shadow-sm bg-white overflow-hidden flex flex-col">
           <div className="px-6 py-4 border-b border-slate-50 shrink-0 flex items-center gap-2">
             <Activity className="w-4 h-4 text-[#0C005F]" />
             <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">Recent Activity</h2>
@@ -293,8 +264,147 @@ export default function Home() {
             </div>
           )}
         </Card>
+      </section>
+
+      {/* ② Pending Requests */}
+      <div className="order-2 lg:order-3">
+        <PendingTable />
       </div>
 
+      {/* ③ Analytics Stats + Calendar grid — 40/60 split */}
+      <div className="order-3 lg:order-2 grid grid-cols-1 lg:grid-cols-5 gap-6 md:gap-8">
+
+        {/* Analytics Stats Table */}
+        <Card className="lg:col-span-2 border-none shadow-sm bg-white overflow-hidden flex flex-col">
+          {/* Header row — Total Employees */}
+          <div className="bg-[#0C005F] px-6 h-[79px] flex items-center justify-between text-white shrink-0">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Total Employees</span>
+              <p className="text-xs font-medium text-blue-200/60 italic">Active workforce count</p>
+            </div>
+            <span className="text-4xl font-black">{stats.totalEmployees}</span>
+          </div>
+          {/* Stats grid — 2 columns to fit narrower card */}
+          <div className="grid grid-cols-2 divide-x divide-y divide-slate-50 flex-1">
+            {analyticsRows.map((row, i) => (
+              <div key={i} className="px-5 py-5 flex flex-col justify-between hover:bg-slate-50/50 transition-colors h-full">
+                <div className="flex flex-row items-center gap-2">
+                  <div className="w-7 h-7 rounded-md flex items-center justify-center border border-slate-100 shadow-sm bg-white">
+                    <row.icon className="w-3.5 h-3.5 text-[#0C005F]" />
+                  </div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">{row.label}</p>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <span className="text-4xl font-black text-slate-900 tracking-tight leading-none">{row.value}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Calendar Panel — 60% width (3 of 5 cols) */}
+        <Card className="lg:col-span-3 border-none shadow-sm bg-white overflow-hidden flex flex-col">
+          <CardContent className="p-0 flex-1 flex flex-col">
+            <MonthGridCalendar />
+          </CardContent>
+        </Card>
+      </div>
+
+    </div>
+  );
+}
+
+const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+function MonthGridCalendar() {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
+
+  const weeks = [];
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7));
+  }
+
+  return (
+    <div className="flex flex-col h-full rounded-xl overflow-hidden">
+      {/* Header: title + nav */}
+      <div className="bg-[#0C005F] px-6 h-[79px] flex items-center justify-between text-white shrink-0">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="w-4 h-4" />
+          <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Calendar</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-bold uppercase tracking-widest text-white/90">
+            {format(currentMonth, "MMMM yyyy")}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}
+              className="w-6 h-6 flex items-center justify-center rounded-md border border-white/20 text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}
+              className="w-6 h-6 flex items-center justify-center rounded-md border border-white/20 text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Day name headers */}
+      <div className="grid grid-cols-7 border-b border-slate-100">
+        {DAY_NAMES.map(day => (
+          <div
+            key={day}
+            className="py-2 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 border-r border-slate-100 last:border-r-0"
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* Day cells grid */}
+      <div className="flex flex-col flex-1">
+        {weeks.map((week, wi) => (
+          <div key={wi} className="grid grid-cols-7 flex-1" style={{ minHeight: "60px" }}>
+            {week.map((day, di) => {
+              const inMonth = isSameMonth(day, currentMonth);
+              const todayFlag = isToday(day);
+              return (
+                <div
+                  key={di}
+                  className={cn(
+                    "border-r border-b border-slate-100 last:border-r-0 p-1.5 relative",
+                    !inMonth && "bg-slate-50/50",
+                    todayFlag && "bg-blue-50/40"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "text-[11px] font-bold leading-none",
+                      todayFlag
+                        ? "w-5 h-5 flex items-center justify-center rounded-full bg-[#0C005F] text-white"
+                        : inMonth
+                        ? "text-slate-700"
+                        : "text-slate-300"
+                    )}
+                  >
+                    {format(day, "d")}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -302,3 +412,4 @@ export default function Home() {
 function cn(...inputs) {
   return inputs.filter(Boolean).join(" ");
 }
+
