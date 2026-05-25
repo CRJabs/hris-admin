@@ -64,7 +64,7 @@ function formatActionTitle(action) {
 
 const navItems = [
   { label: "Home", icon: Zap, path: "/" },
-  { label: "Reports & Analytics", icon: BarChart3, path: "/reports" },
+  { label: "Reports", icon: BarChart3, path: "/reports" },
   { label: "University Chart", icon: Building2, path: "/company" },
   { 
     label: "Pending Approvals", 

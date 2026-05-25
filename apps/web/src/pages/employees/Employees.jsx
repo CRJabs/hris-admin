@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Search, X, Upload } from "lucide-react";
+import { Search, X, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 import EmployeeFilters from "@/components/employees/EmployeeFilters";
@@ -217,10 +217,6 @@ export default function Employees() {
           <Button onClick={() => navigate("/employees/add")} className="gap-2 text-xs bg-[#0C005F] hover:bg-[#0C005F]/90">
             <UserPlus className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Add Employee</span>
-          </Button>
-          <Button onClick={() => navigate("/reports")} variant="outline" size="sm" className="gap-2 text-xs">
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Export Report</span>
           </Button>
         </div>
       </div>

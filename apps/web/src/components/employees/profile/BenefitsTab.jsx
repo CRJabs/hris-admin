@@ -8,8 +8,8 @@ import { format } from "date-fns";
 
 const BENEFITS = [
   { id: 'rice_clothing_laundry', label: 'Rice, Clothing & Laundry', icon: ShoppingBag, requirement: 'Requires Regular, Probationary, or Part-Time employment tenure.' },
-  { id: 'birthday_bonus', label: 'Birthday Bonus', icon: Gift, requirement: 'Requires more than 1 year of continuous service.' },
-  { id: 'summer_pay', label: 'Summer Pay', icon: Star, requirement: 'Requires more than 3 years of service as Probationary or Part-Time before May 31.' },
+  { id: 'birthday_bonus', label: 'Birthday Bonus', icon: Gift, requirement: 'Requires at least 1 year of continuous service.' },
+  { id: 'summer_pay', label: 'Summer Pay', icon: Star, requirement: 'Requires at least 3 years of service as Regular, Probationary, or Part-Time before May 31.' },
   { id: 'thirteenth_month', label: '13th Month Pay', icon: Calendar, requirement: 'Requires at least 1 month of service rendered before December 31.' },
   { id: 'midyear_bonus', label: 'Midyear Bonus', icon: Star, requirement: 'Requires Regular employment tenure and at least 1 month of service.' },
   { id: 'service_award', label: 'Service Awardee', icon: Heart, requirement: 'Reaches a 10, 15, or 25-year service milestone before July 31.' },

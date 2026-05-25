@@ -16,9 +16,9 @@ export function computeYearsInService(startDate, referenceDate = new Date()) {
   const ref = new Date(referenceDate);
   if (isNaN(start.getTime())) return 0;
 
-  let years = ref.getFullYear() - start.getFullYear();
-  const monthDiff = ref.getMonth() - start.getMonth();
-  const dayDiff = ref.getDate() - start.getDate();
+  let years = ref.getUTCFullYear() - start.getUTCFullYear();
+  const monthDiff = ref.getUTCMonth() - start.getUTCMonth();
+  const dayDiff = ref.getUTCDate() - start.getUTCDate();
   if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) years--;
   return Math.max(0, years);
 }
@@ -46,9 +46,9 @@ export function computeMonthsInService(startDate, referenceDate = new Date()) {
   if (isNaN(start.getTime())) return 0;
 
   let months =
-    (ref.getFullYear() - start.getFullYear()) * 12 +
-    (ref.getMonth() - start.getMonth());
-  if (ref.getDate() < start.getDate()) months--;
+    (ref.getUTCFullYear() - start.getUTCFullYear()) * 12 +
+    (ref.getUTCMonth() - start.getUTCMonth());
+  if (ref.getUTCDate() < start.getUTCDate()) months--;
   return Math.max(0, months);
 }
 
@@ -60,9 +60,9 @@ export function computeMonthsInService(startDate, referenceDate = new Date()) {
  */
 export function isMidyearReminderDue(referenceDate = new Date()) {
   const ref = new Date(referenceDate);
-  const y = ref.getFullYear();
-  const may30 = new Date(y, 4, 30);
-  const june30 = new Date(y, 5, 30);
+  const y = ref.getUTCFullYear();
+  const may30 = new Date(Date.UTC(y, 4, 30));
+  const june30 = new Date(Date.UTC(y, 5, 30));
   return ref >= may30 && ref <= june30;
 }
 
@@ -83,15 +83,15 @@ export function computeBenefitsEligibility(
   tenureStartDate = null
 ) {
   const ref = new Date(referenceDate);
-  const y = ref.getFullYear();
+  const y = ref.getUTCFullYear();
 
   const tenure = employee.employment_tenure || '';
   const isActive = employee.is_active !== false;
 
-  // Key date cutoffs
-  const may31   = new Date(y, 4, 31);
-  const july31  = new Date(y, 6, 31);
-  const dec31   = new Date(y, 11, 31);
+  // Key date cutoffs constructed as UTC dates to prevent timezone shifting
+  const may31   = new Date(Date.UTC(y, 4, 31));
+  const july31  = new Date(Date.UTC(y, 6, 31));
+  const dec31   = new Date(Date.UTC(y, 11, 31));
 
   const results = {};
 
@@ -108,19 +108,22 @@ export function computeBenefitsEligibility(
 
   // ── 2. Birthday Bonus ──────────────────────────────────────────────────────
   const yearsInService = computeYearsInService(employee.date_hired, ref);
-  const isBirthdayEligible = isActive && yearsInService > 1;
+  const hasBirthdate = !!employee.birthdate;
+  const isBirthdayEligible = isActive && yearsInService >= 1 && hasBirthdate;
   results.birthday_bonus = {
     isEligible: isBirthdayEligible,
     awardLevel: null,
-    reason: isBirthdayEligible
+    reason: !hasBirthdate
+      ? 'Requires a valid birthdate.'
+      : isBirthdayEligible
       ? `${yearsInService} year(s) in service. Eligible.`
-      : `Requires more than 1 year of service. Current: ${yearsInService} year(s).`,
+      : `Requires at least 1 completed year of service. Current: ${yearsInService} year(s).`,
   };
 
   // ── 3. Summer Pay ──────────────────────────────────────────────────────────
-  // Eligible if current tenure is Probationary or Part-Time AND
-  // years in that eligible tenure > 3 computed before May 31.
-  const isSummerTenure = ['Probationary', 'Part-Time'].includes(tenure);
+  // Eligible if current tenure is Regular, Probationary, or Part-Time AND
+  // total years of service >= 3 computed before May 31.
+  const isSummerTenure = ['Regular', 'Probationary', 'Part-Time'].includes(tenure);
   const tenureStart = tenureStartDate
     ? new Date(tenureStartDate)
     : employee.date_hired
@@ -129,15 +132,15 @@ export function computeBenefitsEligibility(
   const yearsSummerTenure = tenureStart
     ? computeYearsInService(tenureStart, may31)
     : 0;
-  const isSummerEligible = isActive && isSummerTenure && yearsSummerTenure > 3;
+  const isSummerEligible = isActive && isSummerTenure && yearsSummerTenure >= 3;
   results.summer_pay = {
     isEligible: isSummerEligible,
     awardLevel: null,
     reason: isSummerEligible
-      ? `${yearsSummerTenure} year(s) under ${tenure} tenure before May 31. Eligible.`
+      ? `${yearsSummerTenure} year(s) of service before May 31. Eligible.`
       : !isSummerTenure
-      ? `Tenure "${tenure || 'Unknown'}" does not qualify. Requires Probationary or Part-Time.`
-      : `Requires more than 3 years as Probationary/Part-Time before May 31. Current: ${yearsSummerTenure} year(s).`,
+      ? `Tenure "${tenure || 'Unknown'}" does not qualify. Requires Regular, Probationary, or Part-Time.`
+      : `Requires at least 3 years of service before May 31. Current: ${yearsSummerTenure} year(s).`,
   };
 
   // ── 4. 13th Month Pay ──────────────────────────────────────────────────────
