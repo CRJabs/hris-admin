@@ -194,35 +194,30 @@ export default function Employees() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-[1440px] mx-auto">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="relative w-full sm:max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search employees, departments..."
-              value={globalSearch}
-              onChange={(e) => setGlobalSearch(e.target.value)}
-              className="pl-10 bg-background border-input focus-visible:ring-1 focus-visible:ring-primary"
-            />
-            {globalSearch && (
-              <button onClick={() => setGlobalSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2">
-                <X className="w-4 h-4 text-muted-foreground" />
-              </button>
-            )}
-          </div>
-          <EmployeeFilters filters={filters} onFilterChange={handleFilterChange} onClear={clearFilters} departments={liveDepartments} />
+    <div className="flex flex-col h-full min-h-0 p-4 md:p-6 gap-5 max-w-[1440px] mx-auto w-full">
+      <div className="flex items-center gap-3 w-full flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search employees, departments..."
+            value={globalSearch}
+            onChange={(e) => setGlobalSearch(e.target.value)}
+            className="pl-10 w-full bg-background border-input focus-visible:ring-1 focus-visible:ring-primary"
+          />
+          {globalSearch && (
+            <button onClick={() => setGlobalSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button onClick={() => navigate("/employees/add")} className="gap-2 text-xs bg-[#0C005F] hover:bg-[#0C005F]/90">
-            <UserPlus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Add Employee</span>
-          </Button>
+        <EmployeeFilters filters={filters} onFilterChange={handleFilterChange} onClear={clearFilters} departments={liveDepartments} />
+        <div className="text-sm text-muted-foreground shrink-0 px-2 font-medium">
+          {filteredEmployees.length} employee{filteredEmployees.length !== 1 ? "s" : ""} found
         </div>
-      </div>
-
-      <div className="text-sm text-muted-foreground">
-         {filteredEmployees.length} employee{filteredEmployees.length !== 1 ? "s" : ""} found
+        <Button onClick={() => navigate("/employees/add")} className="gap-2 text-xs bg-[#0C005F] hover:bg-[#0C005F]/90 shrink-0">
+          <UserPlus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Add Employee</span>
+        </Button>
       </div>
 
       <EmployeeTable

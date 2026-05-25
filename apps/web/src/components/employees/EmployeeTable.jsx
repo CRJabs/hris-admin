@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   MoreHorizontal, Eye, Archive, UserCheck, AlertCircle, 
-  Trash2, ArrowUpDown, Crown
+  Trash2, ArrowUpDown, Crown, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,8 +13,9 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter, 
   AlertDialogHeader, AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 
 const statusStyles = {
   Regular: "bg-green-50 text-green-700 border-green-200",
@@ -26,15 +27,40 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
 
+  const [page, setPage] = useState(1);
+  const [pageInput, setPageInput] = useState('1');
+  const ROWS_PER_PAGE = 25;
+  const totalPages = Math.max(1, Math.ceil(employees.length / ROWS_PER_PAGE));
+
+  useEffect(() => {
+    setPage(1);
+    setPageInput('1');
+  }, [employees.length]);
+
+  const paginated = employees.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
+
+  const goTo = (p) => {
+    const clamped = Math.max(1, Math.min(totalPages, p));
+    setPage(clamped);
+    setPageInput(String(clamped));
+  };
+
+  const handlePageInputKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      const parsed = parseInt(pageInput, 10);
+      if (!isNaN(parsed)) goTo(parsed);
+    }
+  };
+
   const SortButton = ({ column, label }) => (
     <button 
       onClick={(e) => { e.stopPropagation(); onSort?.(column); }}
-      className="flex items-center gap-1 hover:text-foreground transition-colors group"
+      className="flex items-center gap-1 hover:text-white/80 transition-colors group"
     >
       {label}
       <ArrowUpDown className={cn(
         "w-3 h-3 transition-colors",
-        sortConfig?.key === column ? "text-primary" : "text-muted-foreground/50 group-hover:text-muted-foreground"
+        sortConfig?.key === column ? "text-white" : "text-white/50 group-hover:text-white/70"
       )} />
     </button>
   );
@@ -54,31 +80,31 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <div className="overflow-x-auto">
-      <Table className="min-w-[700px]">
-        <TableHeader>
-          <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="text-xs font-semibold uppercase tracking-wider w-25">
+    <div className="flex flex-col min-h-0 flex-1 rounded-xl border border-border bg-card overflow-hidden">
+      <div className="overflow-auto flex-1">
+      <table className="w-full caption-bottom text-sm min-w-[700px]">
+        <TableHeader className="sticky top-0 z-10 shadow-sm bg-[#0C005F]">
+          <TableRow className="bg-[#0C005F] hover:bg-[#0C005F]">
+            <TableHead className="text-xs font-semibold uppercase tracking-wider w-25 border-x border-[#0a0050] text-white py-2.5">
               <SortButton column="employee_id" label="ID" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">
-              <SortButton column="last_name" label="Employee" />
+            <TableHead className="text-xs font-semibold uppercase tracking-wider border-x border-[#0a0050] text-white py-2.5">
+              <SortButton column="last_name" label="EMPLOYEE NAME" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">
-              <SortButton column="department" label="Department" />
+            <TableHead className="text-xs font-semibold uppercase tracking-wider border-x border-[#0a0050] text-white py-2.5">
+              <SortButton column="department" label="DEPARTMENT" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">
-              <SortButton column="position" label="Position" />
+            <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell border-x border-[#0a0050] text-white py-2.5">
+              <SortButton column="position" label="POSITION" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">
-              <SortButton column="employment_status" label="Status" />
+            <TableHead className="text-xs font-semibold uppercase tracking-wider border-x border-[#0a0050] text-white py-2.5">
+              <SortButton column="employment_status" label="STATUS" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">
-              <SortButton column="employment_tenure" label="Tenure" />
+            <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell border-x border-[#0a0050] text-white py-2.5">
+              <SortButton column="employment_tenure" label="TENURE" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider text-center w-15">Active</TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider w-15"></TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider text-center w-15 border-x border-[#0a0050] text-white py-2.5">ACTIVE</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider w-15 border-x border-[#0a0050] text-white py-2.5"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -109,7 +135,7 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
               </TableCell>
             </TableRow>
           ) : (
-            employees.map((emp) => (
+            paginated.map((emp) => (
               <TableRow
                 key={emp.id || emp.employee_id}
                 className="cursor-pointer hover:bg-muted/30 transition-colors"
@@ -194,7 +220,57 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
             ))
           )}
         </TableBody>
-      </Table>
+      </table>
+      </div>
+
+      <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50/80 rounded-b-xl mt-auto gap-2 flex-wrap">
+        <p className="text-xs text-muted-foreground">
+          Showing{' '}
+          <span className="font-semibold text-foreground">
+            {((page - 1) * ROWS_PER_PAGE) + (employees.length > 0 ? 1 : 0)}–{Math.min(page * ROWS_PER_PAGE, employees.length)}
+          </span>{' '}
+          of{' '}
+          <span className="font-semibold text-foreground">{employees.length}</span>{' '}
+          {employees.length !== 1 ? 'entries' : 'entry'}
+        </p>
+
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => goTo(page - 1)}
+            disabled={page <= 1}
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </Button>
+
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span className="hidden sm:inline">Page</span>
+            <Input
+              className="h-7 w-12 text-center text-xs px-1"
+              value={pageInput}
+              onChange={(e) => setPageInput(e.target.value)}
+              onKeyDown={handlePageInputKeyDown}
+              onBlur={() => {
+                const parsed = parseInt(pageInput, 10);
+                if (!isNaN(parsed)) goTo(parsed);
+                else setPageInput(String(page));
+              }}
+            />
+            <span>of {totalPages}</span>
+          </div>
+
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => goTo(page + 1)}
+            disabled={page >= totalPages}
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       </div>
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>

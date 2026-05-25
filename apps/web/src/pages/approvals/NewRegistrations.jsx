@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import E201Modal from "@/components/employees/E201Modal";
+import { useOutletContext } from "react-router-dom";
+import ApprovalsTabs from "@/components/approvals/ApprovalsTabs";
 
 export default function NewRegistrations() {
   const [registrations, setRegistrations] = useState([]);
@@ -16,6 +18,7 @@ export default function NewRegistrations() {
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const { counts } = useOutletContext();
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -147,7 +150,8 @@ export default function NewRegistrations() {
     <div className="p-4 md:p-6 space-y-6 max-w-[1440px] mx-auto">
       {/* Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row items-center gap-3">
-        <div className="relative flex-1 w-full">
+        <ApprovalsTabs counts={counts} />
+        <div className="relative flex-1 w-full min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
             placeholder="Search by name, email, ID, or department..."
