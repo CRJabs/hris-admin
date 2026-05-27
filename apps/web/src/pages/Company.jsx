@@ -51,6 +51,7 @@ export default function UniversityChart() {
   const [isEditingDetail, setIsEditingDetail] = useState(false);
   const [editName, setEditName] = useState("");
   const [editHeadId, setEditHeadId] = useState("");
+  const [editHeads, setEditHeads] = useState([]);
   const [headAssignmentSearch, setHeadAssignmentSearch] = useState("");
 
   useEffect(() => {
@@ -61,6 +62,15 @@ export default function UniversityChart() {
     if (selectedNode) {
       setEditName(selectedNode.name);
       setEditHeadId(selectedNode.head_id || "");
+      
+      const isExec = selectedNode && (!selectedNode.parent_id || orgUnits.some(u => u.id === selectedNode.parent_id && !u.parent_id));
+      const initialHeads = selectedNode.heads && selectedNode.heads.length > 0
+        ? selectedNode.heads
+        : selectedNode.head_id
+        ? [{ employee_id: selectedNode.head_id, title: isExec ? selectedNode.name : "Department Head" }]
+        : [];
+      setEditHeads(initialHeads);
+
       setAssignmentSearch("");
       setHeadAssignmentSearch("");
     }
@@ -112,36 +122,36 @@ export default function UniversityChart() {
     const parent = orgUnits.find(u => u.id === parentId);
     let level = 0;
     if (parent) {
-      const grandParent = orgUnits.find(u => u.id === parent.parent_id);
-      level = grandParent ? 2 : 1;
+      const getVisualLevel = (node) => {
+        if (!node) return 0;
+        const isL0 = !node.parent_id || node.name?.toLowerCase().includes("departments");
+        if (isL0) return 0;
+        const parentNode = orgUnits.find(u => u.id === node.parent_id);
+        if (!parentNode) return 1;
+        const isParentL0 = !parentNode.parent_id || parentNode.name?.toLowerCase().includes("departments");
+        return isParentL0 ? 1 : 2;
+      };
+      level = getVisualLevel(parent) + 1;
     }
 
-    // Only enforce the 3-child limit on the executive branch.
-    // Walk ancestors to check if this node is under an Academic or Non-Academic hub.
-    const isUnderInstitutionalHub = (() => {
-      let current = parent;
-      while (current) {
-        if (current.name?.toLowerCase().includes('academic')) return true;
-        current = orgUnits.find(u => u.id === current.parent_id);
-      }
-      return false;
-    })();
-    if (level === 1 && !isUnderInstitutionalHub) {
-      const childrenCount = orgUnits.filter(u => u.parent_id === parentId).length;
-      if (childrenCount >= 3) {
-        toast.error("Maximum limit of 3 reached for the Executive Office.");
-        return;
-      }
-    }
+    // No child limits are enforced. Anyone can add sub-units.
 
-    // Keep the max 3-tier depth
-    if (level >= 3) {
+    // Constrain to strict 2-tier depth (Parent Tree -> Sub-units/Departments only)
+    if (level >= 2) {
       toast.error("Maximum hierarchy depth reached.");
       return;
     }
 
     try {
-      const name = level === 0 ? "University President" : (level === 1 ? "New Executive Office" : "New Department");
+      const isDept = parent && (() => {
+        let current = parent;
+        while (current) {
+          if (current.name?.toLowerCase().includes('academic')) return true;
+          current = orgUnits.find(u => u.id === current.parent_id);
+        }
+        return false;
+      })();
+      const name = level === 0 ? "University President" : (isDept ? "New Department" : "New Executive Office");
       const { data, error } = await supabase.from('org_units').insert({
         name,
         parent_id: parentId
@@ -248,57 +258,82 @@ export default function UniversityChart() {
   const handleSaveDetail = async () => {
     if (!selectedNode) return;
     try {
+      const primaryHeadId = editHeads[0]?.employee_id || null;
+
       const { error } = await supabase
         .from('org_units')
         .update({ 
           name: editName,
-          head_id: editHeadId || null
+          head_id: primaryHeadId,
+          heads: editHeads
         })
         .eq('id', selectedNode.id);
 
       if (error) throw error;
 
-      setOrgUnits(prev => prev.map(u => u.id === selectedNode.id ? { ...u, name: editName, head_id: editHeadId } : u));
-      setSelectedNode(prev => ({ ...prev, name: editName, head_id: editHeadId }));
+      // Update employee records for each assigned head of office
+      for (const head of editHeads) {
+        if (head.employee_id) {
+          const { error: empUpdateError } = await supabase
+            .from('employees')
+            .update({
+              position: head.title || "Head of Office",
+              department: editName,
+              org_unit_id: selectedNode.id
+            })
+            .eq('id', head.employee_id);
+            
+          if (empUpdateError) {
+            console.error("Error updating employee record for head:", empUpdateError);
+          }
+        }
+      }
+
+      // Update the local employees state so the UI reflects changes immediately
+      setEmployees(prev => prev.map(e => {
+        const matchingHead = editHeads.find(h => h.employee_id === e.id);
+        if (matchingHead) {
+          return {
+            ...e,
+            position: matchingHead.title || "Head of Office",
+            department: editName,
+            org_unit_id: selectedNode.id
+          };
+        }
+        return e;
+      }));
+
+      setOrgUnits(prev => prev.map(u => u.id === selectedNode.id ? { ...u, name: editName, head_id: primaryHeadId, heads: editHeads } : u));
+      setSelectedNode(prev => ({ ...prev, name: editName, head_id: primaryHeadId, heads: editHeads }));
       setIsEditingDetail(false);
       toast.success("Department details updated");
     } catch (err) {
+      console.error(err);
       toast.error("Failed to update details");
     }
   };
 
-  const handleAppointHead = async (employeeId) => {
-    try {
-      const { error } = await supabase
-        .from('org_units')
-        .update({ head_id: employeeId })
-        .eq('id', selectedNode.id);
+  const handleAppointHead = (employeeId) => {
+    const emp = employees.find(e => e.id === employeeId);
+    if (!emp) return;
 
-      if (error) throw error;
-      setOrgUnits(prev => prev.map(u => u.id === selectedNode.id ? { ...u, head_id: employeeId } : u));
-      setSelectedNode(prev => ({ ...prev, head_id: employeeId }));
-      setEditHeadId(employeeId);
-      toast.success("Head of Office appointed");
-    } catch (err) {
-      toast.error("Failed to appoint head");
-    }
+    const isExec = selectedNode && (!selectedNode.parent_id || orgUnits.some(u => u.id === selectedNode.parent_id && !u.parent_id));
+    const title = emp.position || (isExec ? selectedNode.name : "Department Head");
+
+    setEditHeads(prev => {
+      if (prev.some(h => h.employee_id === employeeId)) return prev;
+      return [...prev, { employee_id: employeeId, title }];
+    });
+    toast.success(`${getFullName(emp)} added to appointed list.`);
   };
 
-  const handleRemoveHead = async () => {
-    try {
-      const { error } = await supabase
-        .from('org_units')
-        .update({ head_id: null })
-        .eq('id', selectedNode.id);
+  const handleRemoveHead = (employeeId) => {
+    setEditHeads(prev => prev.filter(h => h.employee_id !== employeeId));
+    toast.success("Removed head from appointed list.");
+  };
 
-      if (error) throw error;
-      setOrgUnits(prev => prev.map(u => u.id === selectedNode.id ? { ...u, head_id: null } : u));
-      setSelectedNode(prev => ({ ...prev, head_id: null }));
-      setEditHeadId("");
-      toast.success("Head of Office removed");
-    } catch (err) {
-      toast.error("Failed to remove head");
-    }
+  const handleUpdateHeadTitle = (employeeId, newTitle) => {
+    setEditHeads(prev => prev.map(h => h.employee_id === employeeId ? { ...h, title: newTitle } : h));
   };
 
   const handleAssignEmployee = async (employeeId) => {
@@ -394,10 +429,22 @@ export default function UniversityChart() {
     return employees.filter(e => e.org_unit_id === selectedNode.id);
   }, [employees, selectedNode]);
 
+  const headsList = useMemo(() => {
+    if (selectedNode?.heads && selectedNode.heads.length > 0) {
+      return selectedNode.heads;
+    }
+    if (selectedNode?.head_id) {
+      const isExec = selectedNode && (!selectedNode.parent_id || orgUnits.some(u => u.id === selectedNode.parent_id && !u.parent_id));
+      return [{ employee_id: selectedNode.head_id, title: isExec ? selectedNode.name : "Department Head" }];
+    }
+    return [];
+  }, [selectedNode, orgUnits]);
+
   const availableEmployees = useMemo(() => {
     const search = (assignmentSearch || "").toLowerCase();
+    const headsIds = headsList.map(h => h.employee_id);
     const filtered = employees.filter(e => 
-      e.id !== selectedNode?.head_id && // Exclude the current head
+      !headsIds.includes(e.id) && 
       (getFullName(e).toLowerCase().includes(search) || e.employee_id?.toLowerCase().includes(search))
     );
     
@@ -407,7 +454,7 @@ export default function UniversityChart() {
       if (a.org_unit_id && !b.org_unit_id) return 1;
       return 0;
     });
-  }, [employees, assignmentSearch, selectedNode]);
+  }, [employees, assignmentSearch, headsList]);
 
   const renderNode = (node, level = 0) => {
     const children = orgUnits.filter(u => u.parent_id === node.id && !u.name?.toLowerCase().includes("departments"));
@@ -445,8 +492,7 @@ export default function UniversityChart() {
     const isNonAcademic = node.name?.toLowerCase().includes("non-academic departments");
     const isSpecialL0 = isAcademic || isNonAcademic;
     // Nodes whose parent is an academic/non-academic hub are departments, not executive offices
-    const parentNode = orgUnits.find(u => u.id === node.parent_id);
-    const isUnderAcademicHub = parentNode?.name?.toLowerCase().includes('academic');
+    const isUnderAcademicHub = isAcademicBranch(node.id);
 
     let style = { ...levelStyles[Math.min(level, 2)] };
     // Override level-1 label to "Department" for nodes directly under academic/non-academic hubs
@@ -491,18 +537,16 @@ export default function UniversityChart() {
                   {style.label}
                 </span>
                 <div className="flex items-center gap-2">
-                  {isEditing && level > 0 && (
+                  {isEditing && level === 0 && (
                     <div className="flex items-center bg-slate-50 rounded-full px-1 py-0.5 border border-slate-100 shadow-sm">
-                      {level < 2 && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-7 w-7 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-full"
-                          onClick={(e) => { e.stopPropagation(); handleAddUnit(node.id); }}
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-7 w-7 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-full"
+                        onClick={(e) => { e.stopPropagation(); handleAddUnit(node.id); }}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -513,16 +557,30 @@ export default function UniversityChart() {
                       </Button>
                     </div>
                   )}
-                  <div 
-                    className="flex items-center gap-1.5 text-[10px] font-black text-indigo-600 uppercase cursor-pointer hover:bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 transition-all bg-white shadow-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleExpand(node.id);
-                    }}
-                  >
-                    <span>{children.length} Units</span>
-                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-500", isExpanded ? "rotate-180" : "rotate-0")} />
-                  </div>
+                  {isEditing && level > 0 && (
+                    <div className="flex items-center bg-slate-50 rounded-full px-1 py-0.5 border border-slate-100 shadow-sm">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-7 w-7 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteUnit(node); }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                  {level === 0 && (
+                    <div 
+                      className="flex items-center gap-1.5 text-[10px] font-black text-indigo-600 uppercase cursor-pointer hover:bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 transition-all bg-white shadow-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpand(node.id);
+                      }}
+                    >
+                      <span>{children.length} Units</span>
+                      <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-500", isExpanded ? "rotate-180" : "rotate-0")} />
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-4">
@@ -548,7 +606,7 @@ export default function UniversityChart() {
               </div>
             </CardContent>
           </Card>
-
+ 
           {isExpanded && children.length > 0 && (
             <div className="ml-5 border-l-2 border-slate-100 mt-2 pl-4 space-y-4 animate-in slide-in-from-left-2 duration-300 relative">
               {children.map((child, idx) => (
@@ -562,8 +620,8 @@ export default function UniversityChart() {
                   {renderNode(child, level + 1)}
                 </div>
               ))}
-              {isEditing && (
-                 level === 0 && !isUnderAcademicHub ? (children.length >= 3 ? null : (
+              {isEditing && level === 0 && (
+                 !isUnderAcademicHub ? (
                    <div className="relative pl-6">
                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-6 h-[2px] bg-slate-200" />
                      <Button 
@@ -575,7 +633,7 @@ export default function UniversityChart() {
                        Add Executive Office
                      </Button>
                    </div>
-                 )) : (
+                 ) : (
                    <div className="relative pl-6">
                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-6 h-[2px] bg-slate-200" />
                      <Button 
@@ -584,7 +642,7 @@ export default function UniversityChart() {
                        onClick={() => handleAddUnit(node.id)}
                      >
                        <Plus className="w-3.5 h-3.5" />
-                       Add {level === 1 ? "Department" : "Sub-Department"}
+                       Add Department
                      </Button>
                    </div>
                  )
@@ -592,7 +650,7 @@ export default function UniversityChart() {
             </div>
           )}
           
-          {isExpanded && isEditing && children.length === 0 && (
+          {isExpanded && isEditing && children.length === 0 && level === 0 && (
             <div className="ml-6 border-l-2 border-slate-200 mt-4 pt-2">
                <div className="relative pl-6">
                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-6 h-[2px] bg-slate-200" />
@@ -602,7 +660,7 @@ export default function UniversityChart() {
                    onClick={() => handleAddUnit(node.id)}
                  >
                    <Plus className="w-3.5 h-3.5" />
-                   Add {level === 0 ? "Executive Office" : (level === 1 ? "Department" : "Sub-Department")}
+                   Add {!isUnderAcademicHub ? "Executive Office" : "Department"}
                  </Button>
                </div>
             </div>
@@ -614,6 +672,8 @@ export default function UniversityChart() {
 
   const selectedHead = employees.find(e => e.id === selectedNode?.head_id);
   const isExecutiveNode = selectedNode && (!selectedNode.parent_id || orgUnits.find(u => u.id === selectedNode.parent_id && !u.parent_id));
+
+  // headsList useMemo was moved up to be used in availableEmployees
   
   const isInstitutional = useMemo(() => {
     if (!selectedNode) return false;
@@ -730,7 +790,6 @@ export default function UniversityChart() {
                     ) : (
                       <div className="space-y-1">
                         <h2 className="text-5xl font-black text-slate-900 tracking-tighter drop-shadow-sm">{selectedNode.name}</h2>
-                        <p className="text-xs font-black text-indigo-500 uppercase tracking-[0.4em] ml-1">Organizational Unit Details</p>
                       </div>
                     )}
                   </div>
@@ -835,169 +894,297 @@ export default function UniversityChart() {
                 <>
                   {/* Head of Office Section */}
                   <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                   <h3 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">Head of Office</h3>
-                </div>
-                {(() => {
-                  const nodeLevel = !selectedNode?.parent_id ? 0 : 
-                                   orgUnits.find(u => u.id === selectedNode.parent_id && !u.parent_id) ? 1 : 2;
-                  
-                  const cardStyles = [
-                    { bg: "bg-[#0C005F]", text: "text-white", subtext: "text-white/60", badge: "bg-amber-400 text-[#0C005F]", border: "border-amber-400/20" },
-                    { bg: "bg-white", text: "text-slate-900", subtext: "text-slate-500", badge: "bg-indigo-600 text-white", border: "border-slate-200" },
-                    { bg: "bg-white", text: "text-slate-900", subtext: "text-slate-500", badge: "bg-emerald-600 text-white", border: "border-slate-200" }
-                  ];
-                  const s = cardStyles[nodeLevel];
+                    <div className="flex items-center justify-between">
+                       <h3 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">
+                         {headsList.length <= 1 ? "Head of Office" : "Heads of Office"}
+                       </h3>
+                    </div>
+                    {(() => {
+                      const nodeLevel = !selectedNode?.parent_id ? 0 : 
+                                       orgUnits.find(u => u.id === selectedNode.parent_id && !u.parent_id) ? 1 : 2;
+                      
+                      const cardStyles = [
+                        { bg: "bg-[#0C005F]", text: "text-white", subtext: "text-white/60", badge: "bg-amber-400 text-[#0C005F]", border: "border-amber-400/20" },
+                        { bg: "bg-white", text: "text-slate-900", subtext: "text-slate-500", badge: "bg-indigo-600 text-white", border: "border-slate-200" },
+                        { bg: "bg-white", text: "text-slate-900", subtext: "text-slate-500", badge: "bg-emerald-600 text-white", border: "border-slate-200" }
+                      ];
+                      const s = cardStyles[nodeLevel];
 
-                  return (
-                    <Card className={cn("shadow-xl overflow-hidden group transition-all duration-500 hover:shadow-2xl border-2", s.bg, s.border)}>
-                      <CardContent className="p-8">
-                        <div className="flex flex-col md:flex-row gap-12">
-                          <div className="shrink-0 flex flex-col items-center gap-6">
-                            <div className="relative">
-                              <Avatar className="h-40 w-40 border-4 border-white shadow-2xl ring-1 ring-slate-100">
-                                <AvatarImage src={selectedHead?.photo_url} className="object-cover" />
-                                <AvatarFallback className="bg-slate-50">
-                                  <Users className="w-16 h-16 text-slate-200" />
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className={cn(
-                                "absolute bottom-2 right-2 w-10 h-10 border-4 border-white rounded-full shadow-lg",
-                                getStatusColor(selectedHead)
-                              )} />
-                            </div>
-                          </div>
-                          
-                          <div className="flex-1 space-y-8 relative">
-                            {/* Position Badge moved to TOP */}
-                            <div className="flex flex-wrap gap-2">
-                              <span className={cn("px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg", s.badge)}>
-                                {isExecutiveNode ? selectedNode.name : "Department Head"}
-                              </span>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                              <div className="space-y-2">
-                                <p className={cn("text-[10px] font-black uppercase tracking-widest", s.subtext)}>Employee Name</p>
-                                <h4 className={cn("text-3xl font-black leading-tight", s.text)}>
-                                  {selectedHead ? getFullName(selectedHead) : "Pending Assignment"}
-                                </h4>
-                                <p className={cn("font-bold uppercase tracking-widest text-xs", nodeLevel === 0 ? "text-amber-400" : "text-indigo-600")}>
-                                  {selectedHead?.position || "Position to be defined"}
-                                </p>
-                              </div>
-                              
-                              <div className="space-y-4 pt-4 md:pt-0">
-                                 {[
-                                   { label: "Email", icon: MailIcon, value: selectedHead?.contact_email },
-                                   { label: "Phone", icon: PhoneIcon, value: selectedHead?.contact_phone },
-                                 ].map((info) => (
-                                   <div key={info.label} className={cn("flex items-center gap-8 justify-between group/row border-b pb-2", nodeLevel === 0 ? "border-white/10" : "border-slate-50")}>
-                                     <span className={cn("text-[10px] font-black uppercase tracking-widest", s.subtext)}>{info.label}</span>
-                                     <div className="flex items-center gap-3">
-                                       <span className={cn("text-sm font-bold transition-colors", s.text)}>
-                                         {info.value || "—"}
-                                       </span>
-                                       <info.icon className={cn("w-3.5 h-3.5", s.subtext)} />
-                                     </div>
-                                   </div>
-                                 ))}
+                      return headsList.length === 0 ? (
+                        <Card className={cn("shadow-xl overflow-hidden group transition-all duration-500 hover:shadow-2xl border-2", s.bg, s.border)}>
+                          <CardContent className="p-8">
+                            <div className="flex flex-col md:flex-row gap-8 items-center justify-center text-slate-400">
+                              <Users className="w-16 h-16 opacity-20" />
+                              <div className="text-center md:text-left">
+                                <h4 className="text-xl font-bold">No Appointed Heads</h4>
+                                <p className="text-sm">Appoint a head of office by editing the details.</p>
                               </div>
                             </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })()}
-              </div>
+                          </CardContent>
+                        </Card>
+                      ) : headsList.length === 1 ? (() => {
+                        const head = headsList[0];
+                        const emp = employees.find(e => e.id === head.employee_id);
+                        return (
+                          <Card className={cn("shadow-xl overflow-hidden group transition-all duration-500 hover:shadow-2xl border-2", s.bg, s.border)}>
+                            <CardContent className="p-8">
+                              <div className="flex flex-col md:flex-row gap-12">
+                                <div className="shrink-0 flex flex-col items-center gap-6">
+                                  <div className="relative">
+                                    <Avatar className="h-40 w-40 border-4 border-white shadow-2xl ring-1 ring-slate-100">
+                                      <AvatarImage src={emp?.photo_url} className="object-cover" />
+                                      <AvatarFallback className="bg-slate-50">
+                                        <Users className="w-16 h-16 text-slate-200" />
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className={cn(
+                                      "absolute bottom-2 right-2 w-10 h-10 border-4 border-white rounded-full shadow-lg",
+                                      getStatusColor(emp)
+                                    )} />
+                                  </div>
+                                </div>
+                                
+                                <div className="flex-1 space-y-8 relative">
+                                  <div className="flex flex-wrap gap-2">
+                                    <span className={cn("px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg", s.badge)}>
+                                      {head.title || (isExecutiveNode ? selectedNode.name : "Department Head")}
+                                    </span>
+                                  </div>
 
-              {isEditingDetail && (
-                <div className="space-y-6 p-8 bg-slate-100/50 rounded-3xl border border-slate-200 border-dashed">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Assign Head of Office</p>
-                      <p className="text-[10px] text-slate-400 font-medium italic">Selecting a new head will replace the current one.</p>
-                    </div>
-                    <div className="relative w-64">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                      <Input 
-                        placeholder="Search leaders..."
-                        value={headAssignmentSearch}
-                        onChange={(e) => setHeadAssignmentSearch(e.target.value)}
-                        className="pl-9 h-8 text-xs bg-white"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {employees
-                      .filter(emp => {
-                        if (!headAssignmentSearch) return true;
-                        const term = headAssignmentSearch.toLowerCase();
-                        return (
-                          emp.first_name?.toLowerCase().includes(term) ||
-                          emp.last_name?.toLowerCase().includes(term) ||
-                          emp.employee_id?.toLowerCase().includes(term)
-                        );
-                      })
-                      .slice(0, 8).map(emp => {
-                        const isCurrentlyHead = emp.id === selectedNode?.head_id;
-                        
-                        return (
-                          <Card 
-                            key={emp.id} 
-                            className={cn(
-                              "border-slate-200 bg-white transition-all group",
-                              isCurrentlyHead ? "border-[#0C005F] bg-[#0C005F]/5 shadow-sm" : "hover:border-amber-100 hover:shadow-md"
-                            )}
-                          >
-                            <CardContent className="p-4 flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-10 w-10">
-                                  <AvatarImage src={emp.photo_url} />
-                                  <AvatarFallback><Users className="w-4 h-4" /></AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="text-sm font-bold text-slate-900">{getFullName(emp)}</p>
-                                  <p className={cn(
-                                    "text-[10px] uppercase font-bold tracking-tight",
-                                    isCurrentlyHead ? "text-[#0C005F]" : "text-slate-400"
-                                  )}>
-                                    {isCurrentlyHead ? "Current Head" : (emp.position || "Staff")}
-                                  </p>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                                    <div className="space-y-2">
+                                      <p className={cn("text-[10px] font-black uppercase tracking-widest", s.subtext)}>Employee Name</p>
+                                      <h4 className={cn("text-3xl font-black leading-tight", s.text)}>
+                                        {emp ? getFullName(emp) : "Pending Assignment"}
+                                      </h4>
+                                      <p className={cn("font-bold uppercase tracking-widest text-xs", nodeLevel === 0 ? "text-amber-400" : "text-indigo-600")}>
+                                        {emp?.position || "Position Pending"}
+                                      </p>
+                                    </div>
+                                    
+                                    <div className="space-y-4 pt-4 md:pt-0">
+                                       {[
+                                         { label: "Email", icon: MailIcon, value: emp?.contact_email },
+                                         { label: "Phone", icon: PhoneIcon, value: emp?.contact_phone },
+                                       ].map((info) => (
+                                         <div key={info.label} className={cn("flex items-center gap-8 justify-between group/row border-b pb-2", nodeLevel === 0 ? "border-white/10" : "border-slate-50")}>
+                                           <span className={cn("text-[10px] font-black uppercase tracking-widest", s.subtext)}>{info.label}</span>
+                                           <div className="flex items-center gap-3">
+                                             <span className={cn("text-sm font-bold transition-colors", s.text)}>
+                                               {info.value || "—"}
+                                             </span>
+                                             <info.icon className={cn("w-3.5 h-3.5", s.subtext)} />
+                                           </div>
+                                         </div>
+                                       ))}
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
-                              {isCurrentlyHead ? (
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-9 px-4 text-red-400 hover:text-red-600 hover:bg-red-50 gap-2 font-black text-[10px] uppercase tracking-wider transition-all"
-                                  onClick={handleRemoveHead}
-                                >
-                                  <UserMinus className="w-4 h-4" />
-                                  Remove
-                                </Button>
-                              ) : (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="h-9 px-4 border-2 border-dashed border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-400 gap-2 font-black text-[10px] uppercase tracking-wider transition-all"
-                                  onClick={() => handleAppointHead(emp.id)}
-                                >
-                                  <Plus className="w-4 h-4" />
-                                  Appoint
-                                </Button>
-                              )}
                             </CardContent>
                           </Card>
                         );
-                    })}
-                  </div>
-                </div>
-              )}
+                      })() : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {headsList.map((head, idx) => {
+                            const emp = employees.find(e => e.id === head.employee_id);
+                            return (
+                              <Card key={idx} className={cn("shadow-lg overflow-hidden group transition-all duration-500 hover:shadow-2xl border-2", s.bg, s.border)}>
+                                <CardContent className="p-6">
+                                  <div className="flex flex-col sm:flex-row gap-6">
+                                    <div className="shrink-0 flex flex-col items-center gap-4">
+                                      <div className="relative">
+                                        <Avatar className="h-28 w-28 border-4 border-white shadow-xl ring-1 ring-slate-100">
+                                          <AvatarImage src={emp?.photo_url} className="object-cover" />
+                                          <AvatarFallback className="bg-slate-50">
+                                            <Users className="w-12 h-12 text-slate-200" />
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <div className={cn(
+                                          "absolute bottom-1 right-1 w-7 h-7 border-4 border-white rounded-full shadow-md",
+                                          getStatusColor(emp)
+                                        )} />
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex-1 space-y-4 min-w-0">
+                                      <div className="flex flex-wrap gap-2">
+                                        <span className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full shadow-md truncate max-w-full", s.badge)}>
+                                          {head.title || (isExecutiveNode ? selectedNode.name : "Department Head")}
+                                        </span>
+                                      </div>
 
-              {/* Employees Section */}
+                                      <div className="space-y-1">
+                                        <p className={cn("text-[9px] font-black uppercase tracking-widest", s.subtext)}>Employee Name</p>
+                                        <h4 className={cn("text-xl font-black leading-tight truncate", s.text)}>
+                                          {emp ? getFullName(emp) : "Pending Assignment"}
+                                        </h4>
+                                        <p className={cn("font-bold uppercase tracking-widest text-[10px]", nodeLevel === 0 ? "text-amber-400" : "text-indigo-600")}>
+                                          {emp?.position || "Position Pending"}
+                                        </p>
+                                      </div>
+                                      
+                                      <div className="space-y-2 pt-2 border-t border-dashed border-slate-100/20">
+                                         {[
+                                           { label: "Email", icon: MailIcon, value: emp?.contact_email },
+                                           { label: "Phone", icon: PhoneIcon, value: emp?.contact_phone },
+                                         ].map((info) => (
+                                           <div key={info.label} className={cn("flex items-center gap-4 justify-between group/row border-b pb-1 last:border-b-0", nodeLevel === 0 ? "border-white/10" : "border-slate-50")}>
+                                             <span className={cn("text-[9px] font-black uppercase tracking-widest", s.subtext)}>{info.label}</span>
+                                             <div className="flex items-center gap-2 min-w-0">
+                                               <span className={cn("text-xs font-bold transition-colors truncate", s.text)}>
+                                                 {info.value || "—"}
+                                               </span>
+                                               <info.icon className={cn("w-3 h-3 shrink-0", s.subtext)} />
+                                             </div>
+                                           </div>
+                                         ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {isEditingDetail && (
+                    <div className="space-y-8 p-8 bg-slate-100/50 rounded-3xl border border-slate-200 border-dashed">
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Appointed Leaders & Custom Titles</h4>
+                        {editHeads.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic">No heads appointed. Search and appoint leaders below.</p>
+                        ) : (
+                          <div className="space-y-4">
+                            {editHeads.map((head, idx) => {
+                              const emp = employees.find(e => e.id === head.employee_id);
+                              return (
+                                <div key={head.employee_id || idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="h-10 w-10">
+                                      <AvatarImage src={emp?.photo_url} />
+                                      <AvatarFallback><Users className="w-4 h-4" /></AvatarFallback>
+                                    </Avatar>
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-bold text-slate-900 truncate">{emp ? getFullName(emp) : "Pending"}</p>
+                                      <p className="text-[10px] text-slate-500 uppercase truncate">{emp?.position || "Staff"}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex-1 w-full sm:w-auto flex items-center gap-3">
+                                    <div className="flex-1">
+                                      <Input 
+                                        placeholder="Designated Title (e.g. Dean, Chairperson)"
+                                        value={head.title || ""}
+                                        onChange={(e) => handleUpdateHeadTitle(head.employee_id, e.target.value)}
+                                        className="h-9 text-xs bg-slate-50 border-slate-200 focus:bg-white"
+                                      />
+                                    </div>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-9 w-9 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full shrink-0"
+                                      onClick={() => handleRemoveHead(head.employee_id)}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      <hr className="border-slate-200" />
+
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Search & Appoint Leaders</p>
+                            <p className="text-[10px] text-slate-400 font-medium italic">You can appoint multiple heads of office to this unit.</p>
+                          </div>
+                          <div className="relative w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                            <Input 
+                              placeholder="Search leaders..."
+                              value={headAssignmentSearch}
+                              onChange={(e) => setHeadAssignmentSearch(e.target.value)}
+                              className="pl-9 h-8 text-xs bg-white"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {employees
+                            .filter(emp => {
+                              if (!headAssignmentSearch) return true;
+                              const term = headAssignmentSearch.toLowerCase();
+                              return (
+                                emp.first_name?.toLowerCase().includes(term) ||
+                                emp.last_name?.toLowerCase().includes(term) ||
+                                emp.employee_id?.toLowerCase().includes(term)
+                              );
+                            })
+                            .slice(0, 8).map(emp => {
+                              const isCurrentlyHead = editHeads.some(h => h.employee_id === emp.id);
+                              
+                              return (
+                                <Card 
+                                  key={emp.id} 
+                                  className={cn(
+                                    "border-slate-200 bg-white transition-all group",
+                                    isCurrentlyHead ? "border-[#0C005F] bg-[#0C005F]/5 shadow-sm" : "hover:border-amber-100 hover:shadow-md"
+                                  )}
+                                >
+                                  <CardContent className="p-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <Avatar className="h-10 w-10">
+                                        <AvatarImage src={emp.photo_url} />
+                                        <AvatarFallback><Users className="w-4 h-4" /></AvatarFallback>
+                                      </Avatar>
+                                      <div>
+                                        <p className="text-sm font-bold text-slate-900">{getFullName(emp)}</p>
+                                        <p className={cn(
+                                          "text-[10px] uppercase font-bold tracking-tight",
+                                          isCurrentlyHead ? "text-[#0C005F]" : "text-slate-400"
+                                        )}>
+                                          {isCurrentlyHead ? "Appointed" : (emp.position || "Staff")}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    {isCurrentlyHead ? (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-9 px-4 text-red-400 hover:text-red-600 hover:bg-red-50 gap-2 font-black text-[10px] uppercase tracking-wider transition-all"
+                                        onClick={() => handleRemoveHead(emp.id)}
+                                      >
+                                        <UserMinus className="w-4 h-4" />
+                                        Remove
+                                      </Button>
+                                    ) : (
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="h-9 px-4 border-2 border-dashed border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-400 gap-2 font-black text-[10px] uppercase tracking-wider transition-all"
+                                        onClick={() => handleAppointHead(emp.id)}
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                        Appoint
+                                      </Button>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
               <div className="space-y-8">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-4">
                   <h3 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">

@@ -30,6 +30,9 @@ const ACTION_NAV = {
   admin_added_employee: '/employees',
   admin_assigned_leave_credits: '/leaves/assign',
   admin_toggled_employee_status: '/employees',
+  dept_head_approved_leave: '/approvals/leaves',
+  dept_head_rejected_leave: '/approvals/leaves',
+  employee_filed_leave: '/approvals/leaves',
 };
 
 // Map action types to title text colors
@@ -44,6 +47,9 @@ const ACTION_TITLE_COLORS = {
   admin_added_employee: 'text-blue-600',
   admin_assigned_leave_credits: 'text-purple-600',
   admin_toggled_employee_status: 'text-slate-600',
+  dept_head_approved_leave: 'text-emerald-600',
+  dept_head_rejected_leave: 'text-rose-600',
+  employee_filed_leave: 'text-blue-600',
 };
 
 // Helper to make action keys human-readable
@@ -59,6 +65,9 @@ function formatActionTitle(action) {
     admin_added_employee: "New Employee Added",
     admin_assigned_leave_credits: "Leave Credits Updated",
     admin_toggled_employee_status: "Employee Status Changed",
+    dept_head_approved_leave: "Leave Approved by Dept Head",
+    dept_head_rejected_leave: "Leave Rejected by Dept Head",
+    employee_filed_leave: "New Leave Application",
   };
   return titles[action] || action;
 }
@@ -108,7 +117,7 @@ const navItems = [
 export default function Sidebar({ collapsed, setCollapsed }) {
   const location = useLocation();
   const { logout } = useAuth();
-  const [expandedItems, setExpandedItems] = useState(["Pending Approvals", "Employees", "Leaves"]);
+  const [expandedItems, setExpandedItems] = useState([]);
   
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);

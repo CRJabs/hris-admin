@@ -19,6 +19,7 @@ export default function LeaveApplications() {
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [orgUnits, setOrgUnits] = useState([]);
   const { counts } = useOutletContext();
 
   const fetchApplications = async () => {
@@ -26,7 +27,8 @@ export default function LeaveApplications() {
     try {
       const { data, error } = await supabase
         .from("leave_applications")
-        .select(`*, employees ( id, first_name, last_name, employee_id, department, position, photo_url )`)
+        .select(`*, employees ( id, first_name, last_name, employee_id, department, position, photo_url, org_unit_id )`)
+        .neq("status", "pending_dept_head")
         .order("created_at", { ascending: false });
 
       if (!error) setApplications(data || []);
@@ -40,6 +42,12 @@ export default function LeaveApplications() {
   useEffect(() => {
     fetchApplications();
 
+    const fetchOrgUnits = async () => {
+      const { data } = await supabase.from("org_units").select("id, name, parent_id");
+      if (data) setOrgUnits(data);
+    };
+    fetchOrgUnits();
+
     const sub = supabase
       .channel("leave_applications_admin")
       .on(
@@ -51,6 +59,22 @@ export default function LeaveApplications() {
 
     return () => sub.unsubscribe();
   }, []);
+
+  const isInstitutionalUnit = (unitId) => {
+    if (!unitId || !orgUnits.length) return false;
+    let current = orgUnits.find(u => u.id === unitId);
+    while (current) {
+      if (current.name?.toLowerCase().includes("departments")) {
+        return true;
+      }
+      if (current.parent_id) {
+        current = orgUnits.find(u => u.id === current.parent_id);
+      } else {
+        break;
+      }
+    }
+    return false;
+  };
 
   const handleViewApplication = (app) => {
     setSelectedApp(app);
@@ -349,6 +373,15 @@ export default function LeaveApplications() {
                         {format(new Date(app.start_date + "T00:00:00"), "MMM d, yyyy")} →{" "}
                         {format(new Date(app.end_date + "T00:00:00"), "MMM d, yyyy")}
                       </span>
+                      {app.approved_by_dept_head === true && isInstitutionalUnit(app.employees?.org_unit_id) && (
+                        <Badge
+                          variant="outline"
+                          className="bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1 text-[10px] font-bold"
+                        >
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          Approved by Department Head
+                        </Badge>
+                      )}
                     </div>
                     <div className="p-3 border rounded-md bg-slate-50/30">
                       <p className="text-xs text-slate-500 font-semibold mb-1 uppercase">

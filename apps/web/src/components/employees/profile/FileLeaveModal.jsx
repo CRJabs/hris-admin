@@ -95,6 +95,60 @@ export default function FileLeaveModal({ open, onOpenChange, employee, leaveCred
 
     setIsSubmitting(true);
     try {
+      // Fetch department and head details to see if it requires department head approval
+      let initialStatus = "pending";
+      let approvedByDeptHead = false;
+
+      if (employee.org_unit_id) {
+        const { data: unit } = await supabase
+          .from("org_units")
+          .select("id, name, parent_id, head_id, heads")
+          .eq("id", employee.org_unit_id)
+          .maybeSingle();
+
+        if (unit) {
+          let isInstitutional = false;
+          let current = unit;
+          while (current) {
+            if (current.name?.toLowerCase().includes("departments")) {
+              isInstitutional = true;
+              break;
+            }
+            if (current.parent_id) {
+              const { data: parent } = await supabase
+                .from("org_units")
+                .select("id, name, parent_id")
+                .eq("id", current.parent_id)
+                .maybeSingle();
+              current = parent;
+            } else {
+              break;
+            }
+          }
+
+          if (isInstitutional) {
+            const headsList = unit.heads && unit.heads.length > 0
+              ? unit.heads.map(h => h.employee_id)
+              : unit.head_id ? [unit.head_id] : [];
+
+            const hasActiveHead = headsList.length > 0 && !headsList.includes(employee.id);
+
+            if (hasActiveHead) {
+              initialStatus = "pending_dept_head";
+              approvedByDeptHead = false;
+            } else {
+              approvedByDeptHead = true;
+            }
+          } else {
+            approvedByDeptHead = true;
+          }
+        } else {
+          approvedByDeptHead = true;
+        }
+      } else {
+        approvedByDeptHead = true;
+      }
+
       // Insert leave application
       const { error: insertError } = await supabase
         .from("leave_applications")
@@ -106,27 +160,58 @@ export default function FileLeaveModal({ open, onOpenChange, employee, leaveCred
           start_date: startDate,
           end_date: endDate,
           purpose: purpose.trim(),
-          status: "pending",
+          status: initialStatus,
+          approved_by_dept_head: approvedByDeptHead,
         });
 
       if (insertError) throw insertError;
+
+      // If pending department head, notify the heads
+      if (initialStatus === "pending_dept_head" && employee.org_unit_id) {
+        const { data: unit } = await supabase
+          .from("org_units")
+          .select("head_id, heads")
+          .eq("id", employee.org_unit_id)
+          .maybeSingle();
+
+        if (unit) {
+          const headsList = unit.heads && unit.heads.length > 0
+            ? unit.heads.map(h => h.employee_id)
+            : unit.head_id ? [unit.head_id] : [];
+
+          for (const headId of headsList) {
+            if (headId && headId !== employee.id) {
+              await supabase.from("notifications").insert({
+                employee_id: headId,
+                type: "info",
+                title: "New Leave Application for Approval",
+                message: `${employee.first_name} ${employee.last_name} has filed a ${selectedCredit.leave_type} Leave application (${startDate} to ${endDate}) requiring your approval.`,
+              });
+            }
+          }
+        }
+      }
 
       // Notify employee (self-confirmation)
       await supabase.from("notifications").insert({
         employee_id: employee.id,
         type: "info",
         title: "Leave Application Submitted",
-        message: `Your ${selectedCredit.leave_type} Leave application from ${startDate} to ${endDate} has been submitted and is pending HR approval.`,
+        message: initialStatus === "pending_dept_head"
+          ? `Your ${selectedCredit.leave_type} Leave application from ${startDate} to ${endDate} has been submitted and is pending Department Head approval.`
+          : `Your ${selectedCredit.leave_type} Leave application from ${startDate} to ${endDate} has been submitted and is pending HR approval.`,
       });
 
-      // Log to admin activity
-      await supabase.from("admin_activity_log").insert({
-        actor_type: "employee",
-        actor_name: `${employee.first_name} ${employee.last_name}`,
-        action: "employee_filed_leave",
-        description: `${employee.first_name} ${employee.last_name} filed a ${selectedCredit.leave_type} Leave application (${startDate} to ${endDate})`,
-        employee_id: employee.id,
-      });
+      // Log to admin activity only if it is sent directly to HR (bypassing department head)
+      if (initialStatus === "pending") {
+        await supabase.from("admin_activity_log").insert({
+          actor_type: "employee",
+          actor_name: `${employee.first_name} ${employee.last_name}`,
+          action: "employee_filed_leave",
+          description: `${employee.first_name} ${employee.last_name} filed a ${selectedCredit.leave_type} Leave application (${startDate} to ${endDate})`,
+          employee_id: employee.id,
+        });
+      }
 
       toast.success("Leave application submitted successfully!");
       onOpenChange(false);

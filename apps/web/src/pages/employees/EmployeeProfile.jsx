@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Zap, Shield, FileText, Loader2, Info, LogOut, Gift, Bell } from "lucide-react";
+import { Home, User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Zap, Shield, FileText, Loader2, Info, LogOut, Gift, Bell, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ const EmploymentInfoTab = lazy(() => import("@/components/employees/profile/Empl
 const LeaveTab = lazy(() => import("@/components/employees/profile/LeaveTab"));
 const BenefitsTab = lazy(() => import("@/components/employees/profile/BenefitsTab"));
 const HomeTab = lazy(() => import("@/components/employees/profile/HomeTab"));
+const PendingApprovalsTab = lazy(() => import("@/components/employees/profile/PendingApprovalsTab"));
 import EditProfileDialog from "@/components/employees/profile/EditProfileDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, differenceInDays, isAfter, isBefore, addDays } from "date-fns";
@@ -72,6 +73,8 @@ export default function EmployeeProfile() {
   const [leaveCredits, setLeaveCredits] = useState([]); // Leave credits balance from DB
   const [leaveApplications, setLeaveApplications] = useState([]); // Leave applications from DB
   const [headOfUnit, setHeadOfUnit] = useState(null);
+  const [isInstitutionalHead, setIsInstitutionalHead] = useState(false);
+  const [ledUnitIds, setLedUnitIds] = useState([]);
 
   useEffect(() => {
     async function loadProfile() {
@@ -121,6 +124,42 @@ export default function EmployeeProfile() {
           setHeadOfUnit({ name: headUnit.name, isPresident });
         } else {
           setHeadOfUnit(null);
+        }
+
+        // Check if employee is institutional head
+        const { data: allUnits, error: unitsError } = await supabase
+          .from("org_units")
+          .select("id, name, parent_id, head_id, heads");
+
+        if (!unitsError && allUnits) {
+          const ledUnits = allUnits.filter(u => {
+            const isLegacyHead = u.head_id === data.id;
+            const isJsonHead = u.heads && Array.isArray(u.heads) && u.heads.some(h => h.employee_id === data.id);
+            return isLegacyHead || isJsonHead;
+          });
+
+          const institutionalLedUnits = ledUnits.filter(u => {
+            let current = u;
+            while (current) {
+              if (current.name?.toLowerCase().includes("departments")) {
+                return true;
+              }
+              if (current.parent_id) {
+                current = allUnits.find(parent => parent.id === current.parent_id);
+              } else {
+                break;
+              }
+            }
+            return false;
+          });
+
+          if (institutionalLedUnits.length > 0) {
+            setIsInstitutionalHead(true);
+            setLedUnitIds(institutionalLedUnits.map(u => u.id));
+          } else {
+            setIsInstitutionalHead(false);
+            setLedUnitIds([]);
+          }
         }
       } catch (err) {
         console.error("Error loading employee profile", err);
@@ -524,6 +563,12 @@ export default function EmployeeProfile() {
                 <Home className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Home</span>
               </TabsTrigger>
+              {isInstitutionalHead && (
+                <TabsTrigger value="approvals" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+                  <CheckSquare className="w-4 h-4 shrink-0" />
+                  <span className="hidden md:inline">Pending Approvals</span>
+                </TabsTrigger>
+              )}
               <TabsTrigger value="profiling" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
                 <User className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Personal Data</span>
@@ -563,6 +608,14 @@ export default function EmployeeProfile() {
                     headOfUnit={headOfUnit}
                   />
                 </TabsContent>
+                {isInstitutionalHead && (
+                  <TabsContent value="approvals" className="m-0 space-y-6">
+                    <PendingApprovalsTab 
+                      employee={employeeData} 
+                      ledUnitIds={ledUnitIds}
+                    />
+                  </TabsContent>
+                )}
                 <TabsContent value="profiling" className="m-0 space-y-6">
                   <PersonalDetailsTab
                     employee={isEditing ? editedData : employeeData}
