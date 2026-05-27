@@ -144,6 +144,22 @@ export default function Employees() {
 
   const handleDeleteEmployee = async (emp) => {
     try {
+      const empName = `${emp.first_name || ''} ${emp.last_name || ''}`;
+      const label = `${empName.trim() || 'Unknown Employee'} - Employee Record`;
+
+      // 1. Snapshot employee to bin
+      const { error: binError } = await supabase
+        .from('bin')
+        .insert({
+          record_type: 'employee',
+          record_id: emp.id,
+          record_data: emp,
+          label: label
+        });
+
+      if (binError) throw binError;
+
+      // 2. Delete employee from database
       const { error } = await supabase
         .from('employees')
         .delete()
@@ -152,8 +168,9 @@ export default function Employees() {
       if (error) throw error;
 
       setEmployees(prev => prev.filter(e => e.id !== emp.id));
-      toast.success(`Records for ${emp.first_name} ${emp.last_name} have been deleted.`);
+      toast.success(`Records for ${empName} have been moved to the Bin.`);
     } catch (err) {
+      console.error(err);
       toast.error("Failed to delete records");
     }
   };

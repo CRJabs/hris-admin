@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, X, CalendarDays, Search, Filter, Clock, Eye } from "lucide-react";
+import { Check, X, CalendarDays, Search, Filter, Clock, Eye, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -131,6 +131,48 @@ export default function LeaveApplications() {
       fetchApplications();
     } catch (err) {
       toast.error(`Failed to ${action} leave: ${err.message}`);
+    }
+  };
+
+  const handleDelete = async (app) => {
+    try {
+      const empName = `${app.employees?.first_name || ''} ${app.employees?.last_name || ''}`;
+      const label = `${empName.trim() || 'Unknown Employee'} - Leave Application`;
+
+      // 1. Snapshot leave application to bin
+      const { error: binError } = await supabase
+        .from('bin')
+        .insert({
+          record_type: 'leave_application',
+          record_id: app.id,
+          record_data: app,
+          label: label
+        });
+
+      if (binError) throw binError;
+
+      // 2. Delete leave application from source table
+      const { error: deleteError } = await supabase
+        .from('leave_applications')
+        .delete()
+        .eq('id', app.id);
+
+      if (deleteError) throw deleteError;
+
+      // 3. Log to admin activity
+      await supabase.from('admin_activity_log').insert({
+        actor_type: 'admin',
+        actor_name: 'Administrator',
+        action: 'admin_rejected_leave', // fallback action
+        description: `Moved Leave Application for ${empName} to Bin`,
+        employee_id: app.employee_id
+      });
+
+      toast.success("Leave application moved to Bin.");
+      fetchApplications();
+    } catch (err) {
+      console.error(err);
+      toast.error(`Failed to delete leave application: ${err.message}`);
     }
   };
 
@@ -317,7 +359,7 @@ export default function LeaveApplications() {
                       </p>
                     </div>
                   </div>
-                  {app.status === "pending" && (
+                  {app.status === "pending" ? (
                     <div
                       className="flex flex-row md:flex-col gap-2 shrink-0 justify-center"
                       onClick={(e) => e.stopPropagation()}
@@ -336,6 +378,28 @@ export default function LeaveApplications() {
                         className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
                         <X className="w-4 h-4" /> Reject
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(app)}
+                        className="gap-1.5 text-red-600 border-red-200 hover:text-white hover:bg-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" /> Delete
+                      </Button>
+                    </div>
+                  ) : (
+                    <div
+                      className="flex flex-row md:flex-col gap-2 shrink-0 justify-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(app)}
+                        className="gap-1.5 text-red-600 border-red-200 hover:text-white hover:bg-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" /> Delete
                       </Button>
                     </div>
                   )}

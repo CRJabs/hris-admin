@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, Users, DollarSign, BarChart3, Settings, LogOut, 
-  CheckSquare, ChevronLeft, ChevronRight, UserPlus, List, FileText, CalendarDays, Zap, Building2, Bell
+  CheckSquare, ChevronLeft, ChevronRight, UserPlus, List, FileText, CalendarDays, Zap, Building2, Bell,
+  History, Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
@@ -90,6 +91,15 @@ const navItems = [
     path: "/leaves",
     children: [
       { label: "Manage Leave Credits", icon: List, path: "/leaves/assign" },
+    ]
+  },
+  {
+    label: "Activity History",
+    icon: History,
+    path: "/activity",
+    children: [
+      { label: "Activity", icon: Bell, path: "/activity" },
+      { label: "Bin", icon: Trash2, path: "/activity/bin" },
     ]
   },
   { label: "Settings", icon: Settings, path: "/settings" },
@@ -348,10 +358,10 @@ export default function Sidebar({ collapsed, setCollapsed }) {
             </ScrollArea>
             <div className="border-t border-slate-100 p-3">
               <Link
-                to="/notifications"
+                to="/activity"
                 className="block w-full text-center text-xs font-bold text-[#0C005F] hover:text-[#0C005F]/80 uppercase tracking-widest py-1.5 rounded-md hover:bg-slate-50 transition-colors"
               >
-                View All Notifications
+                View Recent Activity
               </Link>
             </div>
           </PopoverContent>

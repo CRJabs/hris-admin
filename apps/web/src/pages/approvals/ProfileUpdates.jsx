@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckSquare, Check, X, Clock, Search, Filter } from "lucide-react";
+import { CheckSquare, Check, X, Clock, Search, Filter, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,6 +108,48 @@ export default function ProfileUpdates() {
     }
   };
 
+  const handleDelete = async (req) => {
+    try {
+      const empName = `${req.employees?.first_name || ''} ${req.employees?.last_name || ''}`;
+      const label = `${empName.trim() || 'Unknown Employee'} - Profile Update Request`;
+
+      // 1. Snapshot request to bin
+      const { error: binError } = await supabase
+        .from('bin')
+        .insert({
+          record_type: 'profile_update',
+          record_id: req.id,
+          record_data: req,
+          label: label
+        });
+
+      if (binError) throw binError;
+
+      // 2. Delete request from source table
+      const { error: deleteError } = await supabase
+        .from('employee_update_requests')
+        .delete()
+        .eq('id', req.id);
+
+      if (deleteError) throw deleteError;
+
+      // 3. Log to admin activity
+      await supabase.from('admin_activity_log').insert({
+        actor_type: 'admin',
+        actor_name: 'Administrator',
+        action: 'admin_toggled_employee_status', // fallback action
+        description: `Moved Profile Update Request for ${empName} to Bin`,
+        employee_id: req.employee_id
+      });
+
+      toast.success("Request moved to Bin.");
+      fetchRequests();
+    } catch (err) {
+      console.error(err);
+      toast.error(`Failed to delete request: ${err.message}`);
+    }
+  };
+
   const handleViewRegistrant = (emp) => {
     setSelectedRegistrant(emp);
     setModalOpen(true);
@@ -207,16 +249,25 @@ export default function ProfileUpdates() {
                            </p>
                         </div>
                      </div>
-                     {req.status === 'pending' && (
-                        <div className="flex flex-row md:flex-col gap-2 shrink-0 justify-center" onClick={(e) => e.stopPropagation()}>
-                           <Button size="sm" onClick={() => handleUpdateAction(req, 'approved')} className="gap-1.5 bg-green-600 hover:bg-green-700">
-                              <Check className="w-4 h-4" /> Approve
-                           </Button>
-                           <Button size="sm" variant="outline" onClick={() => handleUpdateAction(req, 'rejected')} className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50">
-                              <X className="w-4 h-4" /> Reject
-                           </Button>
-                        </div>
-                     )}
+                      {req.status === 'pending' ? (
+                         <div className="flex flex-row md:flex-col gap-2 shrink-0 justify-center" onClick={(e) => e.stopPropagation()}>
+                            <Button size="sm" onClick={() => handleUpdateAction(req, 'approved')} className="gap-1.5 bg-green-600 hover:bg-green-700">
+                               <Check className="w-4 h-4" /> Approve
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handleUpdateAction(req, 'rejected')} className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50">
+                               <X className="w-4 h-4" /> Reject
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handleDelete(req)} className="gap-1.5 text-red-600 border-red-200 hover:text-white hover:bg-red-600">
+                               <Trash2 className="w-4 h-4" /> Delete
+                            </Button>
+                         </div>
+                      ) : (
+                         <div className="flex flex-row md:flex-col gap-2 shrink-0 justify-center" onClick={(e) => e.stopPropagation()}>
+                            <Button size="sm" variant="outline" onClick={() => handleDelete(req)} className="gap-1.5 text-red-600 border-red-200 hover:text-white hover:bg-red-600">
+                               <Trash2 className="w-4 h-4" /> Delete
+                            </Button>
+                         </div>
+                      )}
                    </div>
                 </CardContent>
             </Card>

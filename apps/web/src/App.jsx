@@ -81,7 +81,8 @@ const AuthenticatedApp = () => {
           <Route path="/company" element={<Company />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/notifications" element={<AllNotifications />} />
+          <Route path="/activity" element={<ActivityHistory />} />
+          <Route path="/activity/bin" element={<BinPage />} />
         </Route>
         <Route path="*" element={<PageNotFound />} />
       </Routes>
@@ -101,7 +102,8 @@ const AuthenticatedApp = () => {
 };
 
 import { Toaster as SonnerToaster, toast } from "sonner";
-const AllNotifications = lazy(() => import('@/pages/core/AllNotifications'));
+const ActivityHistory = lazy(() => import('@/pages/core/ActivityHistory'));
+const BinPage = lazy(() => import('@/pages/core/BinPage'));
 
 function App() {
   return (

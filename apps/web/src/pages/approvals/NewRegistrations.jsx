@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, X, UserPlus, Eye, Search, Filter } from "lucide-react";
+import { Check, X, UserPlus, Eye, Search, Filter, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,6 +114,48 @@ export default function NewRegistrations() {
     }
   };
 
+  const handleDelete = async (emp) => {
+    try {
+      const empName = `${emp.first_name || ''} ${emp.last_name || ''}`;
+      const label = `${empName.trim() || 'Unknown Registrant'} - New Registration`;
+
+      // 1. Snapshot registration to bin
+      const { error: binError } = await supabase
+        .from('bin')
+        .insert({
+          record_type: 'registration',
+          record_id: emp.id,
+          record_data: emp,
+          label: label
+        });
+
+      if (binError) throw binError;
+
+      // 2. Delete registration from employees table
+      const { error: deleteError } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', emp.id);
+
+      if (deleteError) throw deleteError;
+
+      // 3. Log to admin activity
+      await supabase.from('admin_activity_log').insert({
+        actor_type: 'admin',
+        actor_name: 'Administrator',
+        action: 'admin_rejected_registration', // fallback action
+        description: `Moved New Registration for ${empName} to Bin`,
+        employee_id: emp.id
+      });
+
+      toast.success("Registration request moved to Bin.");
+      fetchRequests();
+    } catch (err) {
+      console.error(err);
+      toast.error(`Failed to delete registration request: ${err.message}`);
+    }
+  };
+
   const handleViewRegistrant = (emp) => {
     setSelectedRegistrant(emp);
     setModalOpen(true);
@@ -213,6 +255,9 @@ export default function NewRegistrations() {
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => handleRegistrationAction(emp, 'rejected')} className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50">
                        <X className="w-4 h-4" /> Reject
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleDelete(emp)} className="gap-1.5 text-red-600 border-red-200 hover:text-white hover:bg-red-600">
+                       <Trash2 className="w-4 h-4" /> Delete
                     </Button>
                  </div>
                </CardHeader>
