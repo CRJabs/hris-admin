@@ -3,7 +3,8 @@ import {
   Users, UserPlus, CheckSquare, CalendarDays,
   TrendingUp, Clock, Activity, ShieldCheck, RefreshCw,
   UserX, CheckCircle2, Plane, Stethoscope, Sun,
-  XCircle, Edit3, ToggleRight, Zap, List, Gift
+  XCircle, Edit3, ToggleRight, Zap, List, Gift,
+  X, Plus, Loader2
 } from "lucide-react";
 import { formatDistanceToNow, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, format, addMonths, subMonths } from "date-fns";
 import { Link, useNavigate } from "react-router-dom";
@@ -303,7 +304,7 @@ export default function Home() {
         </Card>
 
         {/* Calendar Panel — 60% width (3 of 5 cols) */}
-        <Card className="lg:col-span-3 border-none shadow-sm bg-white overflow-hidden flex flex-col">
+        <Card className="lg:col-span-3 border-none shadow-sm bg-white overflow-visible flex flex-col rounded-xl">
           <CardContent className="p-0 flex-1 flex flex-col">
             <MonthGridCalendar />
           </CardContent>
@@ -316,27 +317,204 @@ export default function Home() {
 
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
+const EVENT_STYLES = {
+  pending_leave:    { bg: 'bg-amber-100 text-amber-800 border border-amber-200',     dot: 'bg-amber-400',   label: 'Pending Leave' },
+  approved_leave:   { bg: 'bg-emerald-100 text-emerald-800 border border-emerald-200', dot: 'bg-emerald-400', label: 'Approved Leave' },
+  birthday:         { bg: 'bg-pink-100 text-pink-800 border border-pink-200',         dot: 'bg-pink-400',    label: 'Birthday' },
+  expiring_license: { bg: 'bg-orange-100 text-orange-800 border border-orange-200',   dot: 'bg-orange-400',  label: 'Expiring License' },
+  custom:           { bg: 'bg-indigo-100 text-indigo-800 border border-indigo-200',   dot: 'bg-indigo-400',  label: 'Event' },
+};
+
 function MonthGridCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [eventMap, setEventMap] = useState({});
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [contextMenu, setContextMenu] = useState(null); // { x, y, date }
+  const [addEventOpen, setAddEventOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [eventName, setEventName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [overflowDay, setOverflowDay] = useState(null); // dateStr of open overflow popover
 
+  const currentYear = new Date().getFullYear();
+
+  // ── Data fetching ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const fetchCalendarData = async () => {
+      const monthStart = startOfMonth(currentMonth);
+      const monthEnd   = endOfMonth(currentMonth);
+      const monthStartStr = format(monthStart, 'yyyy-MM-dd');
+      const monthEndStr   = format(monthEnd,   'yyyy-MM-dd');
+      const viewedYear    = currentMonth.getFullYear();
+
+      try {
+        const [leavesRes, employeesRes, customRes] = await Promise.all([
+          supabase
+            .from('leave_applications')
+            .select('start_date, leave_type, status, employees(first_name, last_name)')
+            .in('status', ['pending', 'approved'])
+            .gte('start_date', monthStartStr)
+            .lte('start_date', monthEndStr),
+          supabase
+            .from('employees')
+            .select('id, first_name, last_name, birthdate, licenses')
+            .neq('employment_status', 'Inactive'),
+          supabase
+            .from('calendar_events')
+            .select('*')
+            .gte('event_date', monthStartStr)
+            .lte('event_date', monthEndStr),
+        ]);
+
+        const map = {};
+        const addEvent = (dateStr, event) => {
+          if (!map[dateStr]) map[dateStr] = [];
+          map[dateStr].push(event);
+        };
+
+        // Leave events — start date only
+        (leavesRes.data || []).forEach(leave => {
+          addEvent(leave.start_date, {
+            type:  leave.status === 'pending' ? 'pending_leave' : 'approved_leave',
+            label: `${leave.employees?.first_name || '?'} – ${leave.leave_type} Leave`,
+          });
+        });
+
+        // Birthday events — year-agnostic (match by month/day in the viewed month)
+        (employeesRes.data || []).forEach(emp => {
+          if (!emp.birthdate) return;
+          try {
+            const bdate = new Date(emp.birthdate + 'T00:00:00');
+            const thisYearBirthday = new Date(viewedYear, bdate.getMonth(), bdate.getDate());
+            if (isSameMonth(thisYearBirthday, currentMonth)) {
+              addEvent(format(thisYearBirthday, 'yyyy-MM-dd'), {
+                type:  'birthday',
+                label: `${emp.first_name} ${emp.last_name}'s Birthday`,
+              });
+            }
+          } catch (_e) { /* skip invalid date */ }
+        });
+
+        // Expiring license events — current calendar year only
+        (employeesRes.data || []).forEach(emp => {
+          if (!Array.isArray(emp.licenses)) return;
+          emp.licenses.forEach(lic => {
+            if (!lic.expiry || typeof lic.expiry !== 'string') return;
+            try {
+              const expiryDate = new Date(lic.expiry + 'T00:00:00');
+              if (isNaN(expiryDate.getTime())) return;
+              if (expiryDate.getFullYear() !== currentYear) return;
+              if (!isSameMonth(expiryDate, currentMonth)) return;
+              addEvent(format(expiryDate, 'yyyy-MM-dd'), {
+                type:  'expiring_license',
+                label: `${emp.first_name} – ${lic.name || 'License'} Expires`,
+              });
+            } catch (_e) { /* skip invalid date */ }
+          });
+        });
+
+        // Custom calendar events
+        (customRes.data || []).forEach(evt => {
+          addEvent(evt.event_date, {
+            type:  'custom',
+            label: evt.title,
+          });
+        });
+
+        setEventMap(map);
+      } catch (err) {
+        console.error('Error fetching calendar data:', err);
+      }
+    };
+
+    fetchCalendarData();
+  }, [currentMonth, currentYear, refreshKey]);
+
+  // ── Close context menu on outside mousedown ───────────────────────────────
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [contextMenu]);
+
+  // ── Close overflow popover on outside mousedown ───────────────────────────
+  useEffect(() => {
+    if (!overflowDay) return;
+    const close = () => setOverflowDay(null);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [overflowDay]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  const handleContextMenu = (e, day) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY, date: day });
+  };
+
+  const openAddEvent = () => {
+    setSelectedDate(contextMenu.date);
+    setContextMenu(null);
+    setEventName('');
+    setAddEventOpen(true);
+  };
+
+  const handleSaveEvent = async () => {
+    if (!eventName.trim() || !selectedDate) return;
+    setIsSaving(true);
+    try {
+      const dateStr       = format(selectedDate, 'yyyy-MM-dd');
+      const formattedDate = format(selectedDate, 'MMMM d, yyyy');
+
+      await supabase.from('calendar_events').insert({
+        event_date: dateStr,
+        title:      eventName.trim(),
+      });
+
+      // Notify all active employees
+      const { data: activeEmps } = await supabase
+        .from('employees')
+        .select('id')
+        .neq('employment_status', 'Inactive');
+
+      if (activeEmps?.length) {
+        await supabase.from('notifications').insert(
+          activeEmps.map(emp => ({
+            employee_id: emp.id,
+            type:        'info',
+            title:       'Upcoming Event',
+            message:     `${eventName.trim()} will happen on ${formattedDate}.`,
+          }))
+        );
+      }
+
+      setAddEventOpen(false);
+      setEventName('');
+      setRefreshKey(k => k + 1);
+    } catch (err) {
+      console.error('Error saving event:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ── Calendar grid ─────────────────────────────────────────────────────────
   const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(currentMonth);
-  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
-  const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
-
-  const weeks = [];
-  for (let i = 0; i < days.length; i += 7) {
-    weeks.push(days.slice(i, i + 7));
-  }
+  const monthEnd   = endOfMonth(currentMonth);
+  const gridStart  = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const gridEnd    = endOfWeek(monthEnd,   { weekStartsOn: 1 });
+  const days       = eachDayOfInterval({ start: gridStart, end: gridEnd });
+  const weeks      = [];
+  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
 
   return (
-    <div className="flex flex-col h-full rounded-xl overflow-hidden">
-      {/* Header: title + nav */}
-      <div className="bg-[#0C005F] px-6 h-[79px] flex items-center justify-between text-white shrink-0">
+    <div className="flex flex-col h-full relative">
+      {/* Header */}
+      <div className="bg-[#0C005F] px-6 h-[79px] flex items-center justify-between text-white shrink-0 rounded-tl-xl rounded-tr-xl">
         <div className="flex items-center gap-2">
           <CalendarDays className="w-4 h-4" />
-          <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Calendar</h2>
+          <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Activity Calendar</h2>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs font-bold uppercase tracking-widest text-white/90">
@@ -360,13 +538,13 @@ function MonthGridCalendar() {
       </div>
 
       {/* Day name headers */}
-      <div className="grid grid-cols-7 border-b border-slate-100">
+      <div className="grid grid-cols-7 border-b border-slate-100 shrink-0">
         {DAY_NAMES.map(day => (
           <div
             key={day}
-            className="py-2 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 border-r border-slate-100 last:border-r-0"
+            className="py-2 text-center text-[9px] font-black uppercase tracking-widest text-slate-400 border-r border-slate-100 last:border-r-0"
           >
-            {day}
+            {day.slice(0, 3)}
           </div>
         ))}
       </div>
@@ -374,37 +552,222 @@ function MonthGridCalendar() {
       {/* Day cells grid */}
       <div className="flex flex-col flex-1">
         {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 flex-1" style={{ minHeight: "60px" }}>
+          <div key={wi} className="grid grid-cols-7 flex-1" style={{ minHeight: '64px' }}>
             {week.map((day, di) => {
-              const inMonth = isSameMonth(day, currentMonth);
-              const todayFlag = isToday(day);
+              const inMonth     = isSameMonth(day, currentMonth);
+              const todayFlag   = isToday(day);
+              const dateStr     = format(day, 'yyyy-MM-dd');
+              const dayEvents   = eventMap[dateStr] || [];
+              const visibleEvts = dayEvents.slice(0, 2);
+              const overflow    = dayEvents.length - 2;
+              const isOvOpen    = overflowDay === dateStr;
+
               return (
                 <div
                   key={di}
                   className={cn(
-                    "border-r border-b border-slate-100 last:border-r-0 p-1.5 relative",
-                    !inMonth && "bg-slate-50/50",
-                    todayFlag && "bg-blue-50/40"
+                    'border-r border-b border-slate-100 last:border-r-0 p-1 relative flex flex-col gap-0.5 hover:bg-slate-50/80 transition-colors cursor-default',
+                    !inMonth && 'bg-slate-50/50',
+                    todayFlag  && 'bg-blue-50/40'
                   )}
+                  onContextMenu={(e) => handleContextMenu(e, day)}
                 >
+                  {/* Day number */}
                   <span
                     className={cn(
-                      "text-[11px] font-bold leading-none",
+                      'text-[11px] font-bold leading-none self-start mb-0.5',
                       todayFlag
-                        ? "w-5 h-5 flex items-center justify-center rounded-full bg-[#0C005F] text-white"
-                        : inMonth
-                        ? "text-slate-700"
-                        : "text-slate-300"
+                        ? 'w-5 h-5 flex items-center justify-center rounded-full bg-[#0C005F] text-white'
+                        : inMonth ? 'text-slate-700' : 'text-slate-300'
                     )}
                   >
-                    {format(day, "d")}
+                    {format(day, 'd')}
                   </span>
+
+                  {/* Visible event pills (max 2) */}
+                  {visibleEvts.map((evt, ei) => {
+                    const s = EVENT_STYLES[evt.type] || EVENT_STYLES.custom;
+                    return (
+                      <div
+                        key={ei}
+                        title={evt.label}
+                        className={cn('text-[9px] font-bold px-1 py-0.5 rounded truncate leading-tight', s.bg)}
+                      >
+                        {evt.label}
+                      </div>
+                    );
+                  })}
+
+                  {/* Overflow "+N more" button */}
+                  {overflow > 0 && (
+                    <button
+                      className="text-[9px] font-bold text-slate-400 hover:text-[#0C005F] text-left transition-colors"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); setOverflowDay(isOvOpen ? null : dateStr); }}
+                    >
+                      +{overflow} more
+                    </button>
+                  )}
+
+                  {/* Overflow popover */}
+                  {isOvOpen && (
+                    <div
+                      className="absolute top-full left-0 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl p-2.5 min-w-[200px] space-y-1 animate-in fade-in zoom-in-95 duration-150"
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest pb-1.5 border-b border-slate-100">
+                        {format(day, 'MMMM d')} · All Events
+                      </p>
+                      <div className="space-y-1 pt-0.5">
+                        {dayEvents.map((evt, ei) => {
+                          const s = EVENT_STYLES[evt.type] || EVENT_STYLES.custom;
+                          return (
+                            <div key={ei} className={cn('text-[10px] font-bold px-2 py-1 rounded-md truncate', s.bg)}>
+                              {evt.label}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         ))}
       </div>
+
+      {/* Legend */}
+      <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/40 flex flex-wrap gap-x-4 gap-y-1 shrink-0 rounded-bl-xl rounded-br-xl">
+        {Object.entries(EVENT_STYLES).map(([key, style]) => (
+          <div key={key} className="flex items-center gap-1.5">
+            <span className={cn('w-2 h-2 rounded-full shrink-0', style.dot)} />
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{style.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Right-click context menu (fixed position to avoid clipping) */}
+      {contextMenu && (
+        <div
+          className="fixed z-[60] bg-white border border-slate-200 rounded-xl shadow-2xl py-1.5 min-w-[220px] max-w-[280px] animate-in fade-in zoom-in-95 duration-150"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {/* Date header */}
+          <div className="px-3 py-1.5 border-b border-slate-100">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+              {format(contextMenu.date, 'MMMM d, yyyy')}
+            </p>
+          </div>
+
+          {/* Events on this day */}
+          {(() => {
+            const dateStr = format(contextMenu.date, 'yyyy-MM-dd');
+            const dayEvents = eventMap[dateStr] || [];
+            if (dayEvents.length === 0) return null;
+            return (
+              <div className="px-2 pt-1.5 pb-1 space-y-1">
+                {dayEvents.map((evt, ei) => {
+                  const s = EVENT_STYLES[evt.type] || EVENT_STYLES.custom;
+                  return (
+                    <div key={ei} className={cn('text-[10px] font-bold px-2 py-1 rounded-md truncate', s.bg)}>
+                      {evt.label}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* Add Event action */}
+          <div className="border-t border-slate-100 mt-1">
+            <button
+              className="w-full text-left px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={openAddEvent}
+            >
+              <div className="w-5 h-5 rounded-md bg-[#0C005F] flex items-center justify-center shrink-0">
+                <Plus className="w-3 h-3 text-white" />
+              </div>
+              Add Event
+            </button>
+          </div>
+        </div>
+      )}
+
+
+      {/* Add Event Modal */}
+      {addEventOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-in zoom-in-95 duration-200"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="bg-[#0C005F] px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-black text-white tracking-tight">Add Event</h2>
+                <p className="text-[10px] text-white/50 mt-0.5 font-medium">
+                  {selectedDate ? format(selectedDate, 'EEEE, MMMM d, yyyy') : ''}
+                </p>
+              </div>
+              <button
+                onClick={() => setAddEventOpen(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</label>
+                <div className="h-9 px-3 flex items-center bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-600">
+                  {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : ''}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Event Name *</label>
+                <input
+                  autoFocus
+                  type="text"
+                  value={eventName}
+                  onChange={(e) => setEventName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && eventName.trim()) handleSaveEvent(); }}
+                  placeholder="e.g. Company Outing, Team Meeting..."
+                  className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F]/40 transition-all placeholder:text-slate-300"
+                />
+              </div>
+              <p className="text-[10px] text-slate-500 leading-relaxed bg-blue-50/60 border border-blue-100 rounded-lg px-3 py-2">
+                💡 All active employees will receive a notification about this event.
+              </p>
+            </div>
+
+            {/* Modal footer */}
+            <div className="px-6 pb-6 flex gap-2 justify-end">
+              <button
+                onClick={() => setAddEventOpen(false)}
+                className="px-4 h-9 text-sm font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEvent}
+                disabled={isSaving || !eventName.trim()}
+                className="px-5 h-9 text-sm font-bold text-white bg-[#0C005F] rounded-lg hover:bg-[#0C005F]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-[#0C005F]/20"
+              >
+                {isSaving ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" />Saving...</>
+                ) : (
+                  <><Plus className="w-3.5 h-3.5" />Add Event</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
