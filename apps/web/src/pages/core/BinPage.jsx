@@ -38,6 +38,8 @@ export default function BinPage() {
     employee: 0,
     all: 0,
   });
+  const [activityCount, setActivityCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchBinItems = async () => {
     setIsLoading(true);
@@ -68,10 +70,26 @@ export default function BinPage() {
     }
   };
 
+  const fetchActivityCounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("admin_activity_log")
+        .select("is_read");
+
+      if (!error && data) {
+        setActivityCount(data.length);
+        setUnreadCount(data.filter((n) => !n.is_read).length);
+      }
+    } catch (err) {
+      console.error("Error fetching activity counts:", err);
+    }
+  };
+
   useEffect(() => {
     fetchBinItems();
+    fetchActivityCounts();
 
-    const sub = supabase
+    const binSub = supabase
       .channel("bin_changes")
       .on(
         "postgres_changes",
@@ -80,7 +98,19 @@ export default function BinPage() {
       )
       .subscribe();
 
-    return () => sub.unsubscribe();
+    const notifSub = supabase
+      .channel("bin_activity_log_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "admin_activity_log" },
+        fetchActivityCounts
+      )
+      .subscribe();
+
+    return () => {
+      binSub.unsubscribe();
+      notifSub.unsubscribe();
+    };
   }, []);
 
   const sanitizeRecord = (type, data) => {
@@ -384,98 +414,54 @@ export default function BinPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-500">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#0C005F] flex items-center justify-center shrink-0">
-            <History className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-slate-900">Activity History</h1>
-            <p className="text-sm text-muted-foreground">
-              {binItems.length} items in bin &bull; Auto-purged after 1 year
-            </p>
-          </div>
-        </div>
+      {/* Header Tabs & Actions Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 gap-4">
+        <ActivityTabs
+          active="bin"
+          binCount={binItems.length}
+          activityCount={activityCount}
+          unreadCount={unreadCount}
+        />
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0 pb-2 sm:pb-0">
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[180px] h-9 bg-white border-slate-200 shadow-sm text-xs">
+              <div className="flex items-center gap-1.5">
+                <Filter className="w-3.5 h-3.5 text-slate-400" />
+                <SelectValue placeholder="Filter by type" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types ({counts.all})</SelectItem>
+              <SelectItem value="profile_update">Profile Updates ({counts.profile_update})</SelectItem>
+              <SelectItem value="registration">New Registrations ({counts.registration})</SelectItem>
+              <SelectItem value="leave_application">Leave Applications ({counts.leave_application})</SelectItem>
+              <SelectItem value="employee">Employee Records ({counts.employee})</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 border-[#0C005F]/20 text-[#0C005F] hover:bg-[#0C005F] hover:text-white transition-all"
+            className="h-9 gap-1.5 border-[#0C005F]/20 text-[#0C005F] hover:bg-[#0C005F] hover:text-white transition-all disabled:opacity-50 text-xs"
             onClick={() => setRestoreAllOpen(true)}
             disabled={binItems.filter((i) => new Date(i.expires_at) > new Date()).length === 0}
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-3.5 h-3.5" />
             Restore All
           </Button>
+
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-all"
+            className="h-9 gap-1.5 border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-all text-xs"
             onClick={() => setClearBinOpen(true)}
             disabled={binItems.length === 0}
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3.5 h-3.5" />
             Clear Bin
           </Button>
         </div>
-      </div>
-
-      {/* Shared Navigation Tab Bar */}
-      <ActivityTabs active="bin" binCount={binItems.length} />
-
-      {/* Summary Counts Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <Card className="border-slate-100 shadow-sm bg-slate-50/50">
-          <CardContent className="p-4 flex flex-col justify-center items-center text-center">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">All Items</span>
-            <span className="text-2xl font-black text-slate-900 mt-1">{counts.all}</span>
-          </CardContent>
-        </Card>
-        <Card className="border-slate-100 shadow-sm bg-amber-50/20">
-          <CardContent className="p-4 flex flex-col justify-center items-center text-center">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Updates</span>
-            <span className="text-2xl font-black text-amber-700 mt-1">{counts.profile_update}</span>
-          </CardContent>
-        </Card>
-        <Card className="border-slate-100 shadow-sm bg-blue-50/20">
-          <CardContent className="p-4 flex flex-col justify-center items-center text-center">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Registrations</span>
-            <span className="text-2xl font-black text-blue-700 mt-1">{counts.registration}</span>
-          </CardContent>
-        </Card>
-        <Card className="border-slate-100 shadow-sm bg-green-50/20">
-          <CardContent className="p-4 flex flex-col justify-center items-center text-center">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Leaves</span>
-            <span className="text-2xl font-black text-green-700 mt-1">{counts.leave_application}</span>
-          </CardContent>
-        </Card>
-        <Card className="border-slate-100 shadow-sm bg-purple-50/20">
-          <CardContent className="p-4 flex flex-col justify-center items-center text-center">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Employees</span>
-            <span className="text-2xl font-black text-purple-700 mt-1">{counts.employee}</span>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filter and Content */}
-      <div className="flex justify-between items-center gap-3">
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-full sm:w-[240px] h-10 bg-white border-slate-200 shadow-sm">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-slate-400" />
-              <SelectValue placeholder="Filter by Record Type" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types ({counts.all})</SelectItem>
-            <SelectItem value="profile_update">Profile Updates ({counts.profile_update})</SelectItem>
-            <SelectItem value="registration">New Registrations ({counts.registration})</SelectItem>
-            <SelectItem value="leave_application">Leave Applications ({counts.leave_application})</SelectItem>
-            <SelectItem value="employee">Employee Records ({counts.employee})</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {isLoading ? (

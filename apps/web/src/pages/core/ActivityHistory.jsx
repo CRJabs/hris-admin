@@ -165,22 +165,16 @@ export default function ActivityHistory() {
 
   return (
     <div className="p-4 md:p-6 max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-500">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#0C005F] flex items-center justify-center shrink-0">
-            <History className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-slate-900">Activity History</h1>
-            <p className="text-sm text-muted-foreground">
-              {notifications.length} total &bull;{" "}
-              <span className="text-red-500 font-semibold">{unreadCount} unread</span>
-            </p>
-          </div>
-        </div>
+      {/* Header Tabs & Actions Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 gap-4">
+        <ActivityTabs
+          active="activity"
+          binCount={binCount}
+          activityCount={notifications.length}
+          unreadCount={unreadCount}
+        />
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 pb-2 sm:pb-0">
           <Button
             variant="outline"
             size="sm"
@@ -203,9 +197,6 @@ export default function ActivityHistory() {
           </Button>
         </div>
       </div>
-
-      {/* Shared Navigation Tab Bar */}
-      <ActivityTabs active="activity" binCount={binCount} />
 
       {/* Notifications List */}
       {isLoading ? (
