@@ -40,16 +40,63 @@ export default function Home() {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [leaveStats, setLeaveStats] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [activeAnalyticsTab, setActiveAnalyticsTab] = useState("leaves");
+  const [workforceStats, setWorkforceStats] = useState({
+    tenure: { Regular: 0, Probationary: 0, Contractual: 0 },
+    classification: { Teaching: 0, 'Non-Teaching': 0 },
+    classificationII: {},
+    workload: { 'Full-Time': 0, 'Part-Time': 0 }
+  });
 
   const fetchHomeData = async () => {
     setIsLoading(true);
     try {
-      const [empRes, regRes, updRes] = await Promise.all([
+      const [empRes, regRes, updRes, empDataRes] = await Promise.all([
         supabase.from('employees').select('id', { count: 'exact', head: true }),
         supabase.from('employees').select('id', { count: 'exact', head: true }).eq('employment_status', 'Pending'),
         supabase.from('employee_update_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('employees').select('employment_tenure, employment_classification, classification_ii, employment_status').eq('is_active', true)
       ]);
       setStats({ totalEmployees: empRes.count || 0, pendingRegistrations: regRes.count || 0, pendingUpdates: updRes.count || 0 });
+
+      // Compute workforce stats breakdown
+      let tenureCounts = { Regular: 0, Probationary: 0, Contractual: 0 };
+      let classCounts = { Teaching: 0, 'Non-Teaching': 0 };
+      let classIICounts = {};
+      let workloadCounts = { 'Full-Time': 0, 'Part-Time': 0 };
+
+      (empDataRes.data || []).forEach(emp => {
+        // Tenure normalization
+        let tenure = emp.employment_tenure || 'Regular';
+        if (tenure.toLowerCase().includes('prob')) tenure = 'Probationary';
+        else if (tenure.toLowerCase().includes('contract')) tenure = 'Contractual';
+        else tenure = 'Regular';
+        tenureCounts[tenure] = (tenureCounts[tenure] || 0) + 1;
+
+        // Classification I
+        let classI = emp.employment_classification || 'Non-Teaching';
+        if (classI.toLowerCase() === 'teaching') classI = 'Teaching';
+        else classI = 'Non-Teaching';
+        classCounts[classI] = (classCounts[classI] || 0) + 1;
+
+        // Classification II
+        const classII = emp.classification_ii;
+        if (classII) {
+          classIICounts[classII] = (classIICounts[classII] || 0) + 1;
+        }
+
+        // Workload
+        const status = emp.employment_status || 'Full-time';
+        const workload = status.toLowerCase() === 'part-time' ? 'Part-Time' : 'Full-Time';
+        workloadCounts[workload] = (workloadCounts[workload] || 0) + 1;
+      });
+
+      setWorkforceStats({
+        tenure: tenureCounts,
+        classification: classCounts,
+        classificationII: classIICounts,
+        workload: workloadCounts
+      });
 
       const { data: activityData } = await supabase
         .from('admin_activity_log').select('*').order('created_at', { ascending: false }).limit(6);
@@ -285,21 +332,126 @@ export default function Home() {
             </div>
             <span className="text-4xl font-black">{stats.totalEmployees}</span>
           </div>
-          {/* Stats grid — 2 columns to fit narrower card */}
-          <div className="grid grid-cols-2 divide-x divide-y divide-slate-50 flex-1">
-            {analyticsRows.map((row, i) => (
-              <div key={i} className="px-5 py-5 flex flex-col justify-between hover:bg-slate-50/50 transition-colors h-full">
-                <div className="flex flex-row items-center gap-2">
-                  <div className="w-7 h-7 rounded-md flex items-center justify-center border border-slate-100 shadow-sm bg-white">
-                    <row.icon className="w-3.5 h-3.5 text-[#0C005F]" />
+          {/* Tab Selection Bar */}
+          <div className="bg-slate-50 border-b border-slate-100 flex p-1.5 gap-1 shrink-0">
+            {[
+              { id: "leaves", label: "Leaves" },
+              { id: "tenure", label: "Tenure" },
+              { id: "classification", label: "Class" },
+              { id: "workload", label: "Workload" }
+            ].map(t => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setActiveAnalyticsTab(t.id)}
+                className={cn(
+                  "flex-1 text-[10px] font-bold py-1.5 rounded-md uppercase tracking-wider transition-all",
+                  activeAnalyticsTab === t.id
+                    ? "bg-white text-[#0C005F] shadow-sm"
+                    : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {/* Stats Grid body */}
+          <div className="flex-1 flex flex-col min-h-[300px]">
+            {activeAnalyticsTab === "leaves" && (
+              <div className="grid grid-cols-2 divide-x divide-y divide-slate-50 flex-1">
+                {analyticsRows.map((row, i) => (
+                  <div key={i} className="px-5 py-5 flex flex-col justify-between hover:bg-slate-50/50 transition-colors h-full">
+                    <div className="flex flex-row items-center gap-2">
+                      <div className="w-7 h-7 rounded-md flex items-center justify-center border border-slate-100 shadow-sm bg-white">
+                        <row.icon className="w-3.5 h-3.5 text-[#0C005F]" />
+                      </div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">{row.label}</p>
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                      <span className="text-4xl font-black text-slate-900 tracking-tight leading-none">{row.value}</span>
+                    </div>
                   </div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">{row.label}</p>
+                ))}
+              </div>
+            )}
+
+            {activeAnalyticsTab === "tenure" && (
+              <div className="p-5 flex-1 flex flex-col justify-center space-y-4">
+                {[
+                  { label: "Regular", count: workforceStats.tenure.Regular, color: "bg-emerald-500", text: "text-emerald-600" },
+                  { label: "Probationary", count: workforceStats.tenure.Probationary, color: "bg-amber-500", text: "text-amber-600" },
+                  { label: "Contractual", count: workforceStats.tenure.Contractual, color: "bg-blue-500", text: "text-blue-600" }
+                ].map((t) => {
+                  const total = workforceStats.tenure.Regular + workforceStats.tenure.Probationary + workforceStats.tenure.Contractual || 1;
+                  const pct = Math.round((t.count / total) * 100);
+                  return (
+                    <div key={t.label} className="space-y-1.5">
+                      <div className="flex justify-between items-center text-xs font-bold text-slate-700">
+                        <span>{t.label}</span>
+                        <span className={t.text}>{t.count} ({pct}%)</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className={cn("h-full rounded-full transition-all duration-500", t.color)} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {activeAnalyticsTab === "classification" && (
+              <div className="p-5 flex-1 flex flex-col justify-between space-y-4 overflow-hidden">
+                {/* Classification I Row */}
+                <div className="grid grid-cols-2 gap-4 shrink-0">
+                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Teaching</p>
+                    <p className="text-2xl font-black text-[#0C005F] mt-1">{workforceStats.classification.Teaching}</p>
+                  </div>
+                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Non-Teaching</p>
+                    <p className="text-2xl font-black text-slate-700 mt-1">{workforceStats.classification['Non-Teaching']}</p>
+                  </div>
                 </div>
-                <div className="mt-4 flex justify-end">
-                  <span className="text-4xl font-black text-slate-900 tracking-tight leading-none">{row.value}</span>
+
+                {/* Classification II Division list */}
+                <div className="flex-1 overflow-y-auto space-y-2 max-h-[160px] pr-1 custom-scrollbar">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Divisions (Classification II)</p>
+                  {Object.keys(workforceStats.classificationII).length === 0 ? (
+                    <p className="text-xs text-slate-400 italic">No divisions recorded.</p>
+                  ) : (
+                    Object.entries(workforceStats.classificationII).map(([div, count]) => (
+                      <div key={div} className="flex justify-between items-center py-1.5 px-2 bg-slate-50/50 hover:bg-slate-50 border border-slate-100/50 rounded-lg text-xs font-semibold text-slate-700">
+                        <span>{div}</span>
+                        <Badge className="bg-[#0C005F]/10 text-[#0C005F] hover:bg-[#0C005F]/20 border-none font-bold text-[10px]">{count}</Badge>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
-            ))}
+            )}
+
+            {activeAnalyticsTab === "workload" && (
+              <div className="p-5 flex-1 flex flex-col justify-center space-y-5">
+                {[
+                  { label: "Full-Time", count: workforceStats.workload['Full-Time'], color: "bg-indigo-600", text: "text-indigo-600" },
+                  { label: "Part-Time", count: workforceStats.workload['Part-Time'], color: "bg-pink-500", text: "text-pink-500" }
+                ].map((w) => {
+                  const total = workforceStats.workload['Full-Time'] + workforceStats.workload['Part-Time'] || 1;
+                  const pct = Math.round((w.count / total) * 100);
+                  return (
+                    <div key={w.label} className="space-y-1.5">
+                      <div className="flex justify-between items-center text-xs font-bold text-slate-700">
+                        <span>{w.label}</span>
+                        <span className={w.text}>{w.count} ({pct}%)</span>
+                      </div>
+                      <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className={cn("h-full rounded-full transition-all duration-500", w.color)} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </Card>
 

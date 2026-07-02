@@ -366,27 +366,30 @@ export default function Reports() {
   const [searchQuery, setSearchQuery]     = useState('');
   const [isLoading, setIsLoading]         = useState(true);
   const [employees, setEmployees]         = useState([]);
+  const [semesters, setSemesters]         = useState([]);
   const [benefitsData, setBenefitsData]   = useState([]);
   const [isExporting, setIsExporting]     = useState(false);
   const [isRecomputing, setIsRecomputing] = useState(false);
   const scrollRef = useRef(null);
 
-  // Load active employees on mount
+  // Load active employees and semesters on mount
   useEffect(() => {
-    async function loadEmployees() {
+    async function loadInitialData() {
       try {
-        const { data, error } = await supabase
-          .from('employees')
-          .select('*')
-          .eq('is_active', true);
-        if (error) throw error;
-        setEmployees(data || []);
+        const [empRes, semRes] = await Promise.all([
+          supabase.from('employees').select('*').eq('is_active', true),
+          supabase.from('employee_semesters').select('*')
+        ]);
+        if (empRes.error) throw empRes.error;
+        if (semRes.error) throw semRes.error;
+        setEmployees(empRes.data || []);
+        setSemesters(semRes.data || []);
       } catch (err) {
-        console.error('Error loading employees:', err);
+        console.error('Error loading initial report data:', err);
         toast.error('Failed to load employee list');
       }
     }
-    loadEmployees();
+    loadInitialData();
   }, []);
 
   // Fetch benefit eligibility records for a given year
@@ -423,6 +426,18 @@ export default function Reports() {
     });
     return map;
   }, [benefitsData]);
+
+  // Derived semesters mapping: employeeId -> array of semesters
+  const semestersByEmployee = useMemo(() => {
+    const map = {};
+    semesters.forEach(row => {
+      if (!map[row.employee_id]) {
+        map[row.employee_id] = [];
+      }
+      map[row.employee_id].push(row);
+    });
+    return map;
+  }, [semesters]);
 
   // Derived states
   const hasDataForYear = benefitsData.length > 0;
@@ -538,7 +553,7 @@ export default function Reports() {
         _name: formatEmployeeName(emp),
         _department: emp.department || '—',
         _tenure: emp.employment_tenure || '—',
-        _yearsInService: computeYearsInService(emp.date_hired, referenceDate),
+        _yearsInService: computeYearsInService(emp.date_hired, referenceDate, semestersByEmployee[emp.id] || [], emp.employment_classification),
         _birthDate: formatBirthDate(emp.birthdate),
       }));
 
@@ -585,7 +600,7 @@ export default function Reports() {
           _name: formatEmployeeName(emp),
           _department: emp.department || '—',
           _tenure: emp.employment_tenure || '—',
-          _yearsInService: computeYearsInService(emp.date_hired, referenceDate),
+          _yearsInService: computeYearsInService(emp.date_hired, referenceDate, semestersByEmployee[emp.id] || [], emp.employment_classification),
           _serviceAward: benefitRow?.award_level || '—',
         };
       });

@@ -32,6 +32,18 @@ export async function runBenefitsComputation() {
       return acc;
     }, {});
 
+    // Fetch all semester records for all active employees
+    const { data: semesterData } = await supabase
+      .from('employee_semesters')
+      .select('employee_id, academic_year, semester, teaching_load')
+      .in('employee_id', employees.map(e => e.id));
+
+    const semestersByEmployee = (semesterData || []).reduce((acc, row) => {
+      if (!acc[row.employee_id]) acc[row.employee_id] = [];
+      acc[row.employee_id].push(row);
+      return acc;
+    }, {});
+
     const today = new Date();
     const currentYear = today.getFullYear();
     const isMidyearDue = isMidyearReminderDue(today);
@@ -54,7 +66,7 @@ export async function runBenefitsComputation() {
       }
 
       // 3. Compute eligibility
-      const eligibility = computeBenefitsEligibility(emp, today, tenureStartDate);
+      const eligibility = computeBenefitsEligibility(emp, today, tenureStartDate, semestersByEmployee[emp.id] || []);
 
       // 4. Fetch existing records for this year
       const { data: existingRecords } = await supabase

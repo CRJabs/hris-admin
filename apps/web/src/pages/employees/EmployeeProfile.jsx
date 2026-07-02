@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Zap, Shield, FileText, Loader2, Info, LogOut, Gift, Bell, CheckSquare } from "lucide-react";
+import { Home, User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Zap, Shield, FileText, Loader2, Info, LogOut, Gift, Bell, CheckSquare, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,9 @@ const EducationTab = lazy(() => import("@/components/employees/profile/Education
 const TrainingDevTab = lazy(() => import("@/components/employees/profile/TrainingDevTab"));
 const EmploymentInfoTab = lazy(() => import("@/components/employees/profile/EmploymentInfoTab"));
 const LeaveTab = lazy(() => import("@/components/employees/profile/LeaveTab"));
+const SemestralRecordsTab = lazy(() => import("@/components/employees/profile/SemestralRecordsTab"));
 const BenefitsTab = lazy(() => import("@/components/employees/profile/BenefitsTab"));
+const FileRequestModal = lazy(() => import("@/components/employees/profile/FileRequestModal"));
 const HomeTab = lazy(() => import("@/components/employees/profile/HomeTab"));
 const PendingApprovalsTab = lazy(() => import("@/components/employees/profile/PendingApprovalsTab"));
 import EditProfileDialog from "@/components/employees/profile/EditProfileDialog";
@@ -75,6 +77,7 @@ export default function EmployeeProfile() {
   const [headOfUnit, setHeadOfUnit] = useState(null);
   const [isInstitutionalHead, setIsInstitutionalHead] = useState(false);
   const [ledUnitIds, setLedUnitIds] = useState([]);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
@@ -452,6 +455,15 @@ export default function EmployeeProfile() {
         </div>
 
         <div className="flex items-center gap-2 md:gap-4 flex-wrap justify-end">
+          {!isEditing && (
+            <Button
+              onClick={() => setIsRequestModalOpen(true)}
+              className="bg-indigo-600 text-white hover:bg-indigo-700 font-bold gap-2 text-xs md:text-sm border-none shadow-sm"
+            >
+              <FileText className="w-4 h-4" />
+              <span>File a request</span>
+            </Button>
+          )}
           {!isEditing ? (
             <Button
               onClick={handleStartEdit}
@@ -585,6 +597,12 @@ export default function EmployeeProfile() {
                 <Briefcase className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Employment Info</span>
               </TabsTrigger>
+              {employeeData?.employment_classification?.toLowerCase() === "teaching" && (
+                <TabsTrigger value="semestral" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+                  <BookOpen className="w-4 h-4 shrink-0" />
+                  <span className="hidden md:inline">Semestral Records</span>
+                </TabsTrigger>
+              )}
               <TabsTrigger value="leave" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
                 <CalendarDays className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Leave Credits</span>
@@ -650,6 +668,16 @@ export default function EmployeeProfile() {
                     onChange={handleFieldChange}
                   />
                 </TabsContent>
+                {employeeData?.employment_classification?.toLowerCase() === "teaching" && (
+                  <TabsContent value="semestral" className="m-0 space-y-6">
+                    <SemestralRecordsTab 
+                      employee={isEditing ? editedData : employeeData} 
+                      isReadOnly={true} 
+                      isAdminView={false}
+                      onChange={handleFieldChange}
+                    />
+                  </TabsContent>
+                )}
                 <TabsContent value="leave" className="m-0 space-y-6">
                   <LeaveTab 
                     employee={isEditing ? editedData : employeeData} 
@@ -736,6 +764,17 @@ export default function EmployeeProfile() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* File Request Modal */}
+      <Suspense fallback={null}>
+        <FileRequestModal
+          open={isRequestModalOpen}
+          onOpenChange={setIsRequestModalOpen}
+          employee={employeeData}
+          leaveCredits={leaveCredits}
+          onSuccess={refreshLeaveData}
+        />
+      </Suspense>
     </div>
   );
 }

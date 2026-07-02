@@ -10,7 +10,7 @@
  * @param {Date|string} referenceDate
  * @returns {number}
  */
-export function computeYearsInService(startDate, referenceDate = new Date()) {
+export function computeYearsInService(startDate, referenceDate = new Date(), semesters = [], classification = '') {
   if (!startDate) return 0;
   const start = new Date(startDate);
   const ref = new Date(referenceDate);
@@ -20,7 +20,39 @@ export function computeYearsInService(startDate, referenceDate = new Date()) {
   const monthDiff = ref.getUTCMonth() - start.getUTCMonth();
   const dayDiff = ref.getUTCDate() - start.getUTCDate();
   if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) years--;
-  return Math.max(0, years);
+  let yearsInService = Math.max(0, years);
+
+  // For Teaching employees, reduce years in service for every completed academic year they did not have inputted teaching loads
+  if (classification && classification.toLowerCase() === 'teaching') {
+    const getAcademicYearStart = (date) => {
+      const d = new Date(date);
+      const m = d.getUTCMonth();
+      const y = d.getUTCFullYear();
+      return m >= 5 ? y : y - 1; // Academic year starts in June (month 5)
+    };
+
+    const startAY = getAcademicYearStart(start);
+    const refAY = getAcademicYearStart(ref);
+    let missingLoadsCount = 0;
+
+    for (let yr = startAY; yr < refAY; yr++) {
+      const ayString = `${yr}-${yr + 1}`;
+      // Check if there is any semester record for this academic year with a valid teaching load
+      const hasLoad = semesters.some(s => 
+        s.academic_year === ayString && 
+        s.teaching_load !== null && 
+        s.teaching_load !== undefined &&
+        parseFloat(s.teaching_load) > 0
+      );
+      if (!hasLoad) {
+        missingLoadsCount++;
+      }
+    }
+
+    yearsInService = Math.max(0, yearsInService - missingLoadsCount);
+  }
+
+  return yearsInService;
 }
 
 /**
@@ -80,7 +112,8 @@ export function isMidyearReminderDue(referenceDate = new Date()) {
 export function computeBenefitsEligibility(
   employee,
   referenceDate = new Date(),
-  tenureStartDate = null
+  tenureStartDate = null,
+  semesters = []
 ) {
   const ref = new Date(referenceDate);
   const y = ref.getUTCFullYear();
@@ -107,7 +140,7 @@ export function computeBenefitsEligibility(
   };
 
   // ── 2. Birthday Bonus ──────────────────────────────────────────────────────
-  const yearsInService = computeYearsInService(employee.date_hired, ref);
+  const yearsInService = computeYearsInService(employee.date_hired, ref, semesters, employee.employment_classification);
   const hasBirthdate = !!employee.birthdate;
   const isBirthdayEligible = isActive && yearsInService >= 1 && hasBirthdate;
   results.birthday_bonus = {
@@ -130,7 +163,7 @@ export function computeBenefitsEligibility(
     ? new Date(employee.date_hired)
     : null;
   const yearsSummerTenure = tenureStart
-    ? computeYearsInService(tenureStart, may31)
+    ? computeYearsInService(tenureStart, may31, semesters, employee.employment_classification)
     : 0;
   const isSummerEligible = isActive && isSummerTenure && yearsSummerTenure >= 3;
   results.summer_pay = {
@@ -172,7 +205,7 @@ export function computeBenefitsEligibility(
   // ── 6. Service Awardee ─────────────────────────────────────────────────────
   // Years in service reaches exactly 10, 15, or 25 before July 31.
   // Fires only in the milestone year (exact match) to prevent re-triggering.
-  const yearsBeforeJuly31 = computeYearsInService(employee.date_hired, july31);
+  const yearsBeforeJuly31 = computeYearsInService(employee.date_hired, july31, semesters, employee.employment_classification);
   const SERVICE_MILESTONES = [25, 15, 10];
   const reachedMilestone = SERVICE_MILESTONES.find((m) => yearsBeforeJuly31 === m);
   const isServiceEligible = isActive && !!reachedMilestone;
@@ -187,7 +220,7 @@ export function computeBenefitsEligibility(
   // ── 7. Retirement ──────────────────────────────────────────────────────────
   // Age >= 57 AND years_in_service >= 25, both conditions met before May 31.
   const ageBeforeMay31 = computeAge(employee.birthdate, may31);
-  const yearsBeforeMay31 = computeYearsInService(employee.date_hired, may31);
+  const yearsBeforeMay31 = computeYearsInService(employee.date_hired, may31, semesters, employee.employment_classification);
   const isRetirementEligible =
     isActive && ageBeforeMay31 >= 57 && yearsBeforeMay31 >= 25;
   results.retirement = {

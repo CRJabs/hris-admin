@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, Users, DollarSign, BarChart3, Settings, LogOut, 
   CheckSquare, ChevronLeft, ChevronRight, UserPlus, List, FileText, CalendarDays, Zap, Building2, Bell,
-  History, Trash2
+  History, Trash2, Shield, RefreshCw, Award
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
@@ -74,6 +74,15 @@ function formatActionTitle(action) {
 
 const navItems = [
   { label: "Home", icon: Zap, path: "/" },
+  { 
+    label: "Accounts Management", 
+    icon: Shield, 
+    path: "/accounts",
+    children: [
+      { label: "Administrator Accounts", icon: Shield, path: "/accounts/admin" },
+      { label: "Employee Accounts", icon: Users, path: "/accounts/employee" },
+    ]
+  },
   { label: "Reports", icon: BarChart3, path: "/reports" },
   { label: "University Chart", icon: Building2, path: "/company" },
   { 
@@ -84,6 +93,9 @@ const navItems = [
       { label: "Profile Updates", icon: FileText, path: "/approvals/updates" },
       { label: "New Registrations", icon: UserPlus, path: "/approvals/registrations" },
       { label: "Leave Applications", icon: CalendarDays, path: "/approvals/leaves" },
+      { label: "Commutation Requests", icon: RefreshCw, path: "/approvals/commutations" },
+      { label: "Resignations", icon: LogOut, path: "/approvals/resignations" },
+      { label: "Retirements", icon: Award, path: "/approvals/retirements" },
     ]
   },
   { 
@@ -111,13 +123,43 @@ const navItems = [
       { label: "Bin", icon: Trash2, path: "/activity/bin" },
     ]
   },
-  { label: "Settings", icon: Settings, path: "/settings" },
 ];
 
 export default function Sidebar({ collapsed, setCollapsed }) {
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [expandedItems, setExpandedItems] = useState([]);
+
+  // Check if a path is allowed based on user role and privileges
+  const isPathAllowed = (path) => {
+    if (path === "/") return true;
+    if (user?.role === "admin") return true;
+
+    const privileges = Array.isArray(user?.privileges) ? user.privileges : [];
+    
+    // Explicit match
+    if (privileges.includes(path)) return true;
+    
+    // Parent prefix check
+    return privileges.some(priv => path.startsWith(priv + '/'));
+  };
+
+  // Filter navigation items dynamically
+  const filteredNavItems = navItems
+    .map(item => {
+      if (item.children) {
+        const allowedChildren = item.children.filter(child => isPathAllowed(child.path));
+        if (allowedChildren.length > 0) {
+          return { ...item, children: allowedChildren };
+        }
+        if (isPathAllowed(item.path)) {
+          return { ...item, children: undefined };
+        }
+        return null;
+      }
+      return isPathAllowed(item.path) ? item : null;
+    })
+    .filter(Boolean);
   
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -234,7 +276,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       </div>
 
       <nav className="flex-1 py-3 px-2 space-y-1 mt-2 overflow-y-auto custom-scrollbar">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const { label, icon: Icon, path, children } = item;
           const isActive = location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
           const isExpanded = expandedItems.includes(label);

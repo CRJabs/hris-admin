@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 
 // Lazy load pages for performance
 const Home = lazy(() => import('@/pages/core/Home'));
+const AccountsManagement = lazy(() => import('@/pages/core/AccountsManagement'));
 const Dashboard = lazy(() => import('@/pages/core/Dashboard'));
 
 const Employees = lazy(() => import('@/pages/employees/Employees'));
@@ -28,6 +29,9 @@ const ProfileUpdates = lazy(() => import('@/pages/approvals/ProfileUpdates'));
 const NewRegistrations = lazy(() => import('@/pages/approvals/NewRegistrations'));
 const AssignLeaveCredits = lazy(() => import('@/pages/leaves/AssignLeaveCredits'));
 const LeaveApplications = lazy(() => import('@/pages/leaves/LeaveApplications'));
+const Commutations = lazy(() => import('@/pages/approvals/Commutations'));
+const Resignations = lazy(() => import('@/pages/approvals/Resignations'));
+const Retirements = lazy(() => import('@/pages/approvals/Retirements'));
 const Company = lazy(() => import('@/pages/Company'));
 const Settings = lazy(() => import('@/pages/Settings'));
 
@@ -38,6 +42,24 @@ const PageLoader = () => (
     <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
   </div>
 );
+
+// Helper component to guard routes based on role and privileges
+const ProtectedRoute = ({ path, element }) => {
+  const { user } = useAuth();
+  
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'admin') return element;
+  if (path === '/') return element;
+  
+  const privileges = Array.isArray(user.privileges) ? user.privileges : [];
+  const isAllowed = privileges.includes(path) || privileges.some(priv => path.startsWith(priv + '/'));
+  
+  if (isAllowed) {
+    return element;
+  }
+  
+  return <Navigate to="/" replace />;
+};
 
 const AuthenticatedApp = () => {
   const { user, isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -61,28 +83,35 @@ const AuthenticatedApp = () => {
     }
   }
 
-  // Admin Routes
-  if (user.role === 'admin') {
+  // Admin / Staff / Custom role Routes (anything other than 'employee')
+  if (user.role !== 'employee') {
     return (
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/accounts" element={<ProtectedRoute path="/accounts" element={<AccountsManagement />} />} />
+          <Route path="/accounts/admin" element={<ProtectedRoute path="/accounts" element={<AccountsManagement />} />} />
+          <Route path="/accounts/employee" element={<ProtectedRoute path="/accounts" element={<AccountsManagement />} />} />
+          <Route path="/dashboard" element={<ProtectedRoute path="/dashboard" element={<Dashboard />} />} />
 
-          <Route path="/approvals" element={<Approvals />}>
+          <Route path="/approvals" element={<ProtectedRoute path="/approvals" element={<Approvals />} />}>
             <Route index element={<Navigate to="updates" replace />} />
-            <Route path="updates" element={<ProfileUpdates />} />
-            <Route path="registrations" element={<NewRegistrations />} />
-            <Route path="leaves" element={<LeaveApplications />} />
+            <Route path="updates" element={<ProtectedRoute path="/approvals/updates" element={<ProfileUpdates />} />} />
+            <Route path="registrations" element={<ProtectedRoute path="/approvals/registrations" element={<NewRegistrations />} />} />
+            <Route path="leaves" element={<ProtectedRoute path="/approvals/leaves" element={<LeaveApplications />} />} />
+            <Route path="commutations" element={<ProtectedRoute path="/approvals/commutations" element={<Commutations />} />} />
+            <Route path="resignations" element={<ProtectedRoute path="/approvals/resignations" element={<Resignations />} />} />
+            <Route path="retirements" element={<ProtectedRoute path="/approvals/retirements" element={<Retirements />} />} />
           </Route>
-          <Route path="/employees" element={<Employees />} />
-          <Route path="/employees/add" element={<AddEmployee />} />
-          <Route path="/leaves/assign" element={<AssignLeaveCredits />} />
-          <Route path="/company" element={<Company />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/activity" element={<ActivityHistory />} />
-          <Route path="/activity/bin" element={<BinPage />} />
+          
+          <Route path="/employees" element={<ProtectedRoute path="/employees" element={<Employees />} />} />
+          <Route path="/employees/add" element={<ProtectedRoute path="/employees/add" element={<AddEmployee />} />} />
+          <Route path="/leaves/assign" element={<ProtectedRoute path="/leaves/assign" element={<AssignLeaveCredits />} />} />
+          <Route path="/company" element={<ProtectedRoute path="/company" element={<Company />} />} />
+          <Route path="/reports" element={<ProtectedRoute path="/reports" element={<Reports />} />} />
+          <Route path="/settings" element={<ProtectedRoute path="/settings" element={<Settings />} />} />
+          <Route path="/activity" element={<ProtectedRoute path="/activity" element={<ActivityHistory />} />} />
+          <Route path="/activity/bin" element={<ProtectedRoute path="/activity/bin" element={<BinPage />} />} />
         </Route>
         <Route path="*" element={<PageNotFound />} />
       </Routes>

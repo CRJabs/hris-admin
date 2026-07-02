@@ -305,16 +305,7 @@ export default function LeaveTab({ employee, isReadOnly = false, onChange, reque
                 <Activity className="w-5 h-5 text-primary" />
                 Recent Leave Activity
               </CardTitle>
-              {!isAdminView && (
-                <Button
-                  size="sm"
-                  variant="default"
-                  className="gap-2 bg-primary px-4 h-9 font-bold shadow-md shadow-primary/20"
-                  onClick={() => setFileLeaveOpen(true)}
-                >
-                  <Plus className="w-4 h-4" /> File Leave
-                </Button>
-              )}
+              {/* Centralized filing button is now in the header actions bar */}
             </CardHeader>
             <CardContent className="p-0 flex-1 overflow-hidden">
               <ScrollArea className="h-full">
@@ -355,16 +346,7 @@ export default function LeaveTab({ employee, isReadOnly = false, onChange, reque
         </div>
       </div>
 
-      {/* File Leave Modal */}
-      {!isAdminView && (
-        <FileLeaveModal
-          open={fileLeaveOpen}
-          onOpenChange={setFileLeaveOpen}
-          employee={employee}
-          leaveCredits={leaveCredits}
-          onSuccess={onRefresh}
-        />
-      )}
+      {/* Centralized leave modal is handled in FileRequestModal */}
     </>
   );
 }

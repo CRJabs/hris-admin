@@ -16,9 +16,7 @@ export default function NewRegistrations() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRegistrant, setSelectedRegistrant] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const { counts } = useOutletContext();
+  const { counts, searchQuery, statusFilter } = useOutletContext();
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -190,33 +188,7 @@ export default function NewRegistrations() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-[1440px] mx-auto">
-      {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-center gap-3">
-        <ApprovalsTabs counts={counts} />
-        <div className="relative flex-1 w-full min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            placeholder="Search by name, email, ID, or department..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-10 bg-white border-slate-200 focus-visible:ring-[#0C005F]/20"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[200px] h-10 bg-white border-slate-200">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-slate-400" />
-              <SelectValue placeholder="Filter by status" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Pending ({pendingCount})</SelectItem>
-            <SelectItem value="pending">Pending ({pendingCount})</SelectItem>
-            <SelectItem value="approved">Approved (processed)</SelectItem>
-            <SelectItem value="rejected">Rejected (processed)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Search & Filter Bar is now rendered at layout level */}
 
       {isLoading ? (
         <div className="text-center p-8 text-muted-foreground">Loading registrations...</div>

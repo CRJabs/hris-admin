@@ -21,6 +21,8 @@ export default function Employees() {
   
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalInitialTab, setModalInitialTab] = useState("profiling");
+  const [modalInitialEdit, setModalInitialEdit] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'last_name', direction: 'asc' });
   const { departments: liveDepartments } = useOrgDepartments();
   const [headEmployeeIds, setHeadEmployeeIds] = useState(new Set());
@@ -132,6 +134,8 @@ export default function Employees() {
 
   const handleViewE201 = (emp) => {
     setSelectedEmployee(emp);
+    setModalInitialTab("profiling");
+    setModalInitialEdit(false);
     setModalOpen(true);
   };
 
@@ -176,33 +180,41 @@ export default function Employees() {
   };
 
   const handleToggleActive = async (emp) => {
-    try {
-      const { error } = await supabase
-        .from('employees')
-        .update({ is_active: !emp.is_active })
-        .eq('id', emp.id);
+    if (emp.is_active) {
+      try {
+        const { error } = await supabase
+          .from('employees')
+          .update({ is_active: false })
+          .eq('id', emp.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setEmployees((prev) =>
-        prev.map((e) => e.id === emp.id ? { ...e, is_active: !e.is_active } : e)
-      );
-      if (selectedEmployee?.id === emp.id) {
-        setSelectedEmployee((prev) => prev ? { ...prev, is_active: !prev.is_active } : null);
+        setEmployees((prev) =>
+          prev.map((e) => e.id === emp.id ? { ...e, is_active: false } : e)
+        );
+        if (selectedEmployee?.id === emp.id) {
+          setSelectedEmployee((prev) => prev ? { ...prev, is_active: false } : null);
+        }
+
+        // Log to admin activity
+        await supabase.from('admin_activity_log').insert({
+          actor_type: 'admin',
+          actor_name: 'Administrator',
+          action: 'admin_toggled_employee_status',
+          description: `Deactivated ${emp.first_name} ${emp.last_name}`,
+          employee_id: emp.id
+        });
+
+        toast.success(`${emp.first_name} ${emp.last_name} has been deactivated.`);
+      } catch (err) {
+        toast.error("Failed to deactivate employee record.");
       }
-
-      // Log to admin activity
-      await supabase.from('admin_activity_log').insert({
-        actor_type: 'admin',
-        actor_name: 'Administrator',
-        action: 'admin_toggled_employee_status',
-        description: `${emp.is_active ? 'Deactivated' : 'Reactivated'} ${emp.first_name} ${emp.last_name}`,
-        employee_id: emp.id
-      });
-
-      toast.success(`${emp.first_name} ${emp.last_name} has been ${emp.is_active ? "deactivated" : "reactivated"}.`);
-    } catch (err) {
-      toast.error("Failed to update status");
+    } else {
+      setSelectedEmployee(emp);
+      setModalInitialTab("employment");
+      setModalInitialEdit(true);
+      setModalOpen(true);
+      toast.info(`Please update the current employment information to reactivate ${emp.first_name}.`);
     }
   };
 
@@ -254,6 +266,8 @@ export default function Employees() {
         onOpenChange={setModalOpen}
         onToggleActive={handleToggleActive}
         onSave={() => fetchEmployees()}
+        initialTab={modalInitialTab}
+        initialEditMode={modalInitialEdit}
       />
     </div>
   );

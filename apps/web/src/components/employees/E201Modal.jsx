@@ -3,20 +3,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Check, X, Save, Edit3, ShieldCheck, Gift } from "lucide-react";
+import { User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Check, X, Save, Edit3, ShieldCheck, Gift, BookOpen } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseAdmin } from "@/lib/supabase";
 import PersonalDetailsTab from "./profile/PersonalDetailsTab";
 import EducationTab from "./profile/EducationTab";
 import TrainingDevTab from "./profile/TrainingDevTab";
 import EmploymentInfoTab from "./profile/EmploymentInfoTab";
+import SemestralRecordsTab from "./profile/SemestralRecordsTab";
 import LeaveTab from "./profile/LeaveTab";
 import BenefitsTab from "./profile/BenefitsTab";
 
-export default function E201Modal({ employee, open, onOpenChange, onToggleActive, onSave, isAdminView = true }) {
+export default function E201Modal({ employee, open, onOpenChange, onToggleActive, onSave, isAdminView = true, initialTab = "profiling", initialEditMode = false }) {
   const [editedEmployee, setEditedEmployee] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [activeTab, setActiveTab] = useState("profiling");
   const [leaveCredits, setLeaveCredits] = useState([]);
   const [headOfUnit, setHeadOfUnit] = useState(null);
 
@@ -34,21 +36,29 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
   };
 
   const [leaveApps, setLeaveApps] = useState([]);
+  const [localSemesters, setLocalSemesters] = useState([]);
+  const [baselineSemesters, setBaselineSemesters] = useState([]);
 
   useEffect(() => {
     const fetchLeaveData = async () => {
       if (!employee?.id) return;
-      const [creditsRes, appsRes] = await Promise.all([
+      const [creditsRes, appsRes, semRes] = await Promise.all([
         supabase.from('leave_credits').select('*').eq('employee_id', employee.id),
-        supabase.from('leave_applications').select('*').eq('employee_id', employee.id).order('created_at', { ascending: false })
+        supabase.from('leave_applications').select('*').eq('employee_id', employee.id).order('created_at', { ascending: false }),
+        supabase.from('employee_semesters').select('*').eq('employee_id', employee.id).order('academic_year', { ascending: false })
       ]);
       if (creditsRes.data) setLeaveCredits(creditsRes.data);
       if (appsRes.data) setLeaveApps(appsRes.data);
+      if (semRes.data) {
+        setLocalSemesters(semRes.data);
+        setBaselineSemesters(semRes.data);
+      }
     };
 
     if (open && employee) {
       setEditedEmployee(getReviewEmployee());
-      setIsEditMode(false);
+      setIsEditMode(initialEditMode);
+      setActiveTab(initialTab);
       fetchLeaveData();
 
       // Fetch head status
@@ -69,7 +79,7 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
       };
       fetchHeadStatus();
     }
-  }, [employee, open, activeRequest?.id]);
+  }, [employee, open, activeRequest?.id, initialTab, initialEditMode]);
 
   if (!employee || !editedEmployee) return null;
 
@@ -130,6 +140,84 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {
+      // Validation for reactivation if employee was inactive
+      if (baselineEmployee && !baselineEmployee.is_active) {
+        const empStatus = editedEmployee.employment_status;
+        const empTenure = editedEmployee.employment_tenure;
+        const empClass = editedEmployee.employment_classification;
+        const empClassII = editedEmployee.classification_ii;
+        
+        if (!empStatus || !empTenure || !empClass || !empClassII) {
+          toast.error("Reactivation failed: Employment Status, Tenure, Classification I, and Classification II are required fields.");
+          setIsSaving(false);
+          return;
+        }
+        
+        // Auto-set is_active to true upon successful save
+        editedEmployee.is_active = true;
+      }
+
+      // Save semester changes
+      const deletedIds = baselineSemesters
+        .filter(b => !localSemesters.some(l => l.id === b.id))
+        .map(b => b.id);
+
+      const insertedRows = localSemesters.filter(l => String(l.id).startsWith('temp-'));
+
+      const updatedRows = localSemesters.filter(l => {
+        if (String(l.id).startsWith('temp-')) return false;
+        const base = baselineSemesters.find(b => b.id === l.id);
+        if (!base) return false;
+        return (
+          base.academic_year !== l.academic_year ||
+          base.semester !== l.semester ||
+          base.teaching_load !== l.teaching_load ||
+          base.is_active !== l.is_active
+        );
+      });
+
+      const dbClient = supabaseAdmin || supabase;
+
+      if (deletedIds.length > 0) {
+        const { error: delErr } = await dbClient.from('employee_semesters').delete().in('id', deletedIds);
+        if (delErr) throw delErr;
+      }
+
+      if (insertedRows.length > 0) {
+        const parseTeachingLoad = (val) => {
+          if (val === null || val === undefined || String(val).trim() === "") return null;
+          const num = parseFloat(val);
+          return isNaN(num) ? null : num;
+        };
+
+        const inserts = insertedRows.map(({ id, ...rest }) => ({
+          ...rest,
+          employee_id: editedEmployee.id,
+          teaching_load: parseTeachingLoad(rest.teaching_load)
+        }));
+        const { error: insErr } = await dbClient.from('employee_semesters').insert(inserts);
+        if (insErr) throw insErr;
+      }
+
+      if (updatedRows.length > 0) {
+        const parseTeachingLoad = (val) => {
+          if (val === null || val === undefined || String(val).trim() === "") return null;
+          const num = parseFloat(val);
+          return isNaN(num) ? null : num;
+        };
+
+        for (const row of updatedRows) {
+          const payload = {
+            academic_year: row.academic_year,
+            semester: row.semester,
+            is_active: row.is_active,
+            teaching_load: parseTeachingLoad(row.teaching_load)
+          };
+          const { error: updErr } = await dbClient.from('employee_semesters').update(payload).eq('id', row.id);
+          if (updErr) throw updErr;
+        }
+      }
+
       // Remove joined properties before updating the employee record
       const updateData = { ...editedEmployee };
       delete updateData.pendingRequests;
@@ -236,14 +324,14 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
                 <Button variant="outline" onClick={() => { setIsEditMode(false); setEditedEmployee(getReviewEmployee()); }}>Cancel</Button>
                 <Button onClick={handleSaveAll} disabled={isSaving} className="gap-2 bg-[#0C005F] hover:bg-[#0C005F]/90">
                    <Save className="w-4 h-4" />
-                   {isSaving ? "Saving..." : "Save Admin Changes"}
+                   {isSaving ? "Saving..." : (baselineEmployee && !baselineEmployee.is_active ? "Reactivate & Save" : "Save Admin Changes")}
                 </Button>
               </>
             )}
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="profiling" className="px-6 pb-6 mt-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="px-6 pb-6 mt-4">
           <TabsList className="w-full justify-start bg-muted/50 h-auto flex-wrap gap-1 p-1">
             <TabsTrigger value="profiling" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
               <User className="w-3.5 h-3.5" />
@@ -261,6 +349,12 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
               <Briefcase className="w-3.5 h-3.5" />
               Employment Info
             </TabsTrigger>
+            {editedEmployee?.employment_classification?.toLowerCase() === "teaching" && (
+              <TabsTrigger value="semestral" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
+                <BookOpen className="w-3.5 h-3.5" />
+                Semestral Records
+              </TabsTrigger>
+            )}
             <TabsTrigger value="leave" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
               <CalendarDays className="w-3.5 h-3.5" />
               Leave Credits
@@ -309,6 +403,17 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
               requestedChanges={requestedChanges} 
             />
           </TabsContent>
+          {editedEmployee?.employment_classification?.toLowerCase() === "teaching" && (
+            <TabsContent value="semestral" className="mt-4">
+              <SemestralRecordsTab 
+                employee={editedEmployee} 
+                semesters={localSemesters}
+                onSemestersChange={setLocalSemesters}
+                isReadOnly={!isEditMode} 
+                isAdminView={true}
+              />
+            </TabsContent>
+          )}
           <TabsContent value="leave" className="mt-4">
             <LeaveTab 
               employee={editedEmployee} 
@@ -322,8 +427,8 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
                    ]);
                    if (creditsRes.data) setLeaveCredits(creditsRes.data);
                    if (appsRes.data) setLeaveApps(appsRes.data);
-                };
-                fetchLeaveData();
+                 };
+                 fetchLeaveData();
               }} 
               isReadOnly={!isEditMode} 
               requestedChanges={requestedChanges ? baselineEmployee : null}
