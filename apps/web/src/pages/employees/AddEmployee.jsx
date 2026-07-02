@@ -46,6 +46,7 @@ const defaultEmployee = {
   employment_tenure: "Probationary",
   employment_classification: "Non-Teaching",
   classification_ii: "Academic Official",
+  classification_iii: "New",
   is_active: true
 };
 

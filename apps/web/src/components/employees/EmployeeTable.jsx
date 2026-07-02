@@ -92,7 +92,7 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
               <SortButton column="last_name" label="EMPLOYEE NAME" />
             </TableHead>
             <TableHead className="text-xs font-semibold uppercase tracking-wider border-x border-[#0a0050] text-white py-2.5">
-              <SortButton column="department" label="DEPARTMENT" />
+              <SortButton column="department" label="DEPARTMENT/OFFICE" />
             </TableHead>
             <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell border-x border-[#0a0050] text-white py-2.5">
               <SortButton column="position" label="POSITION" />

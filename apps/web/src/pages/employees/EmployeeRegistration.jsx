@@ -159,7 +159,9 @@ export default function EmployeeRegistration() {
     mother_maiden_name: "", mother_status: "Living", mother_occupation: "",
 
     // Admin Only fields (for मास्टरlist/profile)
-    classification_ii: "", present_rank_start: "", present_rank_end: "",
+    classification_ii: "",
+    classification_iii: "",
+    present_rank_start: "", present_rank_end: "",
 
     // Tax & IDs
     sss: "", tin: "", philhealth: "", pag_ibig: "", peraa: "", tax_status: "Single",

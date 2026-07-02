@@ -181,6 +181,29 @@ export default function UniversityChart() {
     return false;
   }, [orgUnits]);
 
+  const getBranchClassification = useCallback((nodeId) => {
+    if (!nodeId) return "executive";
+    const checkName = (name) => {
+      const lower = name?.toLowerCase() || "";
+      if (lower.includes("non-academic departments")) return "non-academic";
+      if (lower.includes("academic departments")) return "academic";
+      return null;
+    };
+    const node = orgUnits.find(u => u.id === nodeId);
+    if (!node) return "executive";
+    let branch = checkName(node.name);
+    if (branch) return branch;
+    let current = node;
+    while (current && current.parent_id) {
+      const parent = orgUnits.find(u => u.id === current.parent_id);
+      if (!parent) break;
+      branch = checkName(parent.name);
+      if (branch) return branch;
+      current = parent;
+    }
+    return "executive";
+  }, [orgUnits]);
+
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -271,36 +294,223 @@ export default function UniversityChart() {
 
       if (error) throw error;
 
+      const branchType = getBranchClassification(selectedNode.id);
+      const isAcademic = branchType === "academic";
+      const isNonAcademic = branchType === "non-academic";
+      
+      const assignedEmps = employees.filter(e => e.org_unit_id === selectedNode.id);
+      const updatedEmpIds = new Set();
+
+      const oldHeads = selectedNode.heads || (selectedNode.head_id ? [{ employee_id: selectedNode.head_id }] : []);
+      const affectedEmployeeIds = new Set([
+        ...editHeads.map(h => h.employee_id).filter(Boolean),
+        ...oldHeads.map(h => h.employee_id).filter(Boolean)
+      ]);
+
+      const updatedUnits = orgUnits.map(u => u.id === selectedNode.id ? { ...u, name: editName, head_id: primaryHeadId, heads: editHeads } : u);
+
+      const getUpdatedPositions = (employeeId, units) => {
+        const emp = employees.find(e => e.id === employeeId);
+        if (!emp) return "Employee";
+        const currentPositions = emp.position 
+          ? emp.position.split(',').map(p => p.trim()).filter(Boolean) 
+          : [];
+
+        const oldHeadTitles = new Set();
+        for (const u of orgUnits) {
+          if (u.heads && u.heads.length > 0) {
+            const match = u.heads.find(h => h.employee_id === employeeId);
+            if (match) {
+              const isAcad = isAcademicBranch(u.id);
+              oldHeadTitles.add(match.title || (isAcad ? "Department Head" : u.name));
+            }
+          } else if (u.head_id === employeeId) {
+            const isExec = !u.parent_id || orgUnits.some(pu => pu.id === u.parent_id && !pu.parent_id);
+            const isAcad = isAcademicBranch(u.id);
+            oldHeadTitles.add(isExec ? u.name : (isAcad ? "Department Head" : u.name));
+          }
+        }
+
+        const nonHeadPositions = currentPositions.filter(p => !oldHeadTitles.has(p));
+
+        const newHeadTitles = [];
+        for (const u of units) {
+          if (u.heads && u.heads.length > 0) {
+            const match = u.heads.find(h => h.employee_id === employeeId);
+            if (match) {
+              const isAcad = isAcademicBranch(u.id);
+              newHeadTitles.push(match.title || (isAcad ? "Department Head" : u.name));
+            }
+          } else if (u.head_id === employeeId) {
+            const isExec = !u.parent_id || units.some(pu => pu.id === u.parent_id && !pu.parent_id);
+            const isAcad = isAcademicBranch(u.id);
+            newHeadTitles.push(isExec ? u.name : (isAcad ? "Department Head" : u.name));
+          }
+        }
+
+        const combined = Array.from(new Set([...nonHeadPositions, ...newHeadTitles]));
+        return combined.length > 0 ? combined.join(', ') : "Employee";
+      };
+
+      const getHighestLevelOffice = (employeeId, units) => {
+        const headOffices = [];
+        
+        const getLevel = (unitId) => {
+          const unit = units.find(u => u.id === unitId);
+          if (!unit) return 2;
+          
+          const checkName = (n) => {
+            const lower = n?.toLowerCase() || "";
+            if (lower.includes("non-academic departments")) return 1; // Non-Institutional
+            if (lower.includes("academic departments")) return 2; // Institutional
+            return null;
+          };
+          
+          let lvl = checkName(unit.name);
+          if (lvl !== null) return lvl;
+          
+          let current = unit;
+          while (current && current.parent_id) {
+            const parent = units.find(x => x.id === current.parent_id);
+            if (!parent) break;
+            lvl = checkName(parent.name);
+            if (lvl !== null) return lvl;
+            current = parent;
+          }
+          return 0; // Executive
+        };
+
+        for (const u of units) {
+          if (u.heads && u.heads.some(h => h.employee_id === employeeId)) {
+            headOffices.push({ name: u.name, level: getLevel(u.id) });
+          } else if (u.head_id === employeeId) {
+            headOffices.push({ name: u.name, level: getLevel(u.id) });
+          }
+        }
+
+        if (headOffices.length === 0) return null;
+        headOffices.sort((a, b) => a.level - b.level);
+        return headOffices[0].name;
+      };
+
       // Update employee records for each assigned head of office
-      for (const head of editHeads) {
-        if (head.employee_id) {
+      for (const empId of affectedEmployeeIds) {
+        const matchingHead = editHeads.find(h => h.employee_id === empId);
+        const emp = employees.find(e => e.id === empId);
+        if (!emp) continue;
+
+        const newPos = getUpdatedPositions(empId, updatedUnits);
+        const highestDept = getHighestLevelOffice(empId, updatedUnits) || (emp.org_unit_id === selectedNode.id ? editName : emp.department);
+
+        if (matchingHead) {
+          const headClassII = isAcademic ? "Academic Official" : 
+                              isNonAcademic ? "Administrative Official" : "Executive";
+          
+          const updatePayload = {
+            position: newPos,
+            department: highestDept,
+            org_unit_id: selectedNode.id,
+            classification_ii: headClassII
+          };
+
           const { error: empUpdateError } = await supabase
             .from('employees')
-            .update({
-              position: head.title || "Head of Office",
-              department: editName,
-              org_unit_id: selectedNode.id
-            })
-            .eq('id', head.employee_id);
+            .update(updatePayload)
+            .eq('id', empId);
             
           if (empUpdateError) {
             console.error("Error updating employee record for head:", empUpdateError);
           }
+          updatedEmpIds.add(empId);
+        } else {
+          // Employee was removed as head
+          const isMember = emp.org_unit_id === selectedNode.id;
+          const updatePayload = {
+            position: newPos
+          };
+          if (highestDept) {
+            updatePayload.department = highestDept;
+          } else if (isMember) {
+            updatePayload.classification_ii = isAcademic ? "Academic Official" : "Administrative Official";
+            updatePayload.department = editName;
+          }
+
+          const { error: empUpdateError } = await supabase
+            .from('employees')
+            .update(updatePayload)
+            .eq('id', empId);
+
+          if (empUpdateError) {
+            console.error("Error updating removed head employee:", empUpdateError);
+          }
+          updatedEmpIds.add(empId);
+        }
+      }
+
+      // Update non-head employees assigned to this office (who weren't affected as heads)
+      for (const emp of assignedEmps) {
+        if (updatedEmpIds.has(emp.id)) continue;
+        
+        const nonHeadClassII = isAcademic ? "Academic Official" : "Administrative Official";
+        
+        const { error: empUpdateError } = await supabase
+          .from('employees')
+          .update({
+            classification_ii: nonHeadClassII,
+            department: editName
+          })
+          .eq('id', emp.id);
+          
+        if (empUpdateError) {
+          console.error("Error updating non-head employee classification:", empUpdateError);
         }
       }
 
       // Update the local employees state so the UI reflects changes immediately
       setEmployees(prev => prev.map(e => {
-        const matchingHead = editHeads.find(h => h.employee_id === e.id);
-        if (matchingHead) {
-          return {
-            ...e,
-            position: matchingHead.title || "Head of Office",
-            department: editName,
-            org_unit_id: selectedNode.id
-          };
+        if (!affectedEmployeeIds.has(e.id)) {
+          if (e.org_unit_id === selectedNode.id) {
+            const nonHeadClassII = isAcademic ? "Academic Official" : "Administrative Official";
+            return {
+              ...e,
+              department: editName,
+              classification_ii: nonHeadClassII
+            };
+          }
+          return e;
         }
-        return e;
+
+        const matchingHead = editHeads.find(h => h.employee_id === e.id);
+        const newPos = getUpdatedPositions(e.id, updatedUnits);
+        const highestDept = getHighestLevelOffice(e.id, updatedUnits) || (e.org_unit_id === selectedNode.id ? editName : e.department);
+
+        if (matchingHead) {
+          const headClassII = isAcademic ? "Academic Official" : 
+                              isNonAcademic ? "Administrative Official" : "Executive";
+          
+          const updatedEmp = {
+            ...e,
+            position: newPos,
+            department: highestDept,
+            org_unit_id: selectedNode.id,
+            classification_ii: headClassII
+          };
+
+          return updatedEmp;
+        } else {
+          const isMember = e.org_unit_id === selectedNode.id;
+          const updatedEmp = {
+            ...e,
+            position: newPos
+          };
+          if (highestDept) {
+            updatedEmp.department = highestDept;
+          } else if (isMember) {
+            updatedEmp.classification_ii = isAcademic ? "Academic Official" : "Administrative Official";
+            updatedEmp.department = editName;
+          }
+          return updatedEmp;
+        }
       }));
 
       setOrgUnits(prev => prev.map(u => u.id === selectedNode.id ? { ...u, name: editName, head_id: primaryHeadId, heads: editHeads } : u));
@@ -357,7 +567,22 @@ export default function UniversityChart() {
       };
       const deptName = getDeptName();
 
-      const updatePayload = { org_unit_id: selectedNode.id };
+      const branchType = getBranchClassification(selectedNode.id);
+      let classification_ii = "Administrative Official";
+      if (branchType === "academic") {
+        classification_ii = "Academic Official";
+      } else if (branchType === "non-academic") {
+        classification_ii = "Administrative Official";
+      } else {
+        // Executive tree
+        const isHead = editHeads.some(h => h.employee_id === employeeId);
+        classification_ii = isHead ? "Executive" : "Administrative Official";
+      }
+
+      const updatePayload = { 
+        org_unit_id: selectedNode.id,
+        classification_ii
+      };
       if (deptName) updatePayload.department = deptName;
 
       const { error } = await supabase
@@ -424,11 +649,6 @@ export default function UniversityChart() {
     return `${years} year${years !== 1 ? 's' : ''} ${months} mo`;
   };
 
-  const departmentEmployees = useMemo(() => {
-    if (!selectedNode) return [];
-    return employees.filter(e => e.org_unit_id === selectedNode.id);
-  }, [employees, selectedNode]);
-
   const headsList = useMemo(() => {
     if (selectedNode?.heads && selectedNode.heads.length > 0) {
       return selectedNode.heads;
@@ -439,6 +659,12 @@ export default function UniversityChart() {
     }
     return [];
   }, [selectedNode, orgUnits]);
+
+  const departmentEmployees = useMemo(() => {
+    if (!selectedNode) return [];
+    const headIds = headsList.map(h => h.employee_id).filter(Boolean);
+    return employees.filter(e => e.org_unit_id === selectedNode.id && !headIds.includes(e.id));
+  }, [employees, selectedNode, headsList]);
 
   const availableEmployees = useMemo(() => {
     const search = (assignmentSearch || "").toLowerCase();
@@ -524,9 +750,9 @@ export default function UniversityChart() {
         <div className="relative group/node">
           <Card 
             className={cn(
-              "shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer relative z-10 overflow-hidden",
+              "shadow-none transition-all duration-500 cursor-pointer relative z-10 overflow-hidden",
               style.bg,
-              style.border,
+              isSelected ? "border-transparent" : style.border,
               isSelected ? "ring-2 ring-indigo-500 ring-offset-2 scale-[1.02]" : "border-slate-200"
             )}
             onClick={() => setSelectedNode(node)}
@@ -926,7 +1152,10 @@ export default function UniversityChart() {
                         const head = headsList[0];
                         const emp = employees.find(e => e.id === head.employee_id);
                         return (
-                          <Card className={cn("shadow-xl overflow-hidden group transition-all duration-500 hover:shadow-2xl border-2", s.bg, s.border)}>
+                          <Card 
+                            className={cn("shadow-xl overflow-hidden group transition-all duration-500 hover:shadow-2xl border-2 cursor-pointer hover:border-indigo-300", s.bg, s.border)}
+                            onClick={() => emp && navigate('/employees', { state: { openEmployeeId: emp.id } })}
+                          >
                             <CardContent className="p-8">
                               <div className="flex flex-col md:flex-row gap-12">
                                 <div className="shrink-0 flex flex-col items-center gap-6">
@@ -964,6 +1193,7 @@ export default function UniversityChart() {
                                     
                                     <div className="space-y-4 pt-4 md:pt-0">
                                        {[
+                                         { label: "In Service", icon: Briefcase, value: calculateTenure(emp?.date_hired) },
                                          { label: "Email", icon: MailIcon, value: emp?.contact_email },
                                          { label: "Phone", icon: PhoneIcon, value: emp?.contact_phone },
                                        ].map((info) => (
@@ -989,7 +1219,11 @@ export default function UniversityChart() {
                           {headsList.map((head, idx) => {
                             const emp = employees.find(e => e.id === head.employee_id);
                             return (
-                              <Card key={idx} className={cn("shadow-lg overflow-hidden group transition-all duration-500 hover:shadow-2xl border-2", s.bg, s.border)}>
+                              <Card 
+                                key={idx} 
+                                className={cn("shadow-lg overflow-hidden group transition-all duration-500 hover:shadow-2xl border-2 cursor-pointer hover:border-indigo-300", s.bg, s.border)}
+                                onClick={() => emp && navigate('/employees', { state: { openEmployeeId: emp.id } })}
+                              >
                                 <CardContent className="p-6">
                                   <div className="flex flex-col sm:flex-row gap-6">
                                     <div className="shrink-0 flex flex-col items-center gap-4">
@@ -1026,6 +1260,7 @@ export default function UniversityChart() {
                                       
                                       <div className="space-y-2 pt-2 border-t border-dashed border-slate-100/20">
                                          {[
+                                           { label: "In Service", icon: Briefcase, value: calculateTenure(emp?.date_hired) },
                                            { label: "Email", icon: MailIcon, value: emp?.contact_email },
                                            { label: "Phone", icon: PhoneIcon, value: emp?.contact_phone },
                                          ].map((info) => (
@@ -1323,7 +1558,11 @@ export default function UniversityChart() {
                       </div>
                     ) : (
                       departmentEmployees.map((emp) => (
-                        <Card key={emp.id} className="border-slate-200 shadow-sm hover:shadow-xl transition-all group overflow-hidden bg-white">
+                        <Card 
+                          key={emp.id} 
+                          className="border-slate-200 shadow-sm hover:shadow-xl transition-all group overflow-hidden bg-white cursor-pointer hover:border-indigo-300"
+                          onClick={() => navigate('/employees', { state: { openEmployeeId: emp.id } })}
+                        >
                           <CardContent className="p-6 flex gap-6">
                             <div className="shrink-0 space-y-4">
                               <div className="relative">
