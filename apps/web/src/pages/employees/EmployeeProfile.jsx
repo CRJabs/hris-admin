@@ -16,7 +16,7 @@ const SemestralRecordsTab = lazy(() => import("@/components/employees/profile/Se
 const BenefitsTab = lazy(() => import("@/components/employees/profile/BenefitsTab"));
 const FileRequestModal = lazy(() => import("@/components/employees/profile/FileRequestModal"));
 const HomeTab = lazy(() => import("@/components/employees/profile/HomeTab"));
-const PendingApprovalsTab = lazy(() => import("@/components/employees/profile/PendingApprovalsTab"));
+const PendingApprovalsModal = lazy(() => import("@/components/employees/profile/PendingApprovalsModal"));
 import EditProfileDialog from "@/components/employees/profile/EditProfileDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, differenceInDays, isAfter, isBefore, addDays } from "date-fns";
@@ -78,6 +78,8 @@ export default function EmployeeProfile() {
   const [isInstitutionalHead, setIsInstitutionalHead] = useState(false);
   const [ledUnitIds, setLedUnitIds] = useState([]);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isApprovalsModalOpen, setIsApprovalsModalOpen] = useState(false);
+  const [hasTeachingLoad, setHasTeachingLoad] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
@@ -112,6 +114,17 @@ export default function EmployeeProfile() {
         if (!appsError) {
           setLeaveApplications(apps || []);
         }
+
+        // Fetch active teaching load for semestral tab visibility
+        const { data: activeSems } = await supabase
+          .from("employee_semesters")
+          .select("teaching_load")
+          .eq("employee_id", data.id)
+          .eq("is_active", true);
+        const teachingLoad = (activeSems || []).some(
+          s => s.teaching_load && parseFloat(s.teaching_load) > 0
+        );
+        setHasTeachingLoad(teachingLoad);
 
         // Fetch head-of-office status
         const { data: headUnit } = await supabase
@@ -456,18 +469,29 @@ export default function EmployeeProfile() {
 
         <div className="flex items-center gap-2 md:gap-4 flex-wrap justify-end">
           {!isEditing && (
-            <Button
-              onClick={() => setIsRequestModalOpen(true)}
-              className="bg-indigo-600 text-white hover:bg-indigo-700 font-bold gap-2 text-xs md:text-sm border-none shadow-sm"
-            >
-              <FileText className="w-4 h-4" />
-              <span>File a request</span>
-            </Button>
+            <>
+              <Button
+                onClick={() => setIsRequestModalOpen(true)}
+                className="bg-white text-[#0C005F] hover:bg-slate-100/80 font-bold gap-2 text-xs md:text-sm border border-slate-200 shadow-sm"
+              >
+                <FileText className="w-4 h-4 text-amber-500 fill-amber-500" />
+                <span>File a request</span>
+              </Button>
+              {(isInstitutionalHead || headOfUnit !== null || employeeData?.position?.toLowerCase().includes("president") || employeeData?.position?.toLowerCase().includes("vice president") || employeeData?.position?.toLowerCase().includes("vp")) && (
+                <Button
+                  onClick={() => setIsApprovalsModalOpen(true)}
+                  className="bg-white text-[#0C005F] hover:bg-slate-100/80 font-bold gap-2 text-xs md:text-sm border border-slate-200 shadow-sm"
+                >
+                  <CheckSquare className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  <span>Pending Approvals</span>
+                </Button>
+              )}
+            </>
           )}
           {!isEditing ? (
             <Button
               onClick={handleStartEdit}
-              className="bg-white text-[#0C005F] hover:bg-white/90 font-bold gap-2 text-xs md:text-sm"
+              className="bg-white text-[#0C005F] hover:bg-slate-100/80 font-bold gap-2 text-xs md:text-sm border border-slate-200 shadow-sm"
             >
               <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
               <span className="hidden sm:inline">Update Information</span>
@@ -575,12 +599,7 @@ export default function EmployeeProfile() {
                 <Home className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Home</span>
               </TabsTrigger>
-              {isInstitutionalHead && (
-                <TabsTrigger value="approvals" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
-                  <CheckSquare className="w-4 h-4 shrink-0" />
-                  <span className="hidden md:inline">Pending Approvals</span>
-                </TabsTrigger>
-              )}
+              {/* Removed Pending Approvals Tab Trigger */}
               <TabsTrigger value="profiling" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
                 <User className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Personal Data</span>
@@ -597,12 +616,16 @@ export default function EmployeeProfile() {
                 <Briefcase className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Employment Info</span>
               </TabsTrigger>
-              {employeeData?.employment_classification?.toLowerCase() === "teaching" && (
-                <TabsTrigger value="semestral" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
-                  <BookOpen className="w-4 h-4 shrink-0" />
-                  <span className="hidden md:inline">Semestral Records</span>
-                </TabsTrigger>
-              )}
+              {(() => {
+                const isTeaching = employeeData?.employment_classification?.toLowerCase() === "teaching";
+                const showSemestral = isTeaching || hasTeachingLoad;
+                return showSemestral ? (
+                  <TabsTrigger value="semestral" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+                    <BookOpen className="w-4 h-4 shrink-0" />
+                    <span className="hidden md:inline">Semestral Records</span>
+                  </TabsTrigger>
+                ) : null;
+              })()}
               <TabsTrigger value="leave" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
                 <CalendarDays className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Leave Credits</span>
@@ -626,14 +649,7 @@ export default function EmployeeProfile() {
                     headOfUnit={headOfUnit}
                   />
                 </TabsContent>
-                {isInstitutionalHead && (
-                  <TabsContent value="approvals" className="m-0 space-y-6">
-                    <PendingApprovalsTab 
-                      employee={employeeData} 
-                      ledUnitIds={ledUnitIds}
-                    />
-                  </TabsContent>
-                )}
+                {/* Removed Pending Approvals Tab Content */}
                 <TabsContent value="profiling" className="m-0 space-y-6">
                   <PersonalDetailsTab
                     employee={isEditing ? editedData : employeeData}
@@ -668,16 +684,20 @@ export default function EmployeeProfile() {
                     onChange={handleFieldChange}
                   />
                 </TabsContent>
-                {employeeData?.employment_classification?.toLowerCase() === "teaching" && (
-                  <TabsContent value="semestral" className="m-0 space-y-6">
-                    <SemestralRecordsTab 
-                      employee={isEditing ? editedData : employeeData} 
-                      isReadOnly={true} 
-                      isAdminView={false}
-                      onChange={handleFieldChange}
-                    />
-                  </TabsContent>
-                )}
+                {(() => {
+                  const isTeaching = employeeData?.employment_classification?.toLowerCase() === "teaching";
+                  const showSemestral = isTeaching || hasTeachingLoad;
+                  return showSemestral ? (
+                    <TabsContent value="semestral" className="m-0 space-y-6">
+                      <SemestralRecordsTab 
+                        employee={isEditing ? editedData : employeeData} 
+                        isReadOnly={true} 
+                        isAdminView={false}
+                        onChange={handleFieldChange}
+                      />
+                    </TabsContent>
+                  ) : null;
+                })()}
                 <TabsContent value="leave" className="m-0 space-y-6">
                   <LeaveTab 
                     employee={isEditing ? editedData : employeeData} 
@@ -772,6 +792,17 @@ export default function EmployeeProfile() {
           onOpenChange={setIsRequestModalOpen}
           employee={employeeData}
           leaveCredits={leaveCredits}
+          onSuccess={refreshLeaveData}
+        />
+      </Suspense>
+
+      {/* Pending Approvals Modal */}
+      <Suspense fallback={null}>
+        <PendingApprovalsModal
+          open={isApprovalsModalOpen}
+          onOpenChange={setIsApprovalsModalOpen}
+          employee={employeeData}
+          ledUnitIds={ledUnitIds}
           onSuccess={refreshLeaveData}
         />
       </Suspense>

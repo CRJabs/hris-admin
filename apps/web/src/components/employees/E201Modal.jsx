@@ -349,12 +349,10 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
               <Briefcase className="w-3.5 h-3.5" />
               Employment Info
             </TabsTrigger>
-            {editedEmployee?.employment_classification?.toLowerCase() === "teaching" && (
-              <TabsTrigger value="semestral" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
-                <BookOpen className="w-3.5 h-3.5" />
-                Semestral Records
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="semestral" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
+              <BookOpen className="w-3.5 h-3.5" />
+              Semestral Records
+            </TabsTrigger>
             <TabsTrigger value="leave" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
               <CalendarDays className="w-3.5 h-3.5" />
               Leave Credits
@@ -403,17 +401,15 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
               requestedChanges={requestedChanges} 
             />
           </TabsContent>
-          {editedEmployee?.employment_classification?.toLowerCase() === "teaching" && (
-            <TabsContent value="semestral" className="mt-4">
-              <SemestralRecordsTab 
-                employee={editedEmployee} 
-                semesters={localSemesters}
-                onSemestersChange={setLocalSemesters}
-                isReadOnly={!isEditMode} 
-                isAdminView={true}
-              />
-            </TabsContent>
-          )}
+          <TabsContent value="semestral" className="mt-4">
+            <SemestralRecordsTab 
+              employee={editedEmployee} 
+              semesters={localSemesters}
+              onSemestersChange={setLocalSemesters}
+              isReadOnly={!isEditMode} 
+              isAdminView={true}
+            />
+          </TabsContent>
           <TabsContent value="leave" className="mt-4">
             <LeaveTab 
               employee={editedEmployee} 
