@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
-  LayoutDashboard, Users, DollarSign, BarChart3, Settings, LogOut, 
+  LayoutDashboard, Users, DollarSign, BarChart3, LogOut, 
   CheckSquare, ChevronLeft, ChevronRight, UserPlus, List, FileText, CalendarDays, Zap, Building2, Bell,
   History, Trash2, Shield, RefreshCw, Award
 } from "lucide-react";

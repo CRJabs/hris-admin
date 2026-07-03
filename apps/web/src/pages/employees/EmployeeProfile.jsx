@@ -199,7 +199,6 @@ export default function EmployeeProfile() {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            console.log("Profile updated in realtime", payload);
             setEmployeeData(payload.new);
           }
         )

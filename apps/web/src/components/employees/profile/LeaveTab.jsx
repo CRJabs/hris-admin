@@ -8,7 +8,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import FileLeaveModal from "./FileLeaveModal";
 
 function LeaveBalanceCard({ id, title, total, used, isCommutable, isReadOnly, onValueChange, isDirty }) {
   const [localTotal, setLocalTotal] = useState(total);

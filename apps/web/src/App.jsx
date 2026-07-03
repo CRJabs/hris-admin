@@ -33,7 +33,6 @@ const Commutations = lazy(() => import('@/pages/approvals/Commutations'));
 const Resignations = lazy(() => import('@/pages/approvals/Resignations'));
 const Retirements = lazy(() => import('@/pages/approvals/Retirements'));
 const Company = lazy(() => import('@/pages/Company'));
-const Settings = lazy(() => import('@/pages/Settings'));
 
 
 // Loading component
@@ -109,7 +108,6 @@ const AuthenticatedApp = () => {
           <Route path="/leaves/assign" element={<ProtectedRoute path="/leaves/assign" element={<AssignLeaveCredits />} />} />
           <Route path="/company" element={<ProtectedRoute path="/company" element={<Company />} />} />
           <Route path="/reports" element={<ProtectedRoute path="/reports" element={<Reports />} />} />
-          <Route path="/settings" element={<ProtectedRoute path="/settings" element={<Settings />} />} />
           <Route path="/activity" element={<ProtectedRoute path="/activity" element={<ActivityHistory />} />} />
           <Route path="/activity/bin" element={<ProtectedRoute path="/activity/bin" element={<BinPage />} />} />
         </Route>

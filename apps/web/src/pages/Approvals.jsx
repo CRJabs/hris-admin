@@ -30,7 +30,7 @@ export default function Approvals() {
           supabase.from('employee_update_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('employees').select('id', { count: 'exact', head: true }).eq('employment_status', 'Pending'),
           supabase.from('leave_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-          supabase.from('commutation_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('commutation_requests').select('id', { count: 'exact', head: true }).not('status', 'in', '("approved","rejected")'),
           supabase.from('resignation_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('retirement_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending')
         ]);

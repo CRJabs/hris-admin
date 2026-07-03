@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import {
   Zap, BarChart3, Building2, CheckSquare,
-  Users, CalendarDays, Settings
+  Users, CalendarDays
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +11,6 @@ const mobileNavItems = [
   { label: "Employees", icon: Users,        path: "/employees" },
   { label: "Leaves",    icon: CalendarDays, path: "/leaves/assign" },
   { label: "Company",   icon: Building2,    path: "/company" },
-  { label: "Settings",  icon: Settings,     path: "/settings" },
 ];
 
 export default function MobileBottomNav() {

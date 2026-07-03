@@ -213,7 +213,6 @@ export default function UniversityChart() {
       const fileName = `${selectedNode.id}-${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      console.log("Uploading to department-logos:", filePath);
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('department-logos')
         .upload(filePath, file, {
