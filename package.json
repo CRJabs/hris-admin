@@ -16,6 +16,9 @@
     "turbo": "^2.8.17",
     "typescript": "5.9.3"
   },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.101.1"
+  },
   "engines": {
     "node": ">=20"
   },

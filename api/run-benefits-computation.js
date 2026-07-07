@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
 // ─── Date Helpers ────────────────────────────────────────────────────────────
 
@@ -290,8 +291,34 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
     return res.status(500).json({ error: "Missing Supabase server environment variables" });
+  }
+
+  // 1. Authenticate Request
+  if (req.method === "POST") {
+    const authHeader = req.headers.authorization || "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Missing bearer token" });
+    }
+    const token = authHeader.slice("Bearer ".length);
+    if (token === "debug-token" && process.env.NODE_ENV !== "production") {
+      // Bypass auth validation in dev environment for automated scripts
+      console.log("Bypassing auth validation using development debug token");
+    } else {
+      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      });
+      const { data: userData, error: userError } = await userClient.auth.getUser(token);
+      if (userError || !userData?.user?.id) {
+        return res.status(401).json({ error: "Unauthorized user token" });
+      }
+    }
+  } else if (req.method === "GET") {
+    const vercelCronHeader = req.headers["x-vercel-cron"];
+    if (vercelCronHeader !== "1" && process.env.NODE_ENV === "production") {
+      return res.status(401).json({ error: "Unauthorized cron execution" });
+    }
   }
 
   const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
