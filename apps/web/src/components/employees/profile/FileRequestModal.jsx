@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { resolveCommutationApprovers, resolveCommutationApproversServer } from "@/utils/leaveUtils";
+import { resolveCommutationApprovers } from "@/utils/leaveUtils";
 
 const getFridayTwoWeeksAfter = (baseDate = new Date()) => {
   const targetDate = new Date(baseDate.getTime() + 14 * 24 * 60 * 60 * 1000);
@@ -67,7 +67,6 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
   const [commutationTotalDays, setCommutationTotalDays] = useState("");
   const [commutationHoursPerDay, setCommutationHoursPerDay] = useState("");
   const [commutationTeachingDays, setCommutationTeachingDays] = useState("");
-  const [orgUnits, setOrgUnits] = useState([]);
   const [allEmployees, setAllEmployees] = useState([]);
   const [semesters, setSemesters] = useState([]);
   const [loadingMetadata, setLoadingMetadata] = useState(false);
@@ -100,13 +99,11 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
       if (activeForm !== "commutation" || !employee?.id) return;
       setLoadingMetadata(true);
       try {
-        const [orgsRes, empsRes, semsRes] = await Promise.all([
-          supabase.from("org_units").select("*"),
+        const [empsRes, semsRes] = await Promise.all([
           supabase.from("employees").select("id, first_name, last_name, employee_id, position, department, employment_classification, classification_ii, date_hired, org_unit_id"),
           supabase.from("employee_semesters").select("*").eq("employee_id", employee.id)
         ]);
 
-        if (orgsRes.data) setOrgUnits(orgsRes.data);
         if (empsRes.data) setAllEmployees(empsRes.data);
         if (semsRes.data) setSemesters(semsRes.data);
 
@@ -245,13 +242,13 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
   const handleFileCommutation = async () => {
     setIsSubmitting(true);
     try {
-      // Resolve approvers using server-first RPC (falls back to local JS if RPC not deployed)
-      const { ra, notedBy, approvedBy, conditionName } = await resolveCommutationApproversServer(
-        employee,
-        orgUnits,
-        allEmployees,
-        semesters
-      );
+      // Resolve approvers using server RPC
+      const result = await resolveCommutationApprovers(employee.id);
+
+      const ra = result.ra_id ? allEmployees.find(e => e.id === result.ra_id) : null;
+      const notedBy = result.noted_by_id ? allEmployees.find(e => e.id === result.noted_by_id) : null;
+      const approvedBy = result.approved_by_id ? allEmployees.find(e => e.id === result.approved_by_id) : null;
+      const conditionName = result.condition_name;
 
       const initialStatus = ra ? "pending_ra" : "pending_hr_forward";
 
@@ -627,12 +624,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
             unused: sick.unused + vacation.unused + family.unused
           };
 
-          const { ra, notedBy, approvedBy, conditionName } = resolveCommutationApprovers(
-            employee,
-            orgUnits,
-            allEmployees,
-            semesters
-          );
+
 
           return (
             <div className="space-y-6 py-3 max-h-[70vh] overflow-y-auto pr-1">

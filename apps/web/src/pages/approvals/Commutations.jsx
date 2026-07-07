@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Check, X, Search, Filter, RefreshCw, ChevronDown, ChevronUp, Clock, User, CalendarDays } from "lucide-react";
-import { resolveCommutationApprovers } from "@/utils/leaveUtils";
+
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,9 +16,26 @@ export default function Commutations() {
   const [requests, setRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  const [resolvedConditions, setResolvedConditions] = useState({});
+
+  const handleToggleExpand = async (reqId, empId) => {
+    if (expandedId === reqId) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(reqId);
+      if (!resolvedConditions[reqId]) {
+        try {
+          const { data, error } = await supabase.rpc('resolve_commutation_approvers', { emp_id: empId });
+          if (!error && data) {
+            setResolvedConditions(prev => ({ ...prev, [reqId]: data.condition_name }));
+          }
+        } catch (err) {
+          console.error("Error resolving condition on expand:", err);
+        }
+      }
+    }
+  };
   const [allEmployees, setAllEmployees] = useState([]);
-  const [orgUnits, setOrgUnits] = useState([]);
-  const [semesters, setSemesters] = useState([]);
   const { counts, searchQuery, statusFilter } = useOutletContext();
 
   const fetchEmployees = async () => {
@@ -27,11 +44,6 @@ export default function Commutations() {
         .from("employees")
         .select("id, first_name, last_name, employee_id, position, department, signature_url");
       if (!error && data) setAllEmployees(data);
-
-      const { data: units } = await supabase.from("org_units").select("*");
-      const { data: sems } = await supabase.from("employee_semesters").select("*");
-      if (units) setOrgUnits(units);
-      if (sems) setSemesters(sems);
     } catch (err) {
       console.error("Error fetching employees metadata:", err);
     }
@@ -186,12 +198,6 @@ export default function Commutations() {
         <div className="grid gap-4">
           {filteredRequests.map((req) => {
             const isExpanded = expandedId === req.id;
-            const { conditionName } = resolveCommutationApprovers(
-              req.employees,
-              orgUnits,
-              allEmployees,
-              semesters
-            );
             const snapshot = req.commutation_snapshot || {};
             const sick = snapshot.sick || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
             const vacation = snapshot.vacation || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
@@ -238,7 +244,7 @@ export default function Commutations() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => setExpandedId(isExpanded ? null : req.id)}
+                      onClick={() => handleToggleExpand(req.id, req.employee_id)}
                       className="h-7 w-7 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full ml-2"
                     >
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -262,7 +268,7 @@ export default function Commutations() {
                     </div>
                     <Button 
                       size="sm" 
-                      onClick={() => setExpandedId(req.id)}
+                      onClick={() => handleToggleExpand(req.id, req.employee_id)}
                       className="bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs h-8 px-4 border-none shadow-sm"
                     >
                       Open Form
@@ -275,7 +281,7 @@ export default function Commutations() {
                         <span className="font-extrabold text-[#0C005F]">{req.employees?.first_name} {req.employees?.last_name}</span> of <span className="font-extrabold text-[#0C005F]">{req.employees?.department}</span> hereby applies for the commutation of unused sick/vacation/forced benefits.
                       </div>
                       <div className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider">
-                        Route Match: {conditionName}
+                        Route Match: {resolvedConditions[req.id] || "Loading match..."}
                       </div>
                     </div>
 

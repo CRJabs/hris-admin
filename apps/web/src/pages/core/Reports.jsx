@@ -13,7 +13,7 @@ import {
   formatEmployeeName,
   formatBirthDate,
 } from '@/utils/reportsEngine';
-import { computeYearsInService } from '@/utils/benefitsEngine';
+
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
