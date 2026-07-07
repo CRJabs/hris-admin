@@ -374,13 +374,12 @@ export default async function handler(req, res) {
     for (const emp of employees) {
       // Resolve the earliest start date of the continuous qualifying tenure block
       // This correctly counts Probationary → Regular transitions as unbroken service for Summer Pay.
-      let tenureStartDate = null;
+      let tenureStartDate = emp.date_hired;
       const history = (historyByEmployee[emp.id] || []).sort(
         (a, b) => new Date(a.effective_date) - new Date(b.effective_date)
       );
 
       if (history.length > 0 && QUALIFYING_TENURES.includes(emp.employment_tenure)) {
-        // Walk backwards from the most recent record to find the start of the continuous qualifying block
         let blockStart = null;
         for (let i = history.length - 1; i >= 0; i--) {
           if (QUALIFYING_TENURES.includes(history[i].employment_tenure)) {
@@ -389,9 +388,19 @@ export default async function handler(req, res) {
             break; // hit a non-qualifying period; stop
           }
         }
-        tenureStartDate = blockStart || emp.date_hired;
-      } else {
-        tenureStartDate = emp.date_hired;
+        
+        if (blockStart) {
+          const hasBreakBeforeBlock = history.some(h => 
+            new Date(h.effective_date) < new Date(blockStart) && 
+            !QUALIFYING_TENURES.includes(h.employment_tenure)
+          );
+          
+          if (emp.date_hired && new Date(emp.date_hired) < new Date(blockStart) && !hasBreakBeforeBlock) {
+            tenureStartDate = emp.date_hired;
+          } else {
+            tenureStartDate = blockStart;
+          }
+        }
       }
 
       // 5. Compute eligibility
