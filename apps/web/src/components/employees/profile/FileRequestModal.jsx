@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { resolveCommutationApprovers } from "@/utils/leaveUtils";
+import { resolveCommutationApprovers, resolveCommutationApproversServer } from "@/utils/leaveUtils";
 
 const getFridayTwoWeeksAfter = (baseDate = new Date()) => {
   const targetDate = new Date(baseDate.getTime() + 14 * 24 * 60 * 60 * 1000);
@@ -245,8 +245,8 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
   const handleFileCommutation = async () => {
     setIsSubmitting(true);
     try {
-      // Resolve approvers dynamically using helper
-      const { ra, notedBy, approvedBy, conditionName } = resolveCommutationApprovers(
+      // Resolve approvers using server-first RPC (falls back to local JS if RPC not deployed)
+      const { ra, notedBy, approvedBy, conditionName } = await resolveCommutationApproversServer(
         employee,
         orgUnits,
         allEmployees,

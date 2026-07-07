@@ -7,7 +7,7 @@ import {
   ArrowLeft, Eye, EyeOff
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase, supabaseAdmin } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
@@ -217,26 +217,31 @@ export default function AddEmployee() {
       return;
     }
 
-    if (!supabaseAdmin) {
-      toast.error("Service Role Key is missing. Account creation failed.");
-      return;
-    }
-
     setIsCreatingAccount(true);
     try {
-      // Create user using Admin API to bypass 404 and security restrictions
-      const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email: accountData.email,
-        password: accountData.password,
-        email_confirm: true,
-        user_metadata: { employee_id: createdEmployee.employee_id }
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const response = await fetch('/api/create-auth-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({
+          email: accountData.email,
+          password: accountData.password,
+          employeeId: createdEmployee.employee_id,
+        }),
       });
 
-      if (createError) throw createError;
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Account creation failed');
+      }
 
       const { error: linkError } = await supabase
         .from('employees')
-        .update({ user_id: userData.user.id })
+        .update({ user_id: result.user.id })
         .eq('id', createdEmployee.id);
 
       if (linkError) throw linkError;

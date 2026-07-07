@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Check, X, Save, Edit3, ShieldCheck, Gift, BookOpen } from "lucide-react";
 import { toast } from "sonner";
-import { supabase, supabaseAdmin } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import PersonalDetailsTab from "./profile/PersonalDetailsTab";
 import EducationTab from "./profile/EducationTab";
 import TrainingDevTab from "./profile/TrainingDevTab";
@@ -176,7 +176,7 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
         );
       });
 
-      const dbClient = supabaseAdmin || supabase;
+      const dbClient = supabase;
 
       if (deletedIds.length > 0) {
         const { error: delErr } = await dbClient.from('employee_semesters').delete().in('id', deletedIds);

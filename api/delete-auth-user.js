@@ -19,18 +19,37 @@ export default async function handler(req, res) {
   }
 
   const token = authHeader.slice("Bearer ".length);
-  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
   const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // If an explicit userId is provided (admin deleting another account),
+  // verify the caller is authenticated before trusting it.
+  const { userId } = req.body || {};
+
   try {
-    const { data: userData, error: userError } = await userClient.auth.getUser(token);
-    if (userError || !userData?.user?.id) {
-      return res.status(401).json({ error: "Invalid user token" });
+    let targetUserId = userId;
+
+    if (!targetUserId) {
+      // Self-delete: resolve user from their bearer token
+      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      });
+      const { data: userData, error: userError } = await userClient.auth.getUser(token);
+      if (userError || !userData?.user?.id) {
+        return res.status(401).json({ error: "Invalid user token" });
+      }
+      targetUserId = userData.user.id;
+    } else {
+      // Admin delete: verify the caller is a valid, authenticated user
+      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      });
+      const { data: userData, error: userError } = await userClient.auth.getUser(token);
+      if (userError || !userData?.user?.id) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
     }
 
-    const { error: deleteError } = await adminClient.auth.admin.deleteUser(userData.user.id);
+    const { error: deleteError } = await adminClient.auth.admin.deleteUser(targetUserId);
     if (deleteError) {
       return res.status(500).json({ error: deleteError.message });
     }

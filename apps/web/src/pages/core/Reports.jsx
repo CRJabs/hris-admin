@@ -14,7 +14,6 @@ import {
   formatBirthDate,
 } from '@/utils/reportsEngine';
 import { computeYearsInService } from '@/utils/benefitsEngine';
-import { runBenefitsComputation } from '@/utils/runBenefitsComputation';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -466,7 +465,15 @@ export default function Reports() {
     setIsRecomputing(true);
     const toastId = toast.loading('Recomputing employee benefits eligibility in database...');
     try {
-      const res = await runBenefitsComputation();
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/run-benefits-computation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+      });
+      const res = await response.json();
       if (res && res.success) {
         toast.success(`Computation successful! Processed ${res.count} employees.`, { id: toastId });
         await fetchBenefits(selectedYear);

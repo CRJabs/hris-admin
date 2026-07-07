@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { supabase, supabaseAdmin } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import { PersonalSection } from "@/components/employees/registration/sections/PersonalSection";
 import { FamilySection } from "@/components/employees/registration/sections/FamilySection";
@@ -380,13 +380,19 @@ export default function EmployeeRegistration() {
       if (user?.id) {
         // 1. Delete from employees table
         await supabase.from('employees').delete().eq('id', user.id);
-        
-        // 2. Delete Auth user using Admin client
-        if (supabaseAdmin) {
-          const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
-          if (deleteError) throw deleteError;
-        } else {
-          throw new Error("Admin service unavailable.");
+
+        // 2. Delete Auth user via serverless function (self-delete using bearer token)
+        const { data: { session } } = await supabase.auth.getSession();
+        const deleteRes = await fetch('/api/delete-auth-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token ?? ''}`,
+          },
+        });
+        const deleteResult = await deleteRes.json();
+        if (!deleteRes.ok || !deleteResult.success) {
+          throw new Error(deleteResult.error || 'Admin service unavailable.');
         }
       }
 
