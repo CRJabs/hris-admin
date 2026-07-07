@@ -462,6 +462,10 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                   {commutations.map((req) => {
                     const isExpanded = expandedCommutationId === req.id;
                     const snapshot = req.commutation_snapshot || {};
+                    const sick = snapshot.sick || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
+                    const vacation = snapshot.vacation || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
+                    const family = snapshot.family || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
+                    const total = snapshot.total || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
                     const raSigner = allEmployees.find(e => e.id === req.ra_id);
                     const notedSigner = allEmployees.find(e => e.id === req.noted_by_id);
                     const approvedSigner = allEmployees.find(e => e.id === req.approved_by_id);
