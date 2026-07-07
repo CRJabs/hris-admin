@@ -460,6 +460,7 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
               ) : (
                 <div className="space-y-4">
                   {commutations.map((req) => {
+                    const isExpanded = expandedCommutationId === req.id;
                     const snapshot = req.commutation_snapshot || {};
                     const raSigner = allEmployees.find(e => e.id === req.ra_id);
                     const notedSigner = allEmployees.find(e => e.id === req.noted_by_id);
