@@ -12,6 +12,7 @@ import {
   MONTH_NAMES,
   formatEmployeeName,
   formatBirthDate,
+  computeYearsInService,
 } from '@/utils/reportsEngine';
 
 

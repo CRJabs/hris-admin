@@ -36,6 +36,55 @@ export function formatEmployeeName(emp) {
   return parts.join(' ');
 }
 
+/**
+ * Computes whole calendar years in service between date_hired and a reference date,
+ * incorporating academic year teaching load deductions for teaching personnel.
+ */
+export function computeYearsInService(startDate, referenceDate, semesters = [], classification = "") {
+  if (!startDate) return 0;
+  const start = new Date(startDate);
+  // Add 1 day to make the range inclusive (e.g. "before May 31" includes May 31 itself)
+  const ref = new Date(new Date(referenceDate).getTime() + 86400000);
+  if (isNaN(start.getTime())) return 0;
+
+  let years = ref.getUTCFullYear() - start.getUTCFullYear();
+  const monthDiff = ref.getUTCMonth() - start.getUTCMonth();
+  const dayDiff = ref.getUTCDate() - start.getUTCDate();
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) years--;
+  let yearsInService = Math.max(0, years);
+
+  // For Teaching employees, subtract academic years with no teaching load
+  if (classification && classification.toLowerCase() === "teaching") {
+    const getAcademicYearStart = (date) => {
+      const d = new Date(date);
+      const m = d.getUTCMonth();
+      const y = d.getUTCFullYear();
+      return m >= 5 ? y : y - 1;
+    };
+
+    const startAY = getAcademicYearStart(start);
+    const refAY = getAcademicYearStart(ref);
+    let missingLoadsCount = 0;
+
+    for (let yr = startAY; yr < refAY; yr++) {
+      const ayString = `${yr}-${yr + 1}`;
+      const hasLoad = semesters.some(
+        (s) =>
+          s.academic_year === ayString &&
+          s.teaching_load !== null &&
+          s.teaching_load !== undefined &&
+          parseFloat(s.teaching_load) > 0
+      );
+      if (!hasLoad) missingLoadsCount++;
+    }
+
+    yearsInService = Math.max(0, yearsInService - missingLoadsCount);
+  }
+
+  return yearsInService;
+}
+
+
 // ─── Report Definitions ─────────────────────────────────────────────────────
 
 export const REPORT_DEFINITIONS = [
