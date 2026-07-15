@@ -465,7 +465,9 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                     const sick = snapshot.sick || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
                     const vacation = snapshot.vacation || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
                     const family = snapshot.family || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
+                    const force = snapshot.force || null;
                     const total = snapshot.total || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
+                    const colSpanCount = force ? 5 : 4;
                     const raSigner = allEmployees.find(e => e.id === req.ra_id);
                     const notedSigner = allEmployees.find(e => e.id === req.noted_by_id);
                     const approvedSigner = allEmployees.find(e => e.id === req.approved_by_id);
@@ -556,10 +558,11 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                               <table className="w-full text-left border-collapse text-[11px]">
                                 <thead>
                                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold text-center">
-                                    <th className="p-2 text-left w-1/3"></th>
+                                    <th className="p-2 text-left w-1/4"></th>
                                     <th className="p-2 border-l border-slate-200">Sick Leave</th>
                                     <th className="p-2 border-l border-slate-200">Vacation Leave</th>
                                     <th className="p-2 border-l border-slate-200">Family Leave</th>
+                                    {force && <th className="p-2 border-l border-slate-200">Force Leave</th>}
                                     <th className="p-2 border-l border-slate-200 font-extrabold text-[#0C005F]">TOTAL</th>
                                   </tr>
                                 </thead>
@@ -569,6 +572,7 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                                     <td className="p-2 border-l border-slate-100">{sick.allocated}</td>
                                     <td className="p-2 border-l border-slate-100">{vacation.allocated}</td>
                                     <td className="p-2 border-l border-slate-100">{family.allocated}</td>
+                                    {force && <td className="p-2 border-l border-slate-100">{force.allocated}</td>}
                                     <td className="p-2 border-l border-slate-100 font-bold text-slate-800 bg-slate-50/20">{total.allocated}</td>
                                   </tr>
                                   <tr>
@@ -576,6 +580,7 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                                     <td className="p-2 border-l border-slate-100">{sick.nonCommutableDays}</td>
                                     <td className="p-2 border-l border-slate-100">{vacation.nonCommutableDays}</td>
                                     <td className="p-2 border-l border-slate-100">{family.nonCommutableDays}</td>
+                                    {force && <td className="p-2 border-l border-slate-100">{force.nonCommutableDays}</td>}
                                     <td className="p-2 border-l border-slate-100 font-bold text-slate-800 bg-slate-50/20">{total.nonCommutableDays}</td>
                                   </tr>
                                   <tr>
@@ -583,6 +588,7 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                                     <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{sick.commutableDays}</td>
                                     <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{vacation.commutableDays}</td>
                                     <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{family.commutableDays}</td>
+                                    {force && <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{force.commutableDays}</td>}
                                     <td className="p-2 border-l border-slate-100 font-bold text-amber-700 bg-slate-50/20">{total.commutableDays}</td>
                                   </tr>
                                   <tr>
@@ -590,6 +596,7 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                                     <td className="p-2 border-l border-slate-100">{sick.used}</td>
                                     <td className="p-2 border-l border-slate-100">{vacation.used}</td>
                                     <td className="p-2 border-l border-slate-100">{family.used}</td>
+                                    {force && <td className="p-2 border-l border-slate-100">{force.used}</td>}
                                     <td className="p-2 border-l border-slate-100 font-bold text-slate-800 bg-slate-50/20">{total.used}</td>
                                   </tr>
                                   <tr className="border-b border-slate-200">
@@ -597,18 +604,19 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                                     <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{sick.unused}</td>
                                     <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{vacation.unused}</td>
                                     <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{family.unused}</td>
+                                    {force && <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{force.unused}</td>}
                                     <td className="p-2 border-l border-slate-100 font-bold text-emerald-700 bg-slate-50/20">{total.unused}</td>
                                   </tr>
                                   <tr className="bg-slate-50/50 font-bold text-left">
                                     <td className="p-2 text-slate-800">Total Number of Days of Commutation</td>
-                                    <td colSpan="4" className="p-2 border-l border-slate-100 font-extrabold text-slate-800 text-xs">
+                                    <td colSpan={colSpanCount} className="p-2 border-l border-slate-100 font-extrabold text-slate-800 text-xs">
                                       {req.total_days} Days
                                     </td>
                                   </tr>
                                   {req.hours_per_day && !req.teaching_days && (
                                     <tr className="bg-slate-50/50 font-bold text-left">
                                       <td className="p-2 text-slate-800">Hours Per Day</td>
-                                      <td colSpan="4" className="p-2 border-l border-slate-100 font-extrabold text-slate-800 text-xs">
+                                      <td colSpan={colSpanCount} className="p-2 border-l border-slate-100 font-extrabold text-slate-800 text-xs">
                                         {req.hours_per_day} Hours
                                       </td>
                                     </tr>
