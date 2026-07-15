@@ -232,10 +232,10 @@ function computeBenefitsEligibility(employee, referenceDate, tenureStartDate, se
     isEligible: isRetirementEligible,
     awardLevel: isRetirementEligible ? "retired" : null,
     reason: isRetirementEligible
-      ? `Age ${ageToday} with ${yearsInService} year(s) of service. Eligible for retirement.`
-      : ageToday < 57
-      ? `Requires age 57. Current age: ${ageToday}.`
-      : `Requires 25 years of service. Current: ${yearsInService} year(s).`,
+      ? `Age ${ageBeforeMay31} with ${yearsBeforeMay31} year(s) of service before May 31. Eligible for retirement.`
+      : ageBeforeMay31 < 57
+      ? `Requires age 57 before May 31. Current age: ${ageBeforeMay31}.`
+      : `Requires 25 years of service before May 31. Current: ${yearsBeforeMay31} year(s).`,
   };
 
   return results;
