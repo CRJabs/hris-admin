@@ -39,22 +39,22 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
   const [localSemesters, setLocalSemesters] = useState([]);
   const [baselineSemesters, setBaselineSemesters] = useState([]);
 
-  useEffect(() => {
-    const fetchLeaveData = async () => {
-      if (!employee?.id) return;
-      const [creditsRes, appsRes, semRes] = await Promise.all([
-        supabase.from('leave_credits').select('*').eq('employee_id', employee.id),
-        supabase.from('leave_applications').select('*').eq('employee_id', employee.id).order('created_at', { ascending: false }),
-        supabase.from('employee_semesters').select('*').eq('employee_id', employee.id).order('academic_year', { ascending: false })
-      ]);
-      if (creditsRes.data) setLeaveCredits(creditsRes.data);
-      if (appsRes.data) setLeaveApps(appsRes.data);
-      if (semRes.data) {
-        setLocalSemesters(semRes.data);
-        setBaselineSemesters(semRes.data);
-      }
-    };
+  const fetchLeaveData = async () => {
+    if (!employee?.id) return;
+    const [creditsRes, appsRes, semRes] = await Promise.all([
+      supabase.from('leave_credits').select('*').eq('employee_id', employee.id),
+      supabase.from('leave_applications').select('*').eq('employee_id', employee.id).order('created_at', { ascending: false }),
+      supabase.from('employee_semesters').select('*').eq('employee_id', employee.id).order('academic_year', { ascending: false })
+    ]);
+    if (creditsRes.data) setLeaveCredits(creditsRes.data);
+    if (appsRes.data) setLeaveApps(appsRes.data);
+    if (semRes.data) {
+      setLocalSemesters(semRes.data);
+      setBaselineSemesters(semRes.data);
+    }
+  };
 
+  useEffect(() => {
     if (open && employee) {
       setEditedEmployee(getReviewEmployee());
       setIsEditMode(initialEditMode);
@@ -245,6 +245,9 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
         description: `Manually edited employee record for ${editedEmployee.first_name} ${editedEmployee.last_name}`,
         employee_id: editedEmployee.id
       });
+
+      // Re-fetch fresh semester & leave data to sync baseline and local states
+      await fetchLeaveData();
 
       toast.success("Employee changes saved successfully.");
       if (onSave) onSave();
