@@ -221,7 +221,7 @@ export default function AddEmployee() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
 
-      const response = await fetch('/api/create-auth-user', {
+      const response = await fetch('/api/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

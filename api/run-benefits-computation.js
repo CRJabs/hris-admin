@@ -226,9 +226,8 @@ function computeBenefitsEligibility(employee, referenceDate, tenureStartDate, se
     semesters,
     employee.employment_classification
   );
-  const ageToday = computeAge(employee.birthdate, ref);
   const isRetirementEligible =
-    isActive && ageBeforeMay31 >= 57 && yearsBeforeMay31 >= 25 && ageToday >= 57 && yearsInService >= 25;
+    isActive && ageBeforeMay31 >= 57 && yearsBeforeMay31 >= 25;
   results.retirement = {
     isEligible: isRetirementEligible,
     awardLevel: isRetirementEligible ? "retired" : null,

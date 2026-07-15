@@ -16,7 +16,7 @@ const Dashboard = lazy(() => import('@/pages/core/Dashboard'));
 
 const Employees = lazy(() => import('@/pages/employees/Employees'));
 const Reports = lazy(() => import('@/pages/core/Reports'));
-const Approvals = lazy(() => import('@/pages/Approvals'));
+const Approvals = lazy(() => import('@/pages/approvals/index'));
 const EmployeeProfile = lazy(() => import('@/pages/employees/EmployeeProfile'));
 const Login = lazy(() => import('@/pages/auth/Login'));
 const ForgotPassword = lazy(() => import('@/pages/auth/ForgotPassword'));
@@ -32,7 +32,7 @@ const LeaveApplications = lazy(() => import('@/pages/leaves/LeaveApplications'))
 const Commutations = lazy(() => import('@/pages/approvals/Commutations'));
 const Resignations = lazy(() => import('@/pages/approvals/Resignations'));
 const Retirements = lazy(() => import('@/pages/approvals/Retirements'));
-const Company = lazy(() => import('@/pages/Company'));
+const Company = lazy(() => import('@/pages/core/Company'));
 
 
 // Loading component

@@ -383,8 +383,8 @@ export default function EmployeeRegistration() {
 
         // 2. Delete Auth user via serverless function (self-delete using bearer token)
         const { data: { session } } = await supabase.auth.getSession();
-        const deleteRes = await fetch('/api/delete-auth-user', {
-          method: 'POST',
+        const deleteRes = await fetch('/api/users', {
+          method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session?.access_token ?? ''}`,

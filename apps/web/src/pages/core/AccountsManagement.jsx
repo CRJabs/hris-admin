@@ -235,7 +235,7 @@ export default function AccountsManagement() {
       const { data: { session } } = await supabase.auth.getSession();
 
       // 1. Create user via serverless function
-      const createRes = await fetch('/api/create-auth-user', {
+      const createRes = await fetch('/api/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -311,8 +311,8 @@ export default function AccountsManagement() {
       if (password !== selectedAccount.temp_password) updateData.password = password;
       updateData.user_metadata = { role: finalRole.toLowerCase() };
 
-      const updateRes = await fetch('/api/update-auth-user', {
-        method: 'POST',
+      const updateRes = await fetch('/api/users', {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token ?? ''}`,
@@ -368,8 +368,8 @@ export default function AccountsManagement() {
       if (profileError) throw profileError;
 
       // 2. Delete from auth users via serverless function
-      const deleteRes = await fetch('/api/delete-auth-user', {
-        method: 'POST',
+      const deleteRes = await fetch('/api/users', {
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token ?? ''}`,

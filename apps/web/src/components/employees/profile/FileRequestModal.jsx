@@ -27,7 +27,6 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { resolveCommutationApprovers } from "@/utils/leaveUtils";
 
 const getFridayTwoWeeksAfter = (baseDate = new Date()) => {
   const targetDate = new Date(baseDate.getTime() + 14 * 24 * 60 * 60 * 1000);
@@ -243,7 +242,8 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
     setIsSubmitting(true);
     try {
       // Resolve approvers using server RPC
-      const result = await resolveCommutationApprovers(employee.id);
+      const { data: result, error: rpcErr } = await supabase.rpc('resolve_commutation_approvers', { emp_id: employee.id });
+      if (rpcErr) throw rpcErr;
 
       const ra = result.ra_id ? allEmployees.find(e => e.id === result.ra_id) : null;
       const notedBy = result.noted_by_id ? allEmployees.find(e => e.id === result.noted_by_id) : null;

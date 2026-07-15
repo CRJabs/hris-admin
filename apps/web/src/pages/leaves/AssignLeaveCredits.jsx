@@ -8,7 +8,6 @@ import EmployeeFilters from "@/components/employees/EmployeeFilters";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { assignDefaultLeaveCredits, DEFAULT_LEAVE_CREDITS } from "@/utils/leaveUtils";
 import { cn } from "@/lib/utils";
 import { useOrgDepartments } from "@/hooks/useOrgDepartments";
 
@@ -24,6 +23,7 @@ export default function AssignLeaveCredits() {
 
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [leaveCredits, setLeaveCredits] = useState([]);
+  const [defaultLeaveCredits, setDefaultLeaveCredits] = useState({});
   const [isFetchingCredits, setIsFetchingCredits] = useState(false);
   const [dirtyCredits, setDirtyCredits] = useState({}); // { id: { total_credits } }
   const [isSaving, setIsSaving] = useState(false);
@@ -63,6 +63,18 @@ export default function AssignLeaveCredits() {
 
   useEffect(() => {
     fetchEmployees();
+    async function fetchDefaultCredits() {
+      try {
+        const res = await fetch('/api/assign-leave-credits');
+        const data = await res.json();
+        if (data.success && data.defaultLeaveCredits) {
+          setDefaultLeaveCredits(data.defaultLeaveCredits);
+        }
+      } catch (err) {
+        console.error("Error fetching default leave credits:", err);
+      }
+    }
+    fetchDefaultCredits();
   }, []);
 
   useEffect(() => {
@@ -111,9 +123,21 @@ export default function AssignLeaveCredits() {
 
       if (deleteError) throw deleteError;
 
-      // Assign defaults
-      const res = await assignDefaultLeaveCredits(selectedEmployee.id, selectedEmployee.employment_classification);
-      if (!res.success) throw res.error;
+      // Assign defaults via serverless function
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/assign-leave-credits', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({
+          employeeId: selectedEmployee.id,
+          classification: selectedEmployee.employment_classification,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to assign leave credits');
 
       fetchLeaveCredits(selectedEmployee.id);
 
@@ -149,7 +173,7 @@ export default function AssignLeaveCredits() {
 
         // Validation logic
         let finalVal = Math.max(0, Math.floor(values.total_credits));
-        const systemDefaults = DEFAULT_LEAVE_CREDITS[selectedEmployee.employment_classification];
+        const systemDefaults = defaultLeaveCredits[selectedEmployee.employment_classification] || defaultLeaveCredits["Non-Teaching"] || [];
         const specificDefault = systemDefaults.find(d =>
           d.leave_type === creditToUpdate.leave_type &&
           d.is_commutable === creditToUpdate.is_commutable

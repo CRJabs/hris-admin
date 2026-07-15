@@ -36,6 +36,10 @@ const DEFAULT_LEAVE_CREDITS = {
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
 export default async function handler(req, res) {
+  if (req.method === "GET") {
+    return res.status(200).json({ success: true, defaultLeaveCredits: DEFAULT_LEAVE_CREDITS });
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
