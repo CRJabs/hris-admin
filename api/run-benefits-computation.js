@@ -134,7 +134,7 @@ function computeBenefitsEligibility(employee, referenceDate, tenureStartDate, se
   const yearsOnBirthday = hasBirthdate
     ? computeYearsInService(employee.date_hired, birthdayThisYear, semesters, employee.employment_classification)
     : 0;
-  const isBirthdayEligible = isActive && hasBirthdate && birthdayHasOccurred && yearsOnBirthday >= 1;
+  const isBirthdayEligible = isActive && hasBirthdate && yearsOnBirthday >= 1;
   results.birthday_bonus = {
     isEligible: isBirthdayEligible,
     awardLevel: null,
@@ -362,8 +362,10 @@ export default async function handler(req, res) {
     }, {});
 
     const today = new Date();
-    const currentYear = today.getUTCFullYear();
-    const isMidyearDue = isMidyearReminderDue(today);
+    const reqYear = req.method === "POST" && req.body?.year ? parseInt(req.body.year, 10) : null;
+    const targetYear = reqYear && !isNaN(reqYear) && reqYear > 2000 ? reqYear : today.getUTCFullYear();
+    const referenceDate = targetYear === today.getUTCFullYear() ? today : new Date(Date.UTC(targetYear, 11, 31));
+    const isMidyearDue = isMidyearReminderDue(referenceDate);
 
     const QUALIFYING_TENURES = ["Regular", "Probationary", "Part-Time"];
     const notificationsToInsert = [];
@@ -405,7 +407,7 @@ export default async function handler(req, res) {
       // 5. Compute eligibility
       const eligibility = computeBenefitsEligibility(
         emp,
-        today,
+        referenceDate,
         tenureStartDate,
         semestersByEmployee[emp.id] || []
       );
@@ -415,7 +417,7 @@ export default async function handler(req, res) {
         .from("employee_benefits")
         .select("*")
         .eq("employee_id", emp.id)
-        .eq("eligibility_year", currentYear);
+        .eq("eligibility_year", targetYear);
 
       const existingMap = (existingRecords || []).reduce((acc, r) => {
         acc[r.benefit_key] = r;
@@ -429,7 +431,7 @@ export default async function handler(req, res) {
         const record = {
           employee_id: emp.id,
           benefit_key: key,
-          eligibility_year: currentYear,
+          eligibility_year: targetYear,
           is_eligible: result.isEligible,
           award_level: result.awardLevel,
           computed_at: new Date().toISOString(),

@@ -18,10 +18,10 @@ const REPORT_DEFINITIONS = [
       { key: '_no',         header: 'NO.' },
       { key: '_id',         header: 'ID' },
       { key: '_name',       header: 'EMPLOYEE NAME' },
-      { key: '_department', header: 'DEPARTMENT' },
+      { key: '_department', header: 'COLLEGE/DEPT' },
       { key: '_position',   header: 'POSITION' },
-      { key: '_status',     header: 'STATUS' },
-      { key: '_tenure',     header: 'TENURE' },
+      { key: '_status',     header: 'EMP. STATUS' },
+      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
     ],
     showNo: true,
   },
@@ -33,8 +33,8 @@ const REPORT_DEFINITIONS = [
       { key: '_no',         header: 'NO.' },
       { key: '_id',         header: 'ID' },
       { key: '_name',       header: 'EMPLOYEE NAME' },
-      { key: '_department', header: 'DEPARTMENT' },
-      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+      { key: '_department', header: 'COLLEGE/DEPT' },
+      { key: '_tenure',     header: 'EMP. STATUS' },
     ],
     showNo: true,
   },
@@ -46,8 +46,8 @@ const REPORT_DEFINITIONS = [
       { key: '_no',         header: 'NO.' },
       { key: '_id',         header: 'ID' },
       { key: '_name',       header: 'EMPLOYEE NAME' },
-      { key: '_department', header: 'DEPARTMENT' },
-      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+      { key: '_department', header: 'COLLEGE/DEPT' },
+      { key: '_tenure',     header: 'EMP. STATUS' },
     ],
     showNo: true,
   },
@@ -59,8 +59,8 @@ const REPORT_DEFINITIONS = [
       { key: '_no',         header: 'NO.' },
       { key: '_id',         header: 'ID' },
       { key: '_name',       header: 'EMPLOYEE NAME' },
-      { key: '_department', header: 'DEPARTMENT' },
-      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+      { key: '_department', header: 'COLLEGE/DEPT' },
+      { key: '_tenure',     header: 'EMP. STATUS' },
     ],
     showNo: true,
   },
@@ -71,10 +71,9 @@ const REPORT_DEFINITIONS = [
     columns: [
       { key: '_no',           header: 'NO.' },
       { key: '_id',           header: 'ID' },
-      { key: '_name',         header: 'EMPLOYEE NAME' },
-      { key: '_department',   header: 'DEPARTMENT' },
-      { key: '_tenure',       header: 'EMPLOYMENT TENURE' },
-      { key: '_yearsInService', header: 'YEARS IN SERVICE' },
+      { key: '_name',         header: 'NAME' },
+      { key: '_status',       header: 'EMPLOYMENT STATUS' },
+      { key: '_longevity',    header: 'LONGEVITY' },
       { key: '_birthDate',    header: 'BIRTH DATE' },
     ],
     showNo: true,
@@ -87,8 +86,8 @@ const REPORT_DEFINITIONS = [
       { key: '_no',         header: 'NO.' },
       { key: '_id',         header: 'ID' },
       { key: '_name',       header: 'EMPLOYEE NAME' },
-      { key: '_department', header: 'DEPARTMENT' },
-      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+      { key: '_department', header: 'COLLEGE/DEPT' },
+      { key: '_tenure',     header: 'EMP. STATUS' },
     ],
     showNo: true,
   },
@@ -100,8 +99,8 @@ const REPORT_DEFINITIONS = [
       { key: '_no',         header: 'NO.' },
       { key: '_id',         header: 'ID' },
       { key: '_name',       header: 'EMPLOYEE NAME' },
-      { key: '_department', header: 'DEPARTMENT' },
-      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+      { key: '_department', header: 'COLLEGE/DEPT' },
+      { key: '_tenure',     header: 'EMP. STATUS' },
     ],
     showNo: true,
   },
@@ -113,8 +112,8 @@ const REPORT_DEFINITIONS = [
       { key: '_no',         header: 'NO.' },
       { key: '_id',         header: 'ID' },
       { key: '_name',       header: 'EMPLOYEE NAME' },
-      { key: '_department', header: 'DEPARTMENT' },
-      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+      { key: '_department', header: 'COLLEGE/DEPT' },
+      { key: '_tenure',     header: 'EMP. STATUS' },
     ],
     showNo: true,
   },
@@ -125,9 +124,9 @@ const REPORT_DEFINITIONS = [
     columns: [
       { key: '_no',           header: 'NO.' },
       { key: '_id',           header: 'ID' },
-      { key: '_name',         header: 'EMPLOYEE NAME' },
-      { key: '_department',   header: 'DEPARTMENT' },
-      { key: '_tenure',       header: 'EMPLOYMENT TENURE' },
+      { key: '_name',         header: 'NAME' },
+      { key: '_department',   header: 'COLLEGE/DEPT' },
+      { key: '_tenure',       header: 'EMPLOYMENT STATUS' },
       { key: '_yearsInService', header: 'YEARS IN SERVICE' },
       { key: '_serviceAward', header: 'SERVICE AWARD' },
     ],
@@ -141,8 +140,8 @@ const REPORT_DEFINITIONS = [
       { key: '_no',         header: 'NO.' },
       { key: '_id',         header: 'ID' },
       { key: '_name',       header: 'EMPLOYEE NAME' },
-      { key: '_department', header: 'DEPARTMENT' },
-      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+      { key: '_department', header: 'COLLEGE/DEPT' },
+      { key: '_tenure',     header: 'EMP. STATUS' },
     ],
     showNo: true,
   },
@@ -163,9 +162,10 @@ const YEAR_OPTIONS = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - i);
 
 // ─── PDF Export ─────────────────────────────────────────────────────────────
 
-async function generatePDF(reportKey, allReportData, reportMonthLabel, definitions) {
+// ─── PDF Export ─────────────────────────────────────────────────────────────
+
+async function generatePDF(reportKey, allReportData, reportMonthLabel, selectedYear, definitions, userEmail) {
   const { default: jsPDF } = await import('jspdf');
-  const { default: html2canvas } = await import('html2canvas');
 
   toast.info('Preparing PDF export…', { duration: 3000 });
 
@@ -175,9 +175,36 @@ async function generatePDF(reportKey, allReportData, reportMonthLabel, definitio
   const pageH = 279.4;
   const margin = 12.7; // 0.5" margin each side
   const contentW = pageW - margin * 2;
+  const headerH = 25.4; // 1" tall header image
 
-  // Header image: 1" tall = 25.4mm, full width
-  const headerH = 25.4;
+  // Fetch position holders from employees table to dynamically insert names if assigned
+  let officeAssistantName = '';
+  let hrManagerName = '';
+  let vpAdminName = '';
+
+  try {
+    const { data: emps } = await supabase
+      .from('employees')
+      .select('first_name, last_name, middle_name, position')
+      .eq('is_active', true);
+
+    if (emps && emps.length > 0) {
+      const findByPos = (title) => {
+        const found = emps.find(e => e.position && e.position.toLowerCase().includes(title.toLowerCase()));
+        if (!found) return '';
+        const parts = [found.first_name];
+        if (found.middle_name) parts.push(found.middle_name.charAt(0) + '.');
+        parts.push(found.last_name);
+        return parts.join(' ');
+      };
+
+      officeAssistantName = findByPos('office assistant');
+      hrManagerName = findByPos('human resource manager') || findByPos('hr manager');
+      vpAdminName = findByPos('vice president for administration') || findByPos('vp for administration');
+    }
+  } catch (err) {
+    console.warn('Could not fetch position holders for PDF signatories:', err);
+  }
 
   // Helper to load header image as base64
   async function getHeaderImage() {
@@ -196,6 +223,16 @@ async function generatePDF(reportKey, allReportData, reportMonthLabel, definitio
     });
   }
 
+  // Helper: draw footer on current page
+  function drawFooter() {
+    const footerY = pageH - 8;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 100, 100);
+    const displayEmail = userEmail || 'admin@universityofbohol.edu.ph';
+    pdf.text(`${displayEmail}        (038) 411-3101`, pageW / 2, footerY, { align: 'center' });
+  }
+
   // Helper: render one report section to the pdf
   async function renderReport(def, data, isFirst) {
     if (!isFirst) pdf.addPage();
@@ -205,78 +242,120 @@ async function generatePDF(reportKey, allReportData, reportMonthLabel, definitio
       pdf.addImage(headerB64, 'JPEG', margin, margin, contentW, headerH);
     }
 
-    // Title block
-    let cursorY = margin + headerH + 8;
+    // Title block formatting per report type
+    let cursorY = margin + headerH + 7;
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(12);
     pdf.setTextColor(20, 20, 20);
-    pdf.text(def.title, pageW / 2, cursorY, { align: 'center' });
-    cursorY += 6;
-    pdf.setFontSize(11);
-    pdf.text(reportMonthLabel.toUpperCase(), pageW / 2, cursorY, { align: 'center' });
-    cursorY += 8;
+
+    if (def.key === 'birthday') {
+      pdf.setFontSize(11);
+      pdf.text('BIRTHDAY CELEBRANTS', pageW / 2, cursorY, { align: 'center' });
+      cursorY += 5;
+      pdf.setFontSize(10);
+      pdf.text(reportMonthLabel.toUpperCase(), pageW / 2, cursorY, { align: 'center' });
+      cursorY += 7;
+    } else if (def.key === 'rice') {
+      pdf.setFontSize(9);
+      pdf.text('LIST OF EMPLOYEES (REGULAR AND NON-REGULAR TEACHING AND NON-TEACHING PERSONNEL)', pageW / 2, cursorY, { align: 'center' });
+      cursorY += 4.5;
+      pdf.setFontSize(9);
+      pdf.text(`RICE ALLOWANCE FOR THE MONTH OF ${reportMonthLabel.toUpperCase()}`, pageW / 2, cursorY, { align: 'center' });
+      cursorY += 7;
+    } else if (['clothing', 'laundry', 'summer', 'thirteenth', 'midyear'].includes(def.key)) {
+      const labels = {
+        clothing: `FOR THE RELEASE OF CLOTHING ALLOWANCE ${selectedYear}`,
+        laundry: `FOR THE RELEASE OF LAUNDRY ALLOWANCE ${selectedYear}`,
+        summer: `FOR THE RELEASE OF SUMMER PAY ${selectedYear}`,
+        thirteenth: `FOR THE RELEASE OF 13TH MONTH PAY ${selectedYear}`,
+        midyear: `FOR THE RELEASE OF MIDYEAR BONUS ${selectedYear}`,
+      };
+      pdf.setFontSize(9);
+      pdf.text('LIST OF EMPLOYEES (REGULAR AND NON-REGULAR TEACHING AND NON-TEACHING PERSONNEL)', pageW / 2, cursorY, { align: 'center' });
+      cursorY += 4.5;
+      pdf.setFontSize(9);
+      pdf.text(labels[def.key], pageW / 2, cursorY, { align: 'center' });
+      cursorY += 7;
+    } else if (def.key === 'service') {
+      pdf.setFontSize(9);
+      pdf.text('LIST OF EMPLOYEES (REGULAR AND NON-REGULAR TEACHING AND NON-TEACHING PERSONNEL)', pageW / 2, cursorY, { align: 'center' });
+      cursorY += 4.5;
+      pdf.setFontSize(9);
+      pdf.text(`SERVICE AWARDEES FOR THE YEAR ${selectedYear}`, pageW / 2, cursorY, { align: 'center' });
+      cursorY += 7;
+    } else if (def.key === 'retirement') {
+      pdf.setFontSize(10);
+      pdf.text(`LIST OF EMPLOYEES ELIGIBLE FOR RETIREMENT FOR THE YEAR ${selectedYear}`, pageW / 2, cursorY, { align: 'center' });
+      cursorY += 7;
+    } else {
+      pdf.setFontSize(11);
+      pdf.text(def.title, pageW / 2, cursorY, { align: 'center' });
+      cursorY += 5;
+      pdf.setFontSize(9);
+      pdf.text(`AS OF ${reportMonthLabel.toUpperCase()}`, pageW / 2, cursorY, { align: 'center' });
+      cursorY += 7;
+    }
 
     if (data.length === 0) {
       pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(10);
+      pdf.setFontSize(9);
       pdf.setTextColor(120, 120, 120);
       pdf.text('No eligible employees found for this report.', pageW / 2, cursorY + 8, { align: 'center' });
+      drawFooter();
       return;
     }
 
     // --- Table drawing ---
     const cols = def.columns;
     const colCount = cols.length;
-
-    // Simple equal-width columns
     const colW = contentW / colCount;
-    const rowH = 7;
-    const headerRowH = 9;
+    const rowH = 6.5;
+    const headerRowH = 8;
 
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8);
+    pdf.setFontSize(7.5);
     pdf.setTextColor(20, 20, 20);
 
     // Header row background
-    pdf.setFillColor(230, 230, 230);
+    pdf.setFillColor(235, 238, 242);
     pdf.rect(margin, cursorY, contentW, headerRowH, 'F');
 
     // Header cells
     cols.forEach((col, ci) => {
       const x = margin + ci * colW;
       pdf.rect(x, cursorY, colW, headerRowH);
-      pdf.text(col.header, x + colW / 2, cursorY + headerRowH / 2 + 1.5, { align: 'center', baseline: 'middle' });
+      pdf.text(col.header, x + colW / 2, cursorY + headerRowH / 2 + 1, { align: 'center', baseline: 'middle' });
     });
     cursorY += headerRowH;
 
     // Data rows
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8);
+    pdf.setFontSize(7.5);
 
     data.forEach((row, ri) => {
       // Page break check
-      if (cursorY + rowH > pageH - margin) {
+      if (cursorY + rowH > pageH - 55) {
+        drawFooter();
         pdf.addPage();
         cursorY = margin;
 
         // Repeat header on new page
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(8);
-        pdf.setFillColor(230, 230, 230);
+        pdf.setFontSize(7.5);
+        pdf.setFillColor(235, 238, 242);
         pdf.rect(margin, cursorY, contentW, headerRowH, 'F');
         cols.forEach((col, ci) => {
           const x = margin + ci * colW;
           pdf.rect(x, cursorY, colW, headerRowH);
-          pdf.text(col.header, x + colW / 2, cursorY + headerRowH / 2 + 1.5, { align: 'center', baseline: 'middle' });
+          pdf.text(col.header, x + colW / 2, cursorY + headerRowH / 2 + 1, { align: 'center', baseline: 'middle' });
         });
         cursorY += headerRowH;
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(8);
+        pdf.setFontSize(7.5);
       }
 
       // Alternating row background
       if (ri % 2 === 1) {
-        pdf.setFillColor(247, 249, 252);
+        pdf.setFillColor(248, 250, 252);
         pdf.rect(margin, cursorY, contentW, rowH, 'F');
       }
 
@@ -285,22 +364,72 @@ async function generatePDF(reportKey, allReportData, reportMonthLabel, definitio
         const val = String(row[col.key] ?? '—');
         pdf.rect(x, cursorY, colW, rowH);
 
-        // Center "No." column, left-align others with a small padding
-        if (col.key === '_no') {
-          pdf.text(val, x + colW / 2, cursorY + rowH / 2 + 1, { align: 'center', baseline: 'middle' });
+        if (col.key === '_no' || col.key === '_id') {
+          pdf.text(val, x + colW / 2, cursorY + rowH / 2 + 0.8, { align: 'center', baseline: 'middle' });
         } else {
-          pdf.text(val, x + 2, cursorY + rowH / 2 + 1, { baseline: 'middle', maxWidth: colW - 4 });
+          pdf.text(val, x + 2, cursorY + rowH / 2 + 0.8, { baseline: 'middle', maxWidth: colW - 4 });
         }
       });
       cursorY += rowH;
     });
 
-    // Bottom count line
-    cursorY += 4;
-    pdf.setFont('helvetica', 'italic');
-    pdf.setFontSize(8);
-    pdf.setTextColor(100, 100, 100);
-    pdf.text(`Total: ${data.length} employee${data.length !== 1 ? 's' : ''}`, margin, cursorY);
+    // --- Signatories section ---
+    // Ensure signatories fit on the page
+    if (cursorY + 45 > pageH - 15) {
+      drawFooter();
+      pdf.addPage();
+      cursorY = margin + 10;
+    } else {
+      cursorY += 12;
+    }
+
+    pdf.setTextColor(20, 20, 20);
+
+    if (def.key === 'birthday') {
+      // Birthday Bonus Signatory (Approved by VP Admin)
+      const sigX = margin + contentW * 0.65;
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.text('Approved:', sigX, cursorY);
+      cursorY += 12;
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      if (vpAdminName) pdf.text(vpAdminName, sigX, cursorY);
+      cursorY += 4;
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8.5);
+      pdf.text('Vice President for Administration', sigX, cursorY);
+    } else {
+      // Standard 3-column Signatories
+      const colWidth3 = contentW / 3;
+
+      // Labels row
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8.5);
+      pdf.text('Prepared by:', margin, cursorY);
+      pdf.text('Checked by:', margin + colWidth3, cursorY);
+      pdf.text('Recommending Approval:', margin + colWidth3 * 2, cursorY);
+
+      cursorY += 14;
+
+      // Names row (printed if position holder assigned, left blank space if empty)
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8.5);
+      if (officeAssistantName) pdf.text(officeAssistantName, margin, cursorY);
+      if (hrManagerName) pdf.text(hrManagerName, margin + colWidth3, cursorY);
+      if (vpAdminName) pdf.text(vpAdminName, margin + colWidth3 * 2, cursorY);
+
+      cursorY += 4;
+
+      // Position Titles row
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+      pdf.text('Office Assistant', margin, cursorY);
+      pdf.text('Human Resource Manager', margin + colWidth3, cursorY);
+      pdf.text('Vice President for Administration', margin + colWidth3 * 2, cursorY);
+    }
+
+    drawFooter();
   }
 
   // ── Determine which reports to render ──
@@ -316,8 +445,8 @@ async function generatePDF(reportKey, allReportData, reportMonthLabel, definitio
   }
 
   const fileName = reportKey === 'full'
-    ? `HRIS_Full_Report_${reportMonthLabel.replace(' ', '_')}.pdf`
-    : `HRIS_${reportKey}_${reportMonthLabel.replace(' ', '_')}.pdf`;
+    ? `HRIS_Full_Report_${reportMonthLabel.replace(/\s+/g, '_')}.pdf`
+    : `HRIS_${reportKey}_${reportMonthLabel.replace(/\s+/g, '_')}.pdf`;
 
   pdf.save(fileName);
   toast.success('PDF exported successfully!');
@@ -498,6 +627,7 @@ function FullReportView({ allReportData, searchQuery, reportMonthLabel }) {
 
 export default function Reports() {
   const today = new Date();
+  const { user } = useAuth();
   const [selectedReport, setSelectedReport] = useState('masterlist');
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth());   // 0-indexed
   const [selectedYear, setSelectedYear]   = useState(today.getFullYear());
@@ -549,7 +679,7 @@ export default function Reports() {
   const handleRecompute = async () => {
     if (isRecomputing) return;
     setIsRecomputing(true);
-    const toastId = toast.loading('Recomputing employee benefits eligibility in database...');
+    const toastId = toast.loading(`Recomputing employee benefits eligibility for ${selectedYear}...`);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch('/api/run-benefits-computation', {
@@ -558,6 +688,7 @@ export default function Reports() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
+        body: JSON.stringify({ year: selectedYear }),
       });
       const res = await response.json();
       if (res && res.success) {
@@ -584,14 +715,14 @@ export default function Reports() {
     if (isExporting) return;
     setIsExporting(true);
     try {
-      await generatePDF(selectedReport, allReportData, reportMonthLabel, REPORT_DEFINITIONS);
+      await generatePDF(selectedReport, allReportData, reportMonthLabel, selectedYear, REPORT_DEFINITIONS, user?.email);
     } catch (err) {
       console.error(err);
       toast.error('PDF export failed. Please try again.');
     } finally {
       setIsExporting(false);
     }
-  }, [isExporting, selectedReport, allReportData, reportMonthLabel]);
+  }, [isExporting, selectedReport, allReportData, reportMonthLabel, selectedYear, user?.email]);
 
   // ── Clear search when switching reports ──
   useEffect(() => {
