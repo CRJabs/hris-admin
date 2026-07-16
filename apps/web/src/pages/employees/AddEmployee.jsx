@@ -199,6 +199,21 @@ export default function AddEmployee() {
         employee_id: data.id
       });
 
+      // Automatically compute initial benefits eligibility for the new employee
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch('/api/run-benefits-computation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token ?? ''}`,
+          },
+          body: JSON.stringify({ employee_id: data.id, year: new Date().getFullYear() }),
+        });
+      } catch (e) {
+        console.warn('Initial benefits calculation failed:', e);
+      }
+
       toast.success("Employee record created successfully. Proceed to account assignment.");
       setStep(2);
     } catch (err) {

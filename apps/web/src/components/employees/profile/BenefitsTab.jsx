@@ -46,7 +46,30 @@ export default function BenefitsTab({ employee }) {
         setIsLoading(false);
       }
     }
+
     fetchBenefits();
+
+    if (!employee?.id) return;
+
+    const channel = supabase
+      .channel(`benefits_realtime_${employee.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'employee_benefits',
+          filter: `employee_id=eq.${employee.id}`,
+        },
+        () => {
+          fetchBenefits();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
   }, [employee?.id]);
 
   return (

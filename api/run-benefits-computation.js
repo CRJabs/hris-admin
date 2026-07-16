@@ -324,11 +324,15 @@ export default async function handler(req, res) {
   console.log("Starting daily benefits computation...");
 
   try {
-    // 1. Fetch all active employees
-    const { data: employees, error: empError } = await adminClient
-      .from("employees")
-      .select("*")
-      .eq("is_active", true);
+    // 1. Fetch active employees (or specific single employee if employee_id parameter is passed)
+    const targetEmpId = req.method === "POST" && req.body?.employee_id ? req.body.employee_id : null;
+    
+    let empQuery = adminClient.from("employees").select("*").eq("is_active", true);
+    if (targetEmpId) {
+      empQuery = empQuery.eq("id", targetEmpId);
+    }
+    
+    const { data: employees, error: empError } = await empQuery;
 
     if (empError) throw empError;
     if (!employees || employees.length === 0) {

@@ -99,6 +99,23 @@ export default function ProfileUpdates() {
         metadata: { request_id: req.id }
       });
 
+      // Recalculate benefits eligibility for this employee if approved
+      if (status === 'approved') {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          await fetch('/api/run-benefits-computation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.access_token ?? ''}`,
+            },
+            body: JSON.stringify({ employee_id: req.employee_id, year: new Date().getFullYear() }),
+          });
+        } catch (e) {
+          console.warn('Benefits recalculation failed:', e);
+        }
+      }
+
       toast.success(`Request ${status} successfully.`);
       fetchRequests();
     } catch (err) {
