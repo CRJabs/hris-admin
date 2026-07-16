@@ -8,11 +8,14 @@ import AppLayout from '@/components/layout/AppLayout';
 import EmployeeLayout from '@/components/layout/EmployeeLayout';
 import { lazy, Suspense, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Toaster as SonnerToaster, toast } from "sonner";
 
 // Lazy load pages for performance
 const Home = lazy(() => import('@/pages/core/Home'));
 const AccountsManagement = lazy(() => import('@/pages/core/AccountsManagement'));
 const Dashboard = lazy(() => import('@/pages/core/Dashboard'));
+const ActivityHistory = lazy(() => import('@/pages/core/ActivityHistory'));
+const BinPage = lazy(() => import('@/pages/core/BinPage'));
 
 const Employees = lazy(() => import('@/pages/employees/Employees'));
 const Reports = lazy(() => import('@/pages/core/Reports'));
@@ -127,10 +130,6 @@ const AuthenticatedApp = () => {
     </Routes>
   );
 };
-
-import { Toaster as SonnerToaster, toast } from "sonner";
-const ActivityHistory = lazy(() => import('@/pages/core/ActivityHistory'));
-const BinPage = lazy(() => import('@/pages/core/BinPage'));
 
 function App() {
   return (
