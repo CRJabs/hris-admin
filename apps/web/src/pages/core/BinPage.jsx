@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { formatDistanceToNow, format, differenceInDays } from "date-fns";
-import ActivityTabs from "@/components/activity/ActivityTabs";
+import ActivityTabs from "@/components/layout/ActivityTabs";
 import {
   AlertDialog,
   AlertDialogAction,

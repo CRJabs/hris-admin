@@ -4,7 +4,14 @@ import { Plus, Briefcase, CalendarClock, Edit2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { EMPLOYMENT_CLASSIFICATIONS } from "@/utils/constants";
+const EMPLOYMENT_CLASSIFICATIONS = [
+  "Executive",
+  "Academic Official",
+  "Administrative Official",
+  "Teaching",
+  "Non-Teaching",
+  "Consultant"
+];
 import { useOrgDepartments } from "@/hooks/useOrgDepartments";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Check, X, Save, Edit3, ShieldCheck, Gift, BookOpen } from "lucide-react";
 import { toast } from "sonner";
-import { supabase, supabaseAdmin } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import PersonalDetailsTab from "./profile/PersonalDetailsTab";
 import EducationTab from "./profile/EducationTab";
 import TrainingDevTab from "./profile/TrainingDevTab";
@@ -39,22 +39,22 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
   const [localSemesters, setLocalSemesters] = useState([]);
   const [baselineSemesters, setBaselineSemesters] = useState([]);
 
-  useEffect(() => {
-    const fetchLeaveData = async () => {
-      if (!employee?.id) return;
-      const [creditsRes, appsRes, semRes] = await Promise.all([
-        supabase.from('leave_credits').select('*').eq('employee_id', employee.id),
-        supabase.from('leave_applications').select('*').eq('employee_id', employee.id).order('created_at', { ascending: false }),
-        supabase.from('employee_semesters').select('*').eq('employee_id', employee.id).order('academic_year', { ascending: false })
-      ]);
-      if (creditsRes.data) setLeaveCredits(creditsRes.data);
-      if (appsRes.data) setLeaveApps(appsRes.data);
-      if (semRes.data) {
-        setLocalSemesters(semRes.data);
-        setBaselineSemesters(semRes.data);
-      }
-    };
+  const fetchLeaveData = async (targetId = employee?.id) => {
+    if (!targetId) return;
+    const [creditsRes, appsRes, semRes] = await Promise.all([
+      supabase.from('leave_credits').select('*').eq('employee_id', targetId),
+      supabase.from('leave_applications').select('*').eq('employee_id', targetId).order('created_at', { ascending: false }),
+      supabase.from('employee_semesters').select('*').eq('employee_id', targetId).order('academic_year', { ascending: false })
+    ]);
+    if (creditsRes.data) setLeaveCredits(creditsRes.data);
+    if (appsRes.data) setLeaveApps(appsRes.data);
+    if (semRes.data) {
+      setLocalSemesters(semRes.data);
+      setBaselineSemesters(semRes.data);
+    }
+  };
 
+  useEffect(() => {
     if (open && employee) {
       setEditedEmployee(getReviewEmployee());
       setIsEditMode(initialEditMode);
@@ -139,6 +139,12 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
 
   const handleSaveAll = async () => {
     setIsSaving(true);
+    const parseTeachingLoad = (val) => {
+      if (val === null || val === undefined || String(val).trim() === "") return null;
+      const num = parseFloat(val);
+      return isNaN(num) ? null : num;
+    };
+
     try {
       // Validation for reactivation if employee was inactive
       if (baselineEmployee && !baselineEmployee.is_active) {
@@ -176,7 +182,7 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
         );
       });
 
-      const dbClient = supabaseAdmin || supabase;
+      const dbClient = supabase;
 
       if (deletedIds.length > 0) {
         const { error: delErr } = await dbClient.from('employee_semesters').delete().in('id', deletedIds);
@@ -184,12 +190,6 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
       }
 
       if (insertedRows.length > 0) {
-        const parseTeachingLoad = (val) => {
-          if (val === null || val === undefined || String(val).trim() === "") return null;
-          const num = parseFloat(val);
-          return isNaN(num) ? null : num;
-        };
-
         const inserts = insertedRows.map(({ id, ...rest }) => ({
           ...rest,
           employee_id: editedEmployee.id,
@@ -200,12 +200,6 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
       }
 
       if (updatedRows.length > 0) {
-        const parseTeachingLoad = (val) => {
-          if (val === null || val === undefined || String(val).trim() === "") return null;
-          const num = parseFloat(val);
-          return isNaN(num) ? null : num;
-        };
-
         for (const row of updatedRows) {
           const payload = {
             academic_year: row.academic_year,
@@ -245,6 +239,9 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
         description: `Manually edited employee record for ${editedEmployee.first_name} ${editedEmployee.last_name}`,
         employee_id: editedEmployee.id
       });
+
+      // Re-fetch fresh semester & leave data to sync baseline and local states
+      await fetchLeaveData(editedEmployee.id);
 
       toast.success("Employee changes saved successfully.");
       if (onSave) onSave();

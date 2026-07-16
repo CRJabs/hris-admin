@@ -1,7 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { dismissAllToasts } from '@/components/ui/use-toast';
-import { runBenefitsComputation } from '@/utils/runBenefitsComputation';
 
 const AuthContext = createContext();
 
@@ -28,17 +27,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const handleAdminLoginEvents = (profileData) => {
+  const handleAdminLoginEvents = async (profileData) => {
     if (profileData?.role === 'admin') {
       const todayDateStr = new Date().toISOString().split('T')[0];
       const lastRunStr = localStorage.getItem('lastBenefitsRun');
       if (lastRunStr !== todayDateStr) {
-        // Run daily batch process in the background
-        runBenefitsComputation().then((res) => {
+        // Trigger the serverless benefits computation in the background (fallback to cron).
+        const { data: { session } } = await supabase.auth.getSession();
+        fetch('/api/run-benefits-computation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token ?? ''}`,
+          },
+        }).then((r) => r.json()).then((res) => {
           if (res.success) {
-             localStorage.setItem('lastBenefitsRun', todayDateStr);
+            localStorage.setItem('lastBenefitsRun', todayDateStr);
           }
-        });
+        }).catch((err) => console.error('Benefits computation trigger failed:', err));
       }
     }
   };

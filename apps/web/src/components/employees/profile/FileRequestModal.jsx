@@ -27,7 +27,6 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { resolveCommutationApprovers } from "@/utils/leaveUtils";
 
 const getFridayTwoWeeksAfter = (baseDate = new Date()) => {
   const targetDate = new Date(baseDate.getTime() + 14 * 24 * 60 * 60 * 1000);
@@ -67,7 +66,6 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
   const [commutationTotalDays, setCommutationTotalDays] = useState("");
   const [commutationHoursPerDay, setCommutationHoursPerDay] = useState("");
   const [commutationTeachingDays, setCommutationTeachingDays] = useState("");
-  const [orgUnits, setOrgUnits] = useState([]);
   const [allEmployees, setAllEmployees] = useState([]);
   const [semesters, setSemesters] = useState([]);
   const [loadingMetadata, setLoadingMetadata] = useState(false);
@@ -100,13 +98,11 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
       if (activeForm !== "commutation" || !employee?.id) return;
       setLoadingMetadata(true);
       try {
-        const [orgsRes, empsRes, semsRes] = await Promise.all([
-          supabase.from("org_units").select("*"),
+        const [empsRes, semsRes] = await Promise.all([
           supabase.from("employees").select("id, first_name, last_name, employee_id, position, department, employment_classification, classification_ii, date_hired, org_unit_id"),
           supabase.from("employee_semesters").select("*").eq("employee_id", employee.id)
         ]);
 
-        if (orgsRes.data) setOrgUnits(orgsRes.data);
         if (empsRes.data) setAllEmployees(empsRes.data);
         if (semsRes.data) setSemesters(semsRes.data);
 
@@ -245,13 +241,14 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
   const handleFileCommutation = async () => {
     setIsSubmitting(true);
     try {
-      // Resolve approvers dynamically using helper
-      const { ra, notedBy, approvedBy, conditionName } = resolveCommutationApprovers(
-        employee,
-        orgUnits,
-        allEmployees,
-        semesters
-      );
+      // Resolve approvers using server RPC
+      const { data: result, error: rpcErr } = await supabase.rpc('resolve_commutation_approvers', { emp_id: employee.id });
+      if (rpcErr) throw rpcErr;
+
+      const ra = result.ra_id ? allEmployees.find(e => e.id === result.ra_id) : null;
+      const notedBy = result.noted_by_id ? allEmployees.find(e => e.id === result.noted_by_id) : null;
+      const approvedBy = result.approved_by_id ? allEmployees.find(e => e.id === result.approved_by_id) : null;
+      const conditionName = result.condition_name;
 
       const initialStatus = ra ? "pending_ra" : "pending_hr_forward";
 
@@ -275,17 +272,22 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
       const sickVals = getLeaveValues("Sick");
       const vacVals = getLeaveValues("Vacation");
       const famVals = getLeaveValues("Family");
+      const forceVals = getLeaveValues("Force");
+
+      const yearsInService = employee?.date_hired ? (new Date() - new Date(employee.date_hired)) / (365.25 * 86400 * 1000) : 0;
+      const includeForce = !isTeaching && (leaveCredits.some(c => c.leave_type === "Force") || yearsInService >= 3);
       
       const snapshot = {
         sick: sickVals,
         vacation: vacVals,
         family: famVals,
+        ...(includeForce ? { force: forceVals } : {}),
         total: {
-          allocated: sickVals.allocated + vacVals.allocated + famVals.allocated,
-          nonCommutableDays: sickVals.nonCommutableDays + vacVals.nonCommutableDays + famVals.nonCommutableDays,
-          commutableDays: sickVals.commutableDays + vacVals.commutableDays + famVals.commutableDays,
-          used: sickVals.used + vacVals.used + famVals.used,
-          unused: sickVals.unused + vacVals.unused + famVals.unused
+          allocated: sickVals.allocated + vacVals.allocated + famVals.allocated + (includeForce ? forceVals.allocated : 0),
+          nonCommutableDays: sickVals.nonCommutableDays + vacVals.nonCommutableDays + famVals.nonCommutableDays + (includeForce ? forceVals.nonCommutableDays : 0),
+          commutableDays: sickVals.commutableDays + vacVals.commutableDays + famVals.commutableDays + (includeForce ? forceVals.commutableDays : 0),
+          used: sickVals.used + vacVals.used + famVals.used + (includeForce ? forceVals.used : 0),
+          unused: sickVals.unused + vacVals.unused + famVals.unused + (includeForce ? forceVals.unused : 0)
         }
       };
 
@@ -618,21 +620,21 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
           const sick = getLeaveValues("Sick");
           const vacation = getLeaveValues("Vacation");
           const family = getLeaveValues("Family");
+          const force = getLeaveValues("Force");
           
+          const yearsInService = employee?.date_hired ? (new Date() - new Date(employee.date_hired)) / (365.25 * 86400 * 1000) : 0;
+          const includeForce = !isTeaching && (leaveCredits.some(c => c.leave_type === "Force") || yearsInService >= 3);
+
           const total = {
-            allocated: sick.allocated + vacation.allocated + family.allocated,
-            nonCommutableDays: sick.nonCommutableDays + vacation.nonCommutableDays + family.nonCommutableDays,
-            commutableDays: sick.commutableDays + vacation.commutableDays + family.commutableDays,
-            used: sick.used + vacation.used + family.used,
-            unused: sick.unused + vacation.unused + family.unused
+            allocated: sick.allocated + vacation.allocated + family.allocated + (includeForce ? force.allocated : 0),
+            nonCommutableDays: sick.nonCommutableDays + vacation.nonCommutableDays + family.nonCommutableDays + (includeForce ? force.nonCommutableDays : 0),
+            commutableDays: sick.commutableDays + vacation.commutableDays + family.commutableDays + (includeForce ? force.commutableDays : 0),
+            used: sick.used + vacation.used + family.used + (includeForce ? force.used : 0),
+            unused: sick.unused + vacation.unused + family.unused + (includeForce ? force.unused : 0)
           };
 
-          const { ra, notedBy, approvedBy, conditionName } = resolveCommutationApprovers(
-            employee,
-            orgUnits,
-            allEmployees,
-            semesters
-          );
+          const colSpanCount = includeForce ? 5 : 4;
+          const isPresident = employee?.position?.toLowerCase()?.includes("university president") || employee?.department?.toLowerCase()?.includes("university president");
 
           return (
             <div className="space-y-6 py-3 max-h-[70vh] overflow-y-auto pr-1">
@@ -652,7 +654,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                     <table className="w-full text-left border-collapse text-[11px]">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold text-center">
-                          <th className="p-2 text-left w-1/3"></th>
+                          <th className="p-2 text-left w-1/4"></th>
                           <th className="p-2 border-l border-slate-200">Sick Leave</th>
                           <th className="p-2 border-l border-slate-200">
                             {isTeaching ? "Vacation Leave (Teaching)" : "Vacation Leave (Non-Teaching)"}
@@ -660,6 +662,11 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                           <th className="p-2 border-l border-slate-200">
                             {isTeaching ? "Family Leave (Teaching)" : "Family Leave (Non-teaching)"}
                           </th>
+                          {includeForce && (
+                            <th className="p-2 border-l border-slate-200">
+                              Force Leave (Non-Teaching)
+                            </th>
+                          )}
                           <th className="p-2 border-l border-slate-200 font-extrabold text-[#0C005F]">TOTAL</th>
                         </tr>
                       </thead>
@@ -669,6 +676,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                           <td className="p-2 border-l border-slate-100">{sick.allocated}</td>
                           <td className="p-2 border-l border-slate-100">{vacation.allocated}</td>
                           <td className="p-2 border-l border-slate-100">{family.allocated}</td>
+                          {includeForce && <td className="p-2 border-l border-slate-100">{force.allocated}</td>}
                           <td className="p-2 border-l border-slate-100 font-bold text-slate-800 bg-slate-50/20">{total.allocated}</td>
                         </tr>
                         <tr>
@@ -676,6 +684,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                           <td className="p-2 border-l border-slate-100">{sick.nonCommutableDays}</td>
                           <td className="p-2 border-l border-slate-100">{vacation.nonCommutableDays}</td>
                           <td className="p-2 border-l border-slate-100">{family.nonCommutableDays}</td>
+                          {includeForce && <td className="p-2 border-l border-slate-100">{force.nonCommutableDays}</td>}
                           <td className="p-2 border-l border-slate-100 font-bold text-slate-800 bg-slate-50/20">{total.nonCommutableDays}</td>
                         </tr>
                         <tr>
@@ -683,6 +692,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                           <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{sick.commutableDays}</td>
                           <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{vacation.commutableDays}</td>
                           <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{family.commutableDays}</td>
+                          {includeForce && <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{force.commutableDays}</td>}
                           <td className="p-2 border-l border-slate-100 font-bold text-amber-700 bg-slate-50/20">{total.commutableDays}</td>
                         </tr>
                         <tr>
@@ -690,6 +700,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                           <td className="p-2 border-l border-slate-100">{sick.used}</td>
                           <td className="p-2 border-l border-slate-100">{vacation.used}</td>
                           <td className="p-2 border-l border-slate-100">{family.used}</td>
+                          {includeForce && <td className="p-2 border-l border-slate-100">{force.used}</td>}
                           <td className="p-2 border-l border-slate-100 font-bold text-slate-800 bg-slate-50/20">{total.used}</td>
                         </tr>
                         <tr className="border-b-2 border-slate-200">
@@ -697,11 +708,12 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                           <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{sick.unused}</td>
                           <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{vacation.unused}</td>
                           <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{family.unused}</td>
+                          {includeForce && <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{force.unused}</td>}
                           <td className="p-2 border-l border-slate-100 font-bold text-emerald-700 bg-slate-50/20">{total.unused}</td>
                         </tr>
                         <tr className="bg-slate-50/50 font-bold text-left">
                           <td className="p-2 text-slate-800">Total Number of Days of Commutation</td>
-                          <td colSpan="4" className="p-1 border-l border-slate-100">
+                          <td colSpan={colSpanCount} className="p-1 border-l border-slate-100">
                             <Input
                               type="number"
                               value={commutationTotalDays}
@@ -713,7 +725,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                         {isTeaching && (
                           <tr className="bg-slate-50/50 font-bold text-left">
                             <td className="p-2 text-slate-800">Hours Per Day</td>
-                            <td colSpan="4" className="p-1 border-l border-slate-100">
+                            <td colSpan={colSpanCount} className="p-1 border-l border-slate-100">
                               <Input
                                 type="number"
                                 step="0.01"
@@ -729,7 +741,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                     </table>
                   </div>
 
-                  {/* Teaching Load Section for Non-Teaching with teaching load */}
+                  {/* Teaching Load Section for Non-Teaching with teaching load ONLY */}
                   {hasTeachingLoad && (
                     <div className="p-4 border border-slate-200 bg-slate-50/30 rounded-xl space-y-3">
                       <h4 className="text-[10px] font-black uppercase text-slate-500 tracking-wider">For Teaching Load</h4>
@@ -759,7 +771,25 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                     </div>
                   )}
 
-                  {/* Removed Approval Flow Preview box */}
+                  {/* Signature Blocks Preview matching PDF specification */}
+                  <div className="pt-4 border-t border-slate-200 flex flex-wrap justify-between items-end gap-6 text-[11px] text-slate-600 font-medium">
+                    {!isPresident && (
+                      <div className="text-center">
+                        <div className="w-40 border-b border-slate-300 mb-1 pb-1 font-bold text-slate-800">
+                          {employee.first_name} {employee.last_name}
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Employee's Signature</span>
+                      </div>
+                    )}
+                    <div className="text-center ml-auto">
+                      <div className="w-48 border-b border-slate-300 mb-1 pb-1 font-bold text-slate-800">
+                        {isPresident ? "University President" : "Pending Approval"}
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                        {isPresident ? "Approved: University President" : "Final Approver"}
+                      </span>
+                    </div>
+                  </div>
                 </>
               )}
 

@@ -46,6 +46,7 @@ export default function SemestralRecordsTab({
   };
 
   useEffect(() => {
+    if (isManagedExternally) return;
     fetchSemesters();
   }, [employee?.id, isManagedExternally]);
 

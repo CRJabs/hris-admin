@@ -4,5 +4,11 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/run-benefits-computation",
+      "schedule": "0 0 * * *"
+    }
   ]
 }

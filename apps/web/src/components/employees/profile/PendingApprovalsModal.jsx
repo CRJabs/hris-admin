@@ -10,7 +10,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, X, CalendarDays, Clock, User, CheckSquare, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { resolveCommutationApprovers } from "@/utils/leaveUtils";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -29,6 +29,25 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
   const [commutations, setCommutations] = useState([]);
   const [loadingCommutations, setLoadingCommutations] = useState(true);
   const [expandedCommutationId, setExpandedCommutationId] = useState(null);
+  const [resolvedConditions, setResolvedConditions] = useState({});
+
+  const handleToggleExpandCommutation = async (reqId, empId) => {
+    if (expandedCommutationId === reqId) {
+      setExpandedCommutationId(null);
+    } else {
+      setExpandedCommutationId(reqId);
+      if (!resolvedConditions[reqId]) {
+        try {
+          const { data, error } = await supabase.rpc('resolve_commutation_approvers', { emp_id: empId });
+          if (!error && data) {
+            setResolvedConditions(prev => ({ ...prev, [reqId]: data.condition_name }));
+          }
+        } catch (err) {
+          console.error("Error resolving condition on expand:", err);
+        }
+      }
+    }
+  };
   
   // Metadata for names resolution
   const [allEmployees, setAllEmployees] = useState([]);
@@ -442,20 +461,13 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                 <div className="space-y-4">
                   {commutations.map((req) => {
                     const isExpanded = expandedCommutationId === req.id;
-                    const { conditionName } = resolveCommutationApprovers(
-                      req.employees,
-                      orgUnits,
-                      allEmployees,
-                      semesters
-                    );
                     const snapshot = req.commutation_snapshot || {};
                     const sick = snapshot.sick || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
                     const vacation = snapshot.vacation || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
                     const family = snapshot.family || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
+                    const force = snapshot.force || null;
                     const total = snapshot.total || { allocated: 0, nonCommutableDays: 0, commutableDays: 0, used: 0, unused: 0 };
-
-                    const activeSems = semesters.filter(s => s.employee_id === req.employee_id && s.is_active === true);
-                    const hasTeachingLoad = !req.is_teaching && activeSems.some(s => s.teaching_load && parseFloat(s.teaching_load) > 0);
+                    const colSpanCount = force ? 5 : 4;
                     const raSigner = allEmployees.find(e => e.id === req.ra_id);
                     const notedSigner = allEmployees.find(e => e.id === req.noted_by_id);
                     const approvedSigner = allEmployees.find(e => e.id === req.approved_by_id);
@@ -489,7 +501,7 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              onClick={() => setExpandedCommutationId(isExpanded ? null : req.id)}
+                              onClick={() => handleToggleExpandCommutation(req.id, req.employee_id)}
                               className="h-7 w-7 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full"
                             >
                               {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -520,7 +532,7 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                             </div>
                             <Button 
                               size="sm" 
-                              onClick={() => setExpandedCommutationId(req.id)}
+                              onClick={() => handleToggleExpandCommutation(req.id, req.employee_id)}
                               className="bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs h-8 px-4"
                             >
                               Open Form
@@ -537,7 +549,7 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                                 <span className="font-extrabold text-[#0C005F]">{req.employees?.first_name} {req.employees?.last_name}</span> of <span className="font-extrabold text-[#0C005F]">{req.employees?.department}</span> hereby applies for the commutation of unused sick/vacation/forced leave benefits.
                               </div>
                               <div className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider">
-                                Route Match: {conditionName}
+                                Route Match: {resolvedConditions[req.id] || "Loading match..."}
                               </div>
                             </div>
 
@@ -546,10 +558,11 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                               <table className="w-full text-left border-collapse text-[11px]">
                                 <thead>
                                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold text-center">
-                                    <th className="p-2 text-left w-1/3"></th>
+                                    <th className="p-2 text-left w-1/4"></th>
                                     <th className="p-2 border-l border-slate-200">Sick Leave</th>
                                     <th className="p-2 border-l border-slate-200">Vacation Leave</th>
                                     <th className="p-2 border-l border-slate-200">Family Leave</th>
+                                    {force && <th className="p-2 border-l border-slate-200">Force Leave</th>}
                                     <th className="p-2 border-l border-slate-200 font-extrabold text-[#0C005F]">TOTAL</th>
                                   </tr>
                                 </thead>
@@ -559,6 +572,7 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                                     <td className="p-2 border-l border-slate-100">{sick.allocated}</td>
                                     <td className="p-2 border-l border-slate-100">{vacation.allocated}</td>
                                     <td className="p-2 border-l border-slate-100">{family.allocated}</td>
+                                    {force && <td className="p-2 border-l border-slate-100">{force.allocated}</td>}
                                     <td className="p-2 border-l border-slate-100 font-bold text-slate-800 bg-slate-50/20">{total.allocated}</td>
                                   </tr>
                                   <tr>
@@ -566,6 +580,7 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                                     <td className="p-2 border-l border-slate-100">{sick.nonCommutableDays}</td>
                                     <td className="p-2 border-l border-slate-100">{vacation.nonCommutableDays}</td>
                                     <td className="p-2 border-l border-slate-100">{family.nonCommutableDays}</td>
+                                    {force && <td className="p-2 border-l border-slate-100">{force.nonCommutableDays}</td>}
                                     <td className="p-2 border-l border-slate-100 font-bold text-slate-800 bg-slate-50/20">{total.nonCommutableDays}</td>
                                   </tr>
                                   <tr>
@@ -573,6 +588,7 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                                     <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{sick.commutableDays}</td>
                                     <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{vacation.commutableDays}</td>
                                     <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{family.commutableDays}</td>
+                                    {force && <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{force.commutableDays}</td>}
                                     <td className="p-2 border-l border-slate-100 font-bold text-amber-700 bg-slate-50/20">{total.commutableDays}</td>
                                   </tr>
                                   <tr>
@@ -580,6 +596,7 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                                     <td className="p-2 border-l border-slate-100">{sick.used}</td>
                                     <td className="p-2 border-l border-slate-100">{vacation.used}</td>
                                     <td className="p-2 border-l border-slate-100">{family.used}</td>
+                                    {force && <td className="p-2 border-l border-slate-100">{force.used}</td>}
                                     <td className="p-2 border-l border-slate-100 font-bold text-slate-800 bg-slate-50/20">{total.used}</td>
                                   </tr>
                                   <tr className="border-b border-slate-200">
@@ -587,18 +604,19 @@ export default function PendingApprovalsModal({ open, onOpenChange, employee, le
                                     <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{sick.unused}</td>
                                     <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{vacation.unused}</td>
                                     <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{family.unused}</td>
+                                    {force && <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{force.unused}</td>}
                                     <td className="p-2 border-l border-slate-100 font-bold text-emerald-700 bg-slate-50/20">{total.unused}</td>
                                   </tr>
                                   <tr className="bg-slate-50/50 font-bold text-left">
                                     <td className="p-2 text-slate-800">Total Number of Days of Commutation</td>
-                                    <td colSpan="4" className="p-2 border-l border-slate-100 font-extrabold text-slate-800 text-xs">
+                                    <td colSpan={colSpanCount} className="p-2 border-l border-slate-100 font-extrabold text-slate-800 text-xs">
                                       {req.total_days} Days
                                     </td>
                                   </tr>
                                   {req.hours_per_day && !req.teaching_days && (
                                     <tr className="bg-slate-50/50 font-bold text-left">
                                       <td className="p-2 text-slate-800">Hours Per Day</td>
-                                      <td colSpan="4" className="p-2 border-l border-slate-100 font-extrabold text-slate-800 text-xs">
+                                      <td colSpan={colSpanCount} className="p-2 border-l border-slate-100 font-extrabold text-slate-800 text-xs">
                                         {req.hours_per_day} Hours
                                       </td>
                                     </tr>

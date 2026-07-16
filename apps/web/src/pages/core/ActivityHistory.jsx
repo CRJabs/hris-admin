@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import ActivityTabs from "@/components/activity/ActivityTabs";
+import ActivityTabs from "@/components/layout/ActivityTabs";
 import {
   AlertDialog,
   AlertDialogAction,

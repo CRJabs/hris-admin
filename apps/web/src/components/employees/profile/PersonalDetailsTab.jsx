@@ -9,7 +9,14 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
-import { DEPARTMENTS, EMPLOYMENT_CLASSIFICATIONS } from "@/utils/constants";
+const EMPLOYMENT_CLASSIFICATIONS = [
+  "Executive",
+  "Academic Official",
+  "Administrative Official",
+  "Teaching",
+  "Non-Teaching",
+  "Consultant"
+];
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 

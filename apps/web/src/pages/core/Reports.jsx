@@ -7,14 +7,152 @@ import {
   Users, Loader2, AlertCircle, FileBarChart2, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  REPORT_DEFINITIONS,
-  MONTH_NAMES,
-  formatEmployeeName,
-  formatBirthDate,
-} from '@/utils/reportsEngine';
-import { computeYearsInService } from '@/utils/benefitsEngine';
-import { runBenefitsComputation } from '@/utils/runBenefitsComputation';
+// ─── Constants & UI Schema ──────────────────────────────────────────────────
+
+const REPORT_DEFINITIONS = [
+  {
+    key: 'masterlist',
+    label: 'Employee Masterlist',
+    title: 'EMPLOYEE MASTERLIST',
+    columns: [
+      { key: '_no',         header: 'NO.' },
+      { key: '_id',         header: 'ID' },
+      { key: '_name',       header: 'EMPLOYEE NAME' },
+      { key: '_department', header: 'DEPARTMENT' },
+      { key: '_position',   header: 'POSITION' },
+      { key: '_status',     header: 'STATUS' },
+      { key: '_tenure',     header: 'TENURE' },
+    ],
+    showNo: true,
+  },
+  {
+    key: 'rice',
+    label: 'Rice Allowance',
+    title: 'RICE ALLOWANCE',
+    columns: [
+      { key: '_no',         header: 'NO.' },
+      { key: '_id',         header: 'ID' },
+      { key: '_name',       header: 'EMPLOYEE NAME' },
+      { key: '_department', header: 'DEPARTMENT' },
+      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+    ],
+    showNo: true,
+  },
+  {
+    key: 'clothing',
+    label: 'Clothing Allowance',
+    title: 'CLOTHING ALLOWANCE',
+    columns: [
+      { key: '_no',         header: 'NO.' },
+      { key: '_id',         header: 'ID' },
+      { key: '_name',       header: 'EMPLOYEE NAME' },
+      { key: '_department', header: 'DEPARTMENT' },
+      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+    ],
+    showNo: true,
+  },
+  {
+    key: 'laundry',
+    label: 'Laundry Allowance',
+    title: 'LAUNDRY ALLOWANCE',
+    columns: [
+      { key: '_no',         header: 'NO.' },
+      { key: '_id',         header: 'ID' },
+      { key: '_name',       header: 'EMPLOYEE NAME' },
+      { key: '_department', header: 'DEPARTMENT' },
+      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+    ],
+    showNo: true,
+  },
+  {
+    key: 'birthday',
+    label: 'Birthday Bonus',
+    title: 'BIRTHDAY BONUS',
+    columns: [
+      { key: '_no',           header: 'NO.' },
+      { key: '_id',           header: 'ID' },
+      { key: '_name',         header: 'EMPLOYEE NAME' },
+      { key: '_department',   header: 'DEPARTMENT' },
+      { key: '_tenure',       header: 'EMPLOYMENT TENURE' },
+      { key: '_yearsInService', header: 'YEARS IN SERVICE' },
+      { key: '_birthDate',    header: 'BIRTH DATE' },
+    ],
+    showNo: true,
+  },
+  {
+    key: 'summer',
+    label: 'Summer Pay',
+    title: 'SUMMER PAY',
+    columns: [
+      { key: '_no',         header: 'NO.' },
+      { key: '_id',         header: 'ID' },
+      { key: '_name',       header: 'EMPLOYEE NAME' },
+      { key: '_department', header: 'DEPARTMENT' },
+      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+    ],
+    showNo: true,
+  },
+  {
+    key: 'thirteenth',
+    label: '13th Month Pay',
+    title: '13TH MONTH PAY',
+    columns: [
+      { key: '_no',         header: 'NO.' },
+      { key: '_id',         header: 'ID' },
+      { key: '_name',       header: 'EMPLOYEE NAME' },
+      { key: '_department', header: 'DEPARTMENT' },
+      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+    ],
+    showNo: true,
+  },
+  {
+    key: 'midyear',
+    label: 'Midyear Bonus',
+    title: 'MIDYEAR BONUS',
+    columns: [
+      { key: '_no',         header: 'NO.' },
+      { key: '_id',         header: 'ID' },
+      { key: '_name',       header: 'EMPLOYEE NAME' },
+      { key: '_department', header: 'DEPARTMENT' },
+      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+    ],
+    showNo: true,
+  },
+  {
+    key: 'service',
+    label: 'Service Awardee',
+    title: 'SERVICE AWARDEE',
+    columns: [
+      { key: '_no',           header: 'NO.' },
+      { key: '_id',           header: 'ID' },
+      { key: '_name',         header: 'EMPLOYEE NAME' },
+      { key: '_department',   header: 'DEPARTMENT' },
+      { key: '_tenure',       header: 'EMPLOYMENT TENURE' },
+      { key: '_yearsInService', header: 'YEARS IN SERVICE' },
+      { key: '_serviceAward', header: 'SERVICE AWARD' },
+    ],
+    showNo: true,
+  },
+  {
+    key: 'retirement',
+    label: 'Retirement',
+    title: 'RETIREMENT',
+    columns: [
+      { key: '_no',         header: 'NO.' },
+      { key: '_id',         header: 'ID' },
+      { key: '_name',       header: 'EMPLOYEE NAME' },
+      { key: '_department', header: 'DEPARTMENT' },
+      { key: '_tenure',     header: 'EMPLOYMENT TENURE' },
+    ],
+    showNo: true,
+  },
+];
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -365,100 +503,47 @@ export default function Reports() {
   const [selectedYear, setSelectedYear]   = useState(today.getFullYear());
   const [searchQuery, setSearchQuery]     = useState('');
   const [isLoading, setIsLoading]         = useState(true);
-  const [employees, setEmployees]         = useState([]);
-  const [semesters, setSemesters]         = useState([]);
-  const [benefitsData, setBenefitsData]   = useState([]);
+  const [allReportData, setAllReportData] = useState({});
+  const [meta, setMeta]                   = useState({ lastComputedAt: null, hasDataForYear: false });
   const [isExporting, setIsExporting]     = useState(false);
   const [isRecomputing, setIsRecomputing] = useState(false);
   const scrollRef = useRef(null);
 
-  // Load active employees and semesters on mount
-  useEffect(() => {
-    async function loadInitialData() {
-      try {
-        const [empRes, semRes] = await Promise.all([
-          supabase.from('employees').select('*').eq('is_active', true),
-          supabase.from('employee_semesters').select('*')
-        ]);
-        if (empRes.error) throw empRes.error;
-        if (semRes.error) throw semRes.error;
-        setEmployees(empRes.data || []);
-        setSemesters(semRes.data || []);
-      } catch (err) {
-        console.error('Error loading initial report data:', err);
-        toast.error('Failed to load employee list');
-      }
-    }
-    loadInitialData();
-  }, []);
-
-  // Fetch benefit eligibility records for a given year
-  const fetchBenefits = useCallback(async (year) => {
+  // Fetch pre-shaped report data from serverless API
+  const fetchReportData = useCallback(async (month, year) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('employee_benefits')
-        .select('*')
-        .eq('eligibility_year', year);
-      if (error) throw error;
-      setBenefitsData(data || []);
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/get-report-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ month, year }),
+      });
+      const res = await response.json();
+      if (res && res.success) {
+        setAllReportData(res.data || {});
+        setMeta(res.meta || { lastComputedAt: null, hasDataForYear: false });
+      } else {
+        throw new Error(res?.error || 'Failed to fetch report data');
+      }
     } catch (err) {
-      console.error('Error loading benefits data:', err);
-      toast.error('Failed to load benefit eligibility records');
+      console.error('Error fetching report data:', err);
+      toast.error('Failed to load report data');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Refetch when selectedYear changes
   useEffect(() => {
-    fetchBenefits(selectedYear);
-  }, [selectedYear, fetchBenefits]);
+    fetchReportData(selectedMonth, selectedYear);
+  }, [selectedMonth, selectedYear, fetchReportData]);
 
-  // Derived eligibility mapping: employeeId -> benefitKey -> row
-  const benefitsByEmployee = useMemo(() => {
-    const map = {};
-    benefitsData.forEach(row => {
-      if (!map[row.employee_id]) {
-        map[row.employee_id] = {};
-      }
-      map[row.employee_id][row.benefit_key] = row;
-    });
-    return map;
-  }, [benefitsData]);
-
-  // Derived semesters mapping: employeeId -> array of semesters
-  const semestersByEmployee = useMemo(() => {
-    const map = {};
-    semesters.forEach(row => {
-      if (!map[row.employee_id]) {
-        map[row.employee_id] = [];
-      }
-      map[row.employee_id].push(row);
-    });
-    return map;
-  }, [semesters]);
-
-  // Derived states
-  const hasDataForYear = benefitsData.length > 0;
-
-  const lastComputedDate = useMemo(() => {
-    if (benefitsData.length === 0) return null;
-    let latest = null;
-    benefitsData.forEach(row => {
-      if (row.computed_at) {
-        const d = new Date(row.computed_at);
-        if (!latest || d > latest) latest = d;
-      }
-    });
-    return latest ? latest.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }) : null;
-  }, [benefitsData]);
+  // Derived state shortcuts
+  const hasDataForYear = meta.hasDataForYear;
+  const lastComputedDate = meta.lastComputedAt;
 
   // Trigger daily computation batch manually
   const handleRecompute = async () => {
@@ -466,10 +551,18 @@ export default function Reports() {
     setIsRecomputing(true);
     const toastId = toast.loading('Recomputing employee benefits eligibility in database...');
     try {
-      const res = await runBenefitsComputation();
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/run-benefits-computation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+      });
+      const res = await response.json();
       if (res && res.success) {
         toast.success(`Computation successful! Processed ${res.count} employees.`, { id: toastId });
-        await fetchBenefits(selectedYear);
+        await fetchReportData(selectedMonth, selectedYear);
         localStorage.removeItem('lastBenefitsRun');
       } else {
         throw new Error(res?.error || 'Unknown error');
@@ -481,152 +574,6 @@ export default function Reports() {
       setIsRecomputing(false);
     }
   };
-
-  // Compute reference date from selected month/year strictly in UTC
-  const referenceDate = useMemo(
-    () => new Date(Date.UTC(selectedYear, selectedMonth, 15)), // mid-month reference
-    [selectedMonth, selectedYear]
-  );
-
-  // Compute shaped report data for all 10 report types
-  const allReportData = useMemo(() => {
-    if (isLoading || employees.length === 0) return {};
-
-    // 1. Employee Masterlist (all active employees)
-    const masterlist = employees
-      .filter(emp => emp.is_active)
-      .sort((a, b) => (a.last_name || '').localeCompare(b.last_name || ''))
-      .map((emp, i) => ({
-        _no: i + 1,
-        _id: emp.employee_id,
-        _name: formatEmployeeName(emp),
-        _department: emp.department || '—',
-        _position: emp.position || '—',
-        _status: emp.employment_status || '—',
-        _tenure: emp.employment_tenure || '—',
-      }));
-
-    // Helper to filter employees who are eligible for a given benefit key in the DB
-    const filterEligible = (benefitKey) => {
-      return employees
-        .filter(emp => {
-          if (!emp.is_active) return false;
-          const benefitRow = benefitsByEmployee[emp.id]?.[benefitKey];
-          return benefitRow?.is_eligible === true;
-        })
-        .sort((a, b) => (a.last_name || '').localeCompare(b.last_name || ''));
-    };
-
-    // 2. Rice Allowance
-    const rice = filterEligible('rice_clothing_laundry').map((emp, i) => ({
-      _no: i + 1,
-      _id: emp.employee_id,
-      _name: formatEmployeeName(emp),
-      _department: emp.department || '—',
-      _tenure: emp.employment_tenure || '—',
-    }));
-
-    // 3. Clothing Allowance (same criteria as Rice)
-    const clothing = [...rice];
-
-    // 4. Laundry Allowance (same criteria as Rice)
-    const laundry = [...rice];
-
-    // 5. Birthday Bonus
-    const birthday = employees
-      .filter(emp => {
-        if (!emp.is_active) return false;
-        const benefitRow = benefitsByEmployee[emp.id]?.birthday_bonus;
-        if (!benefitRow?.is_eligible) return false;
-        if (!emp.birthdate) return false;
-        const bday = new Date(emp.birthdate);
-        return !isNaN(bday.getTime()) && bday.getUTCMonth() === selectedMonth;
-      })
-      .sort((a, b) => {
-        const dayA = new Date(a.birthdate).getDate();
-        const dayB = new Date(b.birthdate).getDate();
-        return dayA - dayB;
-      })
-      .map((emp, i) => ({
-        _no: i + 1,
-        _id: emp.employee_id,
-        _name: formatEmployeeName(emp),
-        _department: emp.department || '—',
-        _tenure: emp.employment_tenure || '—',
-        _yearsInService: computeYearsInService(emp.date_hired, referenceDate, semestersByEmployee[emp.id] || [], emp.employment_classification),
-        _birthDate: formatBirthDate(emp.birthdate),
-      }));
-
-    // 6. Summer Pay
-    const summer = filterEligible('summer_pay').map((emp, i) => ({
-      _no: i + 1,
-      _id: emp.employee_id,
-      _name: formatEmployeeName(emp),
-      _department: emp.department || '—',
-      _tenure: emp.employment_tenure || '—',
-    }));
-
-    // 7. 13th Month Pay
-    const thirteenth = filterEligible('thirteenth_month').map((emp, i) => ({
-      _no: i + 1,
-      _id: emp.employee_id,
-      _name: formatEmployeeName(emp),
-      _department: emp.department || '—',
-      _tenure: emp.employment_tenure || '—',
-    }));
-
-    // 8. Midyear Bonus
-    const midyear = filterEligible('midyear_bonus').map((emp, i) => ({
-      _no: i + 1,
-      _id: emp.employee_id,
-      _name: formatEmployeeName(emp),
-      _department: emp.department || '—',
-      _tenure: emp.employment_tenure || '—',
-    }));
-
-    // 9. Service Awardee
-    const service = employees
-      .filter(emp => {
-        if (!emp.is_active) return false;
-        const benefitRow = benefitsByEmployee[emp.id]?.service_award;
-        return benefitRow?.is_eligible === true;
-      })
-      .sort((a, b) => (a.last_name || '').localeCompare(b.last_name || ''))
-      .map((emp, i) => {
-        const benefitRow = benefitsByEmployee[emp.id]?.service_award;
-        return {
-          _no: i + 1,
-          _id: emp.employee_id,
-          _name: formatEmployeeName(emp),
-          _department: emp.department || '—',
-          _tenure: emp.employment_tenure || '—',
-          _yearsInService: computeYearsInService(emp.date_hired, referenceDate, semestersByEmployee[emp.id] || [], emp.employment_classification),
-          _serviceAward: benefitRow?.award_level || '—',
-        };
-      });
-
-    // 10. Retirement
-    const retirement = filterEligible('retirement').map((emp, i) => ({
-      _no: i + 1,
-      _id: emp.employee_id,
-      _name: formatEmployeeName(emp),
-      _department: emp.department || '—',
-      _tenure: emp.employment_tenure || '—',
-    }));
-
-    return {
-      masterlist,
-      rice,
-      clothing,
-      laundry,
-      birthday,
-      summer,
-      thirteenth,
-      midyear,
-      service,
-      retirement
-    };
-  }, [employees, benefitsByEmployee, selectedMonth, referenceDate, isLoading]);
 
   const reportMonthLabel = `${MONTH_NAMES[selectedMonth]} ${selectedYear}`;
   const activeDefinition = REPORT_DEFINITIONS.find(d => d.key === selectedReport);

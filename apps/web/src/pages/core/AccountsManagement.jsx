@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Search, Plus, Eye, EyeOff, Shield, Edit3, Trash2, Loader2, X, ChevronDown, ChevronRight, Check
 } from "lucide-react";
-import { supabase, supabaseAdmin } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
@@ -217,7 +217,6 @@ export default function AccountsManagement() {
     }
   };
 
-  // Add Account submission
   const handleAddAccount = async (e) => {
     e.preventDefault();
     if (!email || !password) {
@@ -233,35 +232,35 @@ export default function AccountsManagement() {
 
     setIsSubmitting(true);
     try {
-      if (!supabaseAdmin) {
-        throw new Error("Supabase admin client not initialized. Check your SERVICE_ROLE_KEY.");
-      }
+      const { data: { session } } = await supabase.auth.getSession();
 
-      // 1. Create user in Supabase Auth (auto-confirms email)
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email: email.trim(),
-        password: password,
-        email_confirm: true,
-        user_metadata: { role: finalRole.toLowerCase() }
+      // 1. Create user via serverless function
+      const createRes = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ email: email.trim(), password }),
       });
+      const createData = await createRes.json();
+      if (!createRes.ok || !createData.success) throw new Error(createData.error || 'Failed to create auth user');
 
-      if (authError) throw authError;
-      const newUserId = authData.user.id;
+      const newUserId = createData.user.id;
 
-      // 2. Insert/Upsert user profile in user_profiles
-      const { error: profileError } = await supabaseAdmin
+      // 2. Insert user profile
+      const { error: profileError } = await supabase
         .from("user_profiles")
         .upsert({
           id: newUserId,
           email: email.trim(),
           role: finalRole.toLowerCase(),
           temp_password: password,
-          privileges: [] // start with empty privileges
+          privileges: []
         });
 
       if (profileError) throw profileError;
 
-      // Log activity
       await supabase.from("admin_activity_log").insert({
         actor_type: "admin",
         actor_name: currentUser?.email || "System Admin",
@@ -292,7 +291,6 @@ export default function AccountsManagement() {
     setEditModalOpen(true);
   };
 
-  // Edit Account submission
   const handleEditAccount = async (e) => {
     e.preventDefault();
     if (!selectedAccount) return;
@@ -305,30 +303,27 @@ export default function AccountsManagement() {
 
     setIsSubmitting(true);
     try {
-      if (!supabaseAdmin) {
-        throw new Error("Supabase admin client not initialized.");
-      }
+      const { data: { session } } = await supabase.auth.getSession();
 
-      // Update Auth details (email and/or password if updated)
+      // Update Auth details if changed
       const updateData = {};
-      if (email.trim() !== selectedAccount.email) {
-        updateData.email = email.trim();
-      }
-      if (password !== selectedAccount.temp_password) {
-        updateData.password = password;
-      }
+      if (email.trim() !== selectedAccount.email) updateData.email = email.trim();
+      if (password !== selectedAccount.temp_password) updateData.password = password;
       updateData.user_metadata = { role: finalRole.toLowerCase() };
 
-      if (Object.keys(updateData).length > 0) {
-        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
-          selectedAccount.id,
-          updateData
-        );
-        if (authError) throw authError;
-      }
+      const updateRes = await fetch('/api/users', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ userId: selectedAccount.id, updateData }),
+      });
+      const updateResult = await updateRes.json();
+      if (!updateRes.ok || !updateResult.success) throw new Error(updateResult.error || 'Failed to update auth user');
 
-      // Update Profile
-      const { error: profileError } = await supabaseAdmin
+      // Update profile in DB
+      const { error: profileError } = await supabase
         .from("user_profiles")
         .update({
           email: email.trim(),
@@ -339,7 +334,6 @@ export default function AccountsManagement() {
 
       if (profileError) throw profileError;
 
-      // Log activity
       await supabase.from("admin_activity_log").insert({
         actor_type: "admin",
         actor_name: currentUser?.email || "System Admin",
@@ -359,31 +353,32 @@ export default function AccountsManagement() {
     }
   };
 
-  // Delete Account
   const handleDeleteAccount = async () => {
     if (!selectedAccount) return;
     setIsSubmitting(true);
     try {
-      if (!supabaseAdmin) {
-        throw new Error("Supabase admin client not initialized.");
-      }
+      const { data: { session } } = await supabase.auth.getSession();
 
       // 1. Delete from profiles table first
-      const { error: profileError } = await supabaseAdmin
+      const { error: profileError } = await supabase
         .from("user_profiles")
         .delete()
         .eq("id", selectedAccount.id);
 
       if (profileError) throw profileError;
 
-      // 2. Delete from auth users
-      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(
-        selectedAccount.id
-      );
+      // 2. Delete from auth users via serverless function
+      const deleteRes = await fetch('/api/users', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ userId: selectedAccount.id }),
+      });
+      const deleteResult = await deleteRes.json();
+      if (!deleteRes.ok || !deleteResult.success) throw new Error(deleteResult.error || 'Failed to delete auth user');
 
-      if (authError) throw authError;
-
-      // Log activity
       await supabase.from("admin_activity_log").insert({
         actor_type: "admin",
         actor_name: currentUser?.email || "System Admin",

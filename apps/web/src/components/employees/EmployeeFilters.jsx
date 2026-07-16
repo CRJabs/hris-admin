@@ -6,7 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { useState, useMemo } from "react";
-import { DEPARTMENTS, EMPLOYMENT_CLASSIFICATIONS } from "@/utils/constants";
+
+const EMPLOYMENT_CLASSIFICATIONS = [
+  "Executive",
+  "Academic Official",
+  "Administrative Official",
+  "Teaching",
+  "Non-Teaching",
+  "Consultant"
+];
 
 const tenures = ["Regular", "Probationary", "Contractual"];
 const employmentStatuses = ["Fulltime", "Parttime"];
@@ -14,8 +22,7 @@ const activeStatuses = ["Active", "Inactive"];
 
 export default function EmployeeFilters({ filters, onFilterChange, onClear, departments: departmentsProp }) {
   const [searchTerm, setSearchTerm] = useState("");
-  // Use live departments if provided, fall back to static list
-  const allDepartments = departmentsProp?.length ? departmentsProp : DEPARTMENTS;
+  const allDepartments = departmentsProp || [];
 
   const activeCount = 
     (filters.departments?.length || 0) + 
