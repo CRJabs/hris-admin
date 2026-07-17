@@ -208,32 +208,27 @@ export default function Retirements() {
       {selectedReq && (
         <Dialog open={modalOpen} onOpenChange={setModalOpen}>
           <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl">
-            {/* Header */}
-            <div className="bg-[#0C005F] p-6 text-white pr-12 relative">
-              <DialogTitle className="text-lg font-bold flex items-center gap-2">
-                <Award className="w-5 h-5 text-emerald-400" />
-                Retirement Application Review
-              </DialogTitle>
-              <DialogDescription className="text-white/60 text-xs mt-1 uppercase tracking-widest font-medium">
-                FORMAL STATEMENT OF RETIREMENT
-              </DialogDescription>
+            {/* Minimal Header without Title/Subtitle text */}
+            <div className="bg-[#0C005F] h-12 flex items-center justify-between px-6 relative">
+              <DialogTitle className="sr-only">Retirement Application Review</DialogTitle>
+              <DialogDescription className="sr-only">Formal Statement of Retirement</DialogDescription>
             </div>
 
             <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
               {/* Employee Info Banner */}
-              <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+              <div className="flex items-center gap-4 p-4 bg-slate-50/80 rounded-xl border border-slate-200">
+                <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-300 shrink-0">
                   {emp.photo_url ? (
                     <img src={emp.photo_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-5 h-5 text-slate-400" />
+                    <User className="w-5 h-5 text-slate-500" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-slate-800">
+                  <p className="font-extrabold text-base text-slate-900">
                     {emp.first_name} {emp.last_name}
                   </p>
-                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                  <p className="text-[11px] text-slate-600 font-semibold uppercase tracking-wider mt-0.5">
                     {emp.employee_id} • {emp.department} • {emp.position}
                   </p>
                 </div>
@@ -242,46 +237,46 @@ export default function Retirements() {
 
               {/* 6-Field Info Grid matching Image #2 */}
               <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="space-y-1">
-                  <Label className="font-bold text-slate-500 uppercase">Employee ID</Label>
-                  <Input value={emp.employee_id || "—"} disabled className="h-9 bg-slate-50" />
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-800 uppercase text-[11px]">Employee ID</Label>
+                  <Input value={emp.employee_id || "—"} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-slate-900 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-slate-900" />
                 </div>
-                <div className="space-y-1">
-                  <Label className="font-bold text-slate-500 uppercase">Full Name</Label>
-                  <Input value={`${emp.first_name || ""} ${emp.last_name || ""}`} disabled className="h-9 bg-slate-50" />
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-800 uppercase text-[11px]">Full Name</Label>
+                  <Input value={`${emp.first_name || ""} ${emp.last_name || ""}`} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-slate-900 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-slate-900" />
                 </div>
-                <div className="space-y-1">
-                  <Label className="font-bold text-slate-500 uppercase">Email</Label>
-                  <Input value={emp.contact_email || "—"} disabled className="h-9 bg-slate-50" />
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-800 uppercase text-[11px]">Email</Label>
+                  <Input value={emp.contact_email || "—"} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-slate-900 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-slate-900" />
                 </div>
-                <div className="space-y-1">
-                  <Label className="font-bold text-slate-500 uppercase">Phone Number</Label>
-                  <Input value={emp.contact_phone || "—"} disabled className="h-9 bg-slate-50" />
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-800 uppercase text-[11px]">Phone Number</Label>
+                  <Input value={emp.contact_phone || "—"} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-slate-900 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-slate-900" />
                 </div>
-                <div className="space-y-1">
-                  <Label className="font-bold text-slate-500 uppercase">Filing Date</Label>
-                  <Input value={filingDateStr} disabled className="h-9 bg-slate-50" />
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-800 uppercase text-[11px]">Filing Date</Label>
+                  <Input value={filingDateStr} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-slate-900 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-slate-900" />
                 </div>
-                <div className="space-y-1">
-                  <Label className="font-bold text-slate-500 uppercase">Employee Age</Label>
-                  <Input value={`${empAge} Years Old`} disabled className="h-9 bg-slate-50 text-emerald-600 font-bold" />
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-800 uppercase text-[11px]">Employee Age</Label>
+                  <Input value={`${empAge} Years Old`} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-emerald-700 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-emerald-700" />
                 </div>
               </div>
 
               {/* Statement of Retirement */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-500 uppercase">Statement of Retirement</Label>
+                <Label className="font-bold text-slate-800 uppercase text-[11px]">Statement of Retirement</Label>
                 <Textarea
                   value={selectedReq.statement || ""}
                   readOnly
                   disabled
-                  className="min-h-[110px] border-slate-200 text-sm bg-slate-50/50"
+                  className="min-h-[110px] border-slate-200 text-sm font-bold text-slate-900 bg-slate-50/80 opacity-100 disabled:opacity-100 disabled:text-slate-900"
                 />
               </div>
 
               {/* Action Footer */}
               {selectedReq.status === "pending" && (
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
                   <Button
                     type="button"
                     variant="destructive"

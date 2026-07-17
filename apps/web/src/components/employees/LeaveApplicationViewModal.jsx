@@ -136,22 +136,16 @@ export default function LeaveApplicationViewModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl">
-        {/* Header */}
-        <div className="bg-[#0C005F] p-6 text-white pr-12 relative">
-          <DialogTitle className="text-lg font-bold flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-white/70" />
-            Leave Application Review
-          </DialogTitle>
-          <DialogDescription className="text-white/60 text-xs mt-1 uppercase tracking-widest font-medium">
-            {application.leave_type} Leave •{" "}
-            {application.is_commutable ? "Commutable" : "Non-commutable"}
-          </DialogDescription>
+        {/* Minimal Header without Title/Subtitle text */}
+        <div className="bg-[#0C005F] h-12 flex items-center justify-between px-6 relative">
+          <DialogTitle className="sr-only">Leave Application Review</DialogTitle>
+          <DialogDescription className="sr-only">Leave Details</DialogDescription>
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Employee Info */}
-          <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
-            <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200">
+          {/* Employee Info Banner */}
+          <div className="flex items-center gap-4 p-4 bg-slate-50/80 rounded-xl border border-slate-200">
+            <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-300 shrink-0">
               {emp.photo_url ? (
                 <img
                   key={emp.photo_url}
@@ -160,26 +154,25 @@ export default function LeaveApplicationViewModal({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <User className="w-5 h-5 text-slate-400" />
+                <User className="w-5 h-5 text-slate-500" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm text-slate-800">
+              <p className="font-extrabold text-base text-slate-900">
                 {emp.first_name} {emp.last_name}
               </p>
-              <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
-                {emp.employee_id} • {emp.department} •{" "}
-                {emp.position}
+              <p className="text-[11px] text-slate-600 font-semibold uppercase tracking-wider mt-0.5">
+                {emp.employee_id} • {emp.department} • {emp.position}
               </p>
             </div>
             <Badge
               variant="outline"
-              className={`shrink-0 text-[10px] font-bold uppercase ${
+              className={`shrink-0 text-[10px] font-extrabold uppercase ${
                 application.status === "pending"
-                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                  ? "bg-amber-100 text-amber-800 border-amber-300"
                   : application.status === "approved"
-                  ? "bg-green-50 text-green-700 border-green-200"
-                  : "bg-red-50 text-red-700 border-red-200"
+                  ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                  : "bg-red-100 text-red-800 border-red-300"
               }`}
             >
               {application.status}
@@ -189,17 +182,17 @@ export default function LeaveApplicationViewModal({
           {/* Leave Details */}
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-1.5">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <p className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
                 Leave Type
               </p>
-              <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <p className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
                 {application.leave_type} Leave
                 <Badge
                   variant="secondary"
-                  className={`text-[9px] ${
+                  className={`text-[9px] font-bold ${
                     application.is_commutable
-                      ? "bg-amber-50 text-amber-600"
-                      : "bg-blue-50 text-blue-600"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-blue-100 text-blue-800"
                   }`}
                 >
                   {application.is_commutable ? "Comm." : "Non-Comm."}
@@ -207,26 +200,26 @@ export default function LeaveApplicationViewModal({
               </p>
             </div>
             <div className="space-y-1.5">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <p className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
                 Status
               </p>
-              <p className="text-sm font-bold text-slate-800 capitalize">
+              <p className="text-sm font-extrabold text-slate-900 capitalize">
                 {application.status}
               </p>
             </div>
             <div className="space-y-1.5">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <p className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
                 Start Date
               </p>
-              <p className="text-sm font-bold text-slate-800">
+              <p className="text-sm font-extrabold text-slate-900">
                 {format(new Date(application.start_date + "T00:00:00"), "MMMM d, yyyy")}
               </p>
             </div>
             <div className="space-y-1.5">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <p className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
                 End Date
               </p>
-              <p className="text-sm font-bold text-slate-800">
+              <p className="text-sm font-extrabold text-slate-900">
                 {format(new Date(application.end_date + "T00:00:00"), "MMMM d, yyyy")}
               </p>
             </div>
@@ -234,17 +227,17 @@ export default function LeaveApplicationViewModal({
 
           {/* Purpose */}
           <div className="space-y-2">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-              <FileText className="w-3 h-3" /> Purpose of Leave
+            <p className="text-[11px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5" /> Purpose of Leave
             </p>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-700 leading-relaxed">
+            <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 leading-relaxed">
               {application.purpose}
             </div>
           </div>
 
           {/* Filed date */}
-          <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
-            <Clock className="w-3 h-3" />
+          <div className="flex items-center gap-2 text-[11px] text-slate-600 font-bold">
+            <Clock className="w-3.5 h-3.5" />
             Filed on{" "}
             {format(
               new Date(application.created_at),
