@@ -84,13 +84,36 @@ export default function Retirements() {
 
       if (error) throw error;
 
-      // 2. If approved, archive employee (is_active = false)
+      // 2. If approved, archive employee (is_active = false) & update benefit award_level
       if (action === "approved") {
         const { error: empError } = await supabase
           .from("employees")
           .update({ is_active: false })
           .eq("id", req.employee_id);
         if (empError) throw empError;
+
+        const { data: existingBenefit } = await supabase
+          .from("employee_benefits")
+          .select("id")
+          .eq("employee_id", req.employee_id)
+          .eq("benefit_key", "retirement")
+          .maybeSingle();
+
+        if (existingBenefit) {
+          await supabase
+            .from("employee_benefits")
+            .update({ award_level: "retired", is_eligible: true })
+            .eq("id", existingBenefit.id);
+        } else {
+          await supabase.from("employee_benefits").insert({
+            employee_id: req.employee_id,
+            benefit_key: "retirement",
+            is_eligible: true,
+            award_level: "retired",
+            eligibility_year: new Date().getFullYear(),
+            computed_at: new Date().toISOString()
+          });
+        }
       }
 
       // Notify the employee
