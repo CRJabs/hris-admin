@@ -377,8 +377,17 @@ export default async function handler(req, res) {
 
     // 4. Process each employee
     for (const emp of employees) {
+      // Auto-transition Classification III from New to Resident after 1 year in service
+      if ((emp.classification_iii === 'New' || !emp.classification_iii) && emp.date_hired) {
+        const hired = new Date(emp.date_hired);
+        const months = (today.getFullYear() - hired.getFullYear()) * 12 + (today.getMonth() - hired.getMonth());
+        if (months >= 12) {
+          await adminClient.from('employees').update({ classification_iii: 'Resident' }).eq('id', emp.id);
+          emp.classification_iii = 'Resident';
+        }
+      }
+
       // Resolve the earliest start date of the continuous qualifying tenure block
-      // This correctly counts Probationary → Regular transitions as unbroken service for Summer Pay.
       let tenureStartDate = emp.date_hired;
       const history = (historyByEmployee[emp.id] || []).sort(
         (a, b) => new Date(a.effective_date) - new Date(b.effective_date)

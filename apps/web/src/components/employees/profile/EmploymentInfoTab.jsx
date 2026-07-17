@@ -63,7 +63,7 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
   const isAdminEditing = !isReadOnly && isAdminView;
   const { departments, academicDepts, nonAcademicDepts, allUnits, isLoading: deptsLoading } = useOrgDepartments();
   
-  const [classIIIOptions, setClassIIIOptions] = useState(['New', 'Rehired', 'Retired/Rehired']);
+  const [classIIIOptions, setClassIIIOptions] = useState(['New', 'Resident', 'Resigned', 'Retired', 'Rehired']);
   const [showClassIIIModal, setShowClassIIIModal] = useState(false);
   const [newClassIIIOption, setNewClassIIIOption] = useState('');
   const [isClassIIISaving, setIsClassIIISaving] = useState(false);
@@ -78,7 +78,10 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
           .order('name');
         if (error) throw error;
         if (data && data.length > 0) {
-          setClassIIIOptions(data.map(d => d.name));
+          const names = data.map(d => d.name);
+          const defaultOpts = ['New', 'Resident', 'Resigned', 'Retired', 'Rehired'];
+          const combined = Array.from(new Set([...defaultOpts, ...names]));
+          setClassIIIOptions(combined);
         }
       } catch (err) {
         console.error("Error loading classification_iii options:", err);
@@ -215,7 +218,17 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
                   value={!isAdminEditing ? (employee.date_hired ? format(new Date(employee.date_hired), "MMMM d, yyyy") : "—") : employee.date_hired} 
                   name="date_hired"
                   type="date"
-                  onChange={onChange}
+                  onChange={(name, val) => {
+                    onChange(name, val);
+                    if (val) {
+                      const hired = new Date(val);
+                      const today = new Date();
+                      const months = (today.getFullYear() - hired.getFullYear()) * 12 + (today.getMonth() - hired.getMonth());
+                      if (months >= 12 && (employee?.classification_iii === 'New' || !employee?.classification_iii)) {
+                        onChange('classification_iii', 'Resident');
+                      }
+                    }
+                  }}
                   isReadOnly={!isAdminEditing}
                   isUpdated={checkUpdated('date_hired')}
                 />

@@ -88,7 +88,7 @@ export default function Retirements() {
       if (action === "approved") {
         const { error: empError } = await supabase
           .from("employees")
-          .update({ is_active: false })
+          .update({ is_active: false, classification_iii: "Retired" })
           .eq("id", req.employee_id);
         if (empError) throw empError;
 

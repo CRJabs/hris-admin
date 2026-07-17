@@ -6,15 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { useState, useMemo } from "react";
+import { useOrgDepartments } from "@/hooks/useOrgDepartments";
 
-const EMPLOYMENT_CLASSIFICATIONS = [
-  "Executive",
-  "Academic Official",
-  "Administrative Official",
-  "Teaching",
-  "Non-Teaching",
-  "Consultant"
-];
+const CLASSIFICATION_I_OPTIONS = ["Teaching", "Non-Teaching"];
+const CLASSIFICATION_II_OPTIONS = ["Executive", "Academic Official", "Administrative Official", "Consultant"];
+const CLASSIFICATION_III_OPTIONS = ["New", "Resident", "Resigned", "Retired", "Rehired"];
 
 const tenures = ["Regular", "Probationary", "Contractual"];
 const employmentStatuses = ["Fulltime", "Parttime"];
@@ -22,12 +18,17 @@ const activeStatuses = ["Active", "Inactive"];
 
 export default function EmployeeFilters({ filters, onFilterChange, onClear, departments: departmentsProp }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const allDepartments = departmentsProp || [];
+  const { executiveOffices, academicDepts, nonAcademicDepts, departments: liveDepts } = useOrgDepartments();
+
+  const allDepts = departmentsProp && departmentsProp.length > 0 ? departmentsProp : liveDepts;
 
   const activeCount = 
     (filters.departments?.length || 0) + 
     (filters.statuses?.length || 0) + 
     (filters.classifications?.length || 0) +
+    (filters.classificationsII?.length || 0) +
+    (filters.classificationsIII?.length || 0) +
+    (filters.tenures?.length || 0) +
     (filters.active !== "All" ? 1 : 0);
 
   const toggleArrayItem = (array, item) => {
@@ -37,35 +38,32 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
     return [...array, item];
   };
 
-  const filteredDepartments = useMemo(() => 
-    allDepartments.filter(d => {
-      const name = typeof d === 'string' ? d : d.name;
+  const filterListBySearch = (list) => {
+    return list.filter(item => {
+      const name = typeof item === 'string' ? item : item.name;
       return name.toLowerCase().includes(searchTerm.toLowerCase());
-    }),
-    [searchTerm, allDepartments]
-  );
-
-  const filteredClassifications = useMemo(() => 
-    EMPLOYMENT_CLASSIFICATIONS.filter(c => c.toLowerCase().includes(searchTerm.toLowerCase())),
-    [searchTerm]
-  );
+    });
+  };
 
   const renderFilterGrid = (items, filterKey, currentFilters) => {
+    const filtered = filterListBySearch(items);
+    if (filtered.length === 0) return <p className="text-xs text-slate-400 italic">No matching items</p>;
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-6">
-        {items.map((item) => {
+        {filtered.map((item) => {
           const label = typeof item === 'string' ? item : item.name;
           return (
-          <div key={label} className="flex items-center space-x-2">
-            <Checkbox 
-              id={`${filterKey}-${label}`} 
-              checked={currentFilters?.includes(label)}
-              onCheckedChange={() => onFilterChange(filterKey, toggleArrayItem(currentFilters || [], label))}
-            />
-            <label htmlFor={`${filterKey}-${label}`} className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer hover:text-primary transition-colors">
-              {label}
-            </label>
-          </div>
+            <div key={label} className="flex items-center space-x-2">
+              <Checkbox 
+                id={`${filterKey}-${label}`} 
+                checked={currentFilters?.includes(label)}
+                onCheckedChange={() => onFilterChange(filterKey, toggleArrayItem(currentFilters || [], label))}
+              />
+              <label htmlFor={`${filterKey}-${label}`} className="text-xs font-medium leading-none cursor-pointer hover:text-primary transition-colors">
+                {label}
+              </label>
+            </div>
           );
         })}
       </div>
@@ -106,32 +104,63 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
           </div>
 
           <div className="p-6 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-            {/* Departments */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Departments</h4>
-                <Badge variant="outline" className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter bg-slate-50 border-slate-200">
-                  {filteredDepartments.length} {filteredDepartments.length === 1 ? 'Dept' : 'Depts'}
+            {/* Departments Section */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between border-b pb-2">
+                <h4 className="font-bold text-xs uppercase text-slate-800 tracking-wider">Departments / Offices</h4>
+                <Badge variant="outline" className="text-[9px] font-bold text-slate-500 uppercase bg-slate-50 border-slate-200">
+                  {filters.departments?.length || 0} Selected
                 </Badge>
               </div>
-              {renderFilterGrid(filteredDepartments, "departments", filters.departments)}
+
+              {/* Executive Offices */}
+              {executiveOffices.length > 0 && (
+                <div className="space-y-3">
+                  <h5 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Executive Offices</h5>
+                  {renderFilterGrid(executiveOffices, "departments", filters.departments)}
+                </div>
+              )}
+
+              {/* Institutional Departments */}
+              {academicDepts.length > 0 && (
+                <div className="space-y-3">
+                  <h5 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Institutional Departments</h5>
+                  {renderFilterGrid(academicDepts, "departments", filters.departments)}
+                </div>
+              )}
+
+              {/* Non-Institutional Departments */}
+              {nonAcademicDepts.length > 0 && (
+                <div className="space-y-3">
+                  <h5 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Non-Institutional Departments</h5>
+                  {renderFilterGrid(nonAcademicDepts, "departments", filters.departments)}
+                </div>
+              )}
+
+              {/* Fallback all depts grid if hook data is loading */}
+              {executiveOffices.length === 0 && academicDepts.length === 0 && nonAcademicDepts.length === 0 && (
+                <div className="space-y-3">
+                  <h5 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">All Departments</h5>
+                  {renderFilterGrid(allDepts, "departments", filters.departments)}
+                </div>
+              )}
             </div>
 
             <Separator className="bg-slate-100" />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-               {/* Employment Classification */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+               {/* Classification I */}
                <div className="space-y-4">
-                  <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Employment Classification</h4>
+                  <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Classification I</h4>
                   <div className="space-y-3">
-                    {filteredClassifications.map((item) => (
+                    {filterListBySearch(CLASSIFICATION_I_OPTIONS).map((item) => (
                       <div key={item} className="flex items-center space-x-2">
                         <Checkbox 
-                          id={`class-${item}`} 
+                          id={`classI-${item}`} 
                           checked={filters.classifications?.includes(item)}
                           onCheckedChange={() => onFilterChange("classifications", toggleArrayItem(filters.classifications || [], item))}
                         />
-                        <label htmlFor={`class-${item}`} className="text-xs font-medium leading-none cursor-pointer hover:text-primary transition-colors">
+                        <label htmlFor={`classI-${item}`} className="text-xs font-medium leading-none cursor-pointer hover:text-primary transition-colors">
                           {item}
                         </label>
                       </div>
@@ -139,7 +168,49 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
                   </div>
                </div>
 
-               {/* Status */}
+               {/* Classification II */}
+               <div className="space-y-4">
+                  <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Classification II</h4>
+                  <div className="space-y-3">
+                    {filterListBySearch(CLASSIFICATION_II_OPTIONS).map((item) => (
+                      <div key={item} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`classII-${item}`} 
+                          checked={filters.classificationsII?.includes(item)}
+                          onCheckedChange={() => onFilterChange("classificationsII", toggleArrayItem(filters.classificationsII || [], item))}
+                        />
+                        <label htmlFor={`classII-${item}`} className="text-xs font-medium leading-none cursor-pointer hover:text-primary transition-colors">
+                          {item}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+               </div>
+
+               {/* Classification III */}
+               <div className="space-y-4">
+                  <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Classification III</h4>
+                  <div className="space-y-3">
+                    {filterListBySearch(CLASSIFICATION_III_OPTIONS).map((item) => (
+                      <div key={item} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`classIII-${item}`} 
+                          checked={filters.classificationsIII?.includes(item)}
+                          onCheckedChange={() => onFilterChange("classificationsIII", toggleArrayItem(filters.classificationsIII || [], item))}
+                        />
+                        <label htmlFor={`classIII-${item}`} className="text-xs font-medium leading-none cursor-pointer hover:text-primary transition-colors">
+                          {item}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+               </div>
+            </div>
+
+            <Separator className="bg-slate-100" />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+               {/* Employment Status */}
                <div className="space-y-4">
                   <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Employment Status</h4>
                   <div className="space-y-3">
@@ -150,7 +221,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
                           checked={filters.statuses?.includes(status)}
                           onCheckedChange={() => onFilterChange("statuses", toggleArrayItem(filters.statuses || [], status))}
                         />
-                        <label htmlFor={`estatus-${status}`} className="text-sm font-medium leading-none cursor-pointer hover:text-primary transition-colors">
+                        <label htmlFor={`estatus-${status}`} className="text-xs font-medium leading-none cursor-pointer hover:text-primary transition-colors">
                           {status}
                         </label>
                       </div>
@@ -169,7 +240,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
                           checked={filters.tenures?.includes(tenure)}
                           onCheckedChange={() => onFilterChange("tenures", toggleArrayItem(filters.tenures || [], tenure))}
                         />
-                        <label htmlFor={`tenure-${tenure}`} className="text-sm font-medium leading-none cursor-pointer hover:text-primary transition-colors">
+                        <label htmlFor={`tenure-${tenure}`} className="text-xs font-medium leading-none cursor-pointer hover:text-primary transition-colors">
                           {tenure}
                         </label>
                       </div>
@@ -188,7 +259,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
                           checked={filters.active === status}
                           onCheckedChange={(checked) => onFilterChange("active", checked ? status : "All")}
                         />
-                        <label htmlFor={`active-${status}`} className="text-sm font-medium leading-none cursor-pointer hover:text-primary transition-colors">
+                        <label htmlFor={`active-${status}`} className="text-xs font-medium leading-none cursor-pointer hover:text-primary transition-colors">
                           {status}
                         </label>
                       </div>

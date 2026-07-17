@@ -17,7 +17,15 @@ export default function Employees() {
   const [isLoading, setIsLoading] = useState(true);
   
   const [globalSearch, setGlobalSearch] = useState("");
-  const [filters, setFilters] = useState({ departments: [], statuses: [], tenures: [], classifications: [], active: "All" });
+  const [filters, setFilters] = useState({ 
+    departments: [], 
+    statuses: [], 
+    tenures: [], 
+    classifications: [], 
+    classificationsII: [], 
+    classificationsIII: [], 
+    active: "All" 
+  });
   
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -35,11 +43,26 @@ export default function Employees() {
     try {
       const { data, error } = await supabase.from('employees').select('*');
       if (error) throw error;
-      setEmployees(data || []);
+
+      // Auto-transition New to Resident for employees hired >= 12 months ago
+      const today = new Date();
+      const updatedList = (data || []).map((emp) => {
+        if ((emp.classification_iii === 'New' || !emp.classification_iii) && emp.date_hired) {
+          const hired = new Date(emp.date_hired);
+          const months = (today.getFullYear() - hired.getFullYear()) * 12 + (today.getMonth() - hired.getMonth());
+          if (months >= 12) {
+            supabase.from('employees').update({ classification_iii: 'Resident' }).eq('id', emp.id).then();
+            return { ...emp, classification_iii: 'Resident' };
+          }
+        }
+        return emp;
+      });
+
+      setEmployees(updatedList);
       
       setSelectedEmployee(prev => {
         if (!prev) return null;
-        const updated = data?.find(e => e.id === prev.id);
+        const updated = updatedList.find(e => e.id === prev.id);
         return updated || prev;
       });
       
@@ -89,7 +112,15 @@ export default function Employees() {
   };
 
   const clearFilters = () => {
-    setFilters({ departments: [], statuses: [], tenures: [], classifications: [], active: "All" });
+    setFilters({ 
+      departments: [], 
+      statuses: [], 
+      tenures: [], 
+      classifications: [], 
+      classificationsII: [], 
+      classificationsIII: [], 
+      active: "All" 
+    });
     setGlobalSearch("");
   };
 
@@ -107,11 +138,13 @@ export default function Employees() {
       const matchesStatus = !filters.statuses?.length || filters.statuses.includes(emp.employment_status);
       const matchesTenure = !filters.tenures?.length || filters.tenures.includes(emp.employment_tenure);
       const matchesClassification = !filters.classifications?.length || filters.classifications.includes(emp.employment_classification);
+      const matchesClassificationII = !filters.classificationsII?.length || filters.classificationsII.includes(emp.classification_ii);
+      const matchesClassificationIII = !filters.classificationsIII?.length || filters.classificationsIII.includes(emp.classification_iii);
       const matchesActive = filters.active === "All" ||
         (filters.active === "Active" && emp.is_active) ||
         (filters.active === "Inactive" && !emp.is_active);
 
-      return matchesSearch && matchesDept && matchesStatus && matchesTenure && matchesClassification && matchesActive;
+      return matchesSearch && matchesDept && matchesStatus && matchesTenure && matchesClassification && matchesClassificationII && matchesClassificationIII && matchesActive;
     }).map(emp => {
        const empPendingRequests = pendingRequests.filter(req => req.employee_id === emp.id);
        return { ...emp, pendingRequests: empPendingRequests };

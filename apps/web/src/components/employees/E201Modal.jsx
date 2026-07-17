@@ -178,6 +178,21 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
         
         // Auto-set is_active to true upon successful save
         editedEmployee.is_active = true;
+
+        // Auto-set classification_iii to Rehired if employee was Resigned or Retired
+        if (['resigned', 'retired'].includes(baselineEmployee.classification_iii?.toLowerCase()) || ['resigned', 'retired'].includes(editedEmployee.classification_iii?.toLowerCase())) {
+          editedEmployee.classification_iii = 'Rehired';
+        }
+      }
+
+      // Auto-transition New to Resident if date_hired is >= 12 months ago
+      if (editedEmployee.date_hired && (editedEmployee.classification_iii === 'New' || !editedEmployee.classification_iii)) {
+        const hired = new Date(editedEmployee.date_hired);
+        const today = new Date();
+        const months = (today.getFullYear() - hired.getFullYear()) * 12 + (today.getMonth() - hired.getMonth());
+        if (months >= 12) {
+          editedEmployee.classification_iii = 'Resident';
+        }
       }
 
       // Save semester changes

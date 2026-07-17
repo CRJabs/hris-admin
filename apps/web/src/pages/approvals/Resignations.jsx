@@ -73,11 +73,11 @@ export default function Resignations() {
 
       if (error) throw error;
 
-      // 2. If approved, archive employee (is_active = false)
+      // 2. If approved, archive employee (is_active = false) & set classification_iii = Resigned
       if (action === "approved") {
         const { error: empError } = await supabase
           .from("employees")
-          .update({ is_active: false })
+          .update({ is_active: false, classification_iii: "Resigned" })
           .eq("id", req.employee_id);
         if (empError) throw empError;
       }
