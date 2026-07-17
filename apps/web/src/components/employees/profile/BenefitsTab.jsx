@@ -135,7 +135,7 @@ export default function BenefitsTab({ employee }) {
                       
                       <div className="flex-1">
                         <h4 className="font-bold text-sm mb-1">{benefit.label}</h4>
-                        {record?.award_level && (
+                        {record?.award_level && benefit.id !== 'retirement' && record.award_level.toLowerCase() !== 'retired' && (
                           <p className="text-[10px] text-primary font-bold uppercase tracking-widest mb-2">
                             {record.award_level}
                           </p>
