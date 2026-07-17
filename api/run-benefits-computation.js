@@ -230,7 +230,7 @@ function computeBenefitsEligibility(employee, referenceDate, tenureStartDate, se
     isActive && ageBeforeMay31 >= 57 && yearsBeforeMay31 >= 25;
   results.retirement = {
     isEligible: isRetirementEligible,
-    awardLevel: isRetirementEligible ? "retired" : null,
+    awardLevel: null,
     reason: isRetirementEligible
       ? `Age ${ageBeforeMay31} with ${yearsBeforeMay31} year(s) of service before May 31. Eligible for retirement.`
       : ageBeforeMay31 < 57
@@ -264,7 +264,7 @@ function getEmployeeMessage(key, awardLevel) {
     thirteenth_month: "You are eligible for 13th Month Pay this year.",
     midyear_bonus: "You are eligible for the Midyear Bonus (disbursed June 30).",
     service_award: `Congratulations! You qualify for the ${awardLevel || ""} Service Award.`,
-    retirement: "You are now eligible for retirement benefits.",
+    retirement: "Congratulations! You are now eligible to file for retirement.",
   };
   return messages[key] || "You have new benefit eligibility updates.";
 }
