@@ -2,41 +2,35 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 /**
- * Fetches the live list of all departments from both the Academic and
- * Non-Academic org trees, replacing the static DEPARTMENTS constant.
- *
- * @returns {{
- *   departments: Array<{id: string, name: string, logo_url: string|null, type: 'academic'|'non-academic'}>,
- *   academicDepts: Array,
- *   nonAcademicDepts: Array,
- *   isLoading: boolean
- * }}
+ * Fetches the live list of all departments from Executive Offices,
+ * Academic (Institutional), and Non-Academic (Non-Institutional) org trees.
  */
 export function useOrgDepartments() {
   const [departments, setDepartments] = useState([]);
+  const [executiveOffices, setExecutiveOffices] = useState([]);
+  const [academicDepts, setAcademicDepts] = useState([]);
+  const [nonAcademicDepts, setNonAcademicDepts] = useState([]);
   const [allUnits, setAllUnits] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchDepartments() {
       try {
-        // Fetch all org units in one call
         const { data: allUnitsData, error } = await supabase
           .from('org_units')
           .select('id, name, parent_id, logo_url, head_id, heads');
 
         if (error) throw error;
 
-        // Find the two root hub nodes
         const academicRoot = allUnitsData.find(u =>
-          u.name?.toLowerCase().includes('academic departments') && !u.parent_id
+          u.name?.toLowerCase().includes('academic departments')
         );
         const nonAcademicRoot = allUnitsData.find(u =>
-          u.name?.toLowerCase().includes('non-academic departments') && !u.parent_id
+          u.name?.toLowerCase().includes('non-academic departments')
         );
 
-        // Helper to get all descendants recursively/BFS
         const getDescendants = (rootId, type) => {
+          if (!rootId) return [];
           const result = [];
           const queue = [rootId];
           while (queue.length > 0) {
@@ -50,16 +44,21 @@ export function useOrgDepartments() {
           return result;
         };
 
-        // Get all descendant departments
-        const academicDepts = academicRoot
-          ? getDescendants(academicRoot.id, 'academic')
-          : [];
+        const instDepts = academicRoot ? getDescendants(academicRoot.id, 'academic') : [];
+        const nonInstDepts = nonAcademicRoot ? getDescendants(nonAcademicRoot.id, 'non-academic') : [];
 
-        const nonAcademicDepts = nonAcademicRoot
-          ? getDescendants(nonAcademicRoot.id, 'non-academic')
-          : [];
+        const isHubOrRoot = (unit) => {
+          const name = unit.name?.toLowerCase() || '';
+          return name.includes('academic departments') || name.includes('non-academic departments');
+        };
 
-        setDepartments([...academicDepts, ...nonAcademicDepts]);
+        const deptIds = new Set([...instDepts.map(d => d.id), ...nonInstDepts.map(d => d.id)]);
+        const execs = allUnitsData.filter(u => !deptIds.has(u.id) && !isHubOrRoot(u)).map(u => ({ ...u, type: 'executive' }));
+
+        setExecutiveOffices(execs);
+        setAcademicDepts(instDepts);
+        setNonAcademicDepts(nonInstDepts);
+        setDepartments([...execs, ...instDepts, ...nonInstDepts]);
         setAllUnits(allUnitsData);
       } catch (err) {
         console.error('useOrgDepartments: Failed to fetch departments', err);
@@ -71,8 +70,12 @@ export function useOrgDepartments() {
     fetchDepartments();
   }, []);
 
-  const academicDepts = departments.filter(d => d.type === 'academic');
-  const nonAcademicDepts = departments.filter(d => d.type === 'non-academic');
-
-  return { departments, academicDepts, nonAcademicDepts, allUnits, isLoading };
+  return { 
+    departments, 
+    executiveOffices, 
+    academicDepts, 
+    nonAcademicDepts, 
+    allUnits, 
+    isLoading 
+  };
 }

@@ -1,19 +1,40 @@
 import { useState, useEffect } from "react";
-import { Check, X, Search, Filter, Award } from "lucide-react";
+import { Check, X, Search, Filter, Award, Eye, CalendarDays, User, Clock, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useOutletContext } from "react-router-dom";
-import ApprovalsTabs from "@/components/approvals/ApprovalsTabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+
+function computeAge(birthdate) {
+  if (!birthdate) return 0;
+  const start = new Date(birthdate);
+  const ref = new Date();
+  if (isNaN(start.getTime())) return 0;
+  let years = ref.getFullYear() - start.getFullYear();
+  const m = ref.getMonth() - start.getMonth();
+  if (m < 0 || (m === 0 && ref.getDate() < start.getDate())) years--;
+  return Math.max(0, years);
+}
 
 export default function Retirements() {
   const [requests, setRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedReq, setSelectedReq] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { counts, searchQuery, statusFilter } = useOutletContext();
 
   const fetchRequests = async () => {
@@ -21,7 +42,7 @@ export default function Retirements() {
     try {
       const { data, error } = await supabase
         .from("retirement_requests")
-        .select(`*, employees ( id, first_name, last_name, employee_id, department, position, photo_url )`)
+        .select(`*, employees ( id, first_name, last_name, employee_id, department, position, photo_url, contact_email, contact_phone, birthdate )`)
         .order("created_at", { ascending: false });
 
       if (!error) setRequests(data || []);
@@ -50,6 +71,7 @@ export default function Retirements() {
   }, []);
 
   const handleAction = async (req, action) => {
+    setIsProcessing(true);
     try {
       // 1. Update status
       const { error } = await supabase
@@ -62,13 +84,36 @@ export default function Retirements() {
 
       if (error) throw error;
 
-      // 2. If approved, archive employee (is_active = false)
+      // 2. If approved, archive employee (is_active = false) & update benefit award_level
       if (action === "approved") {
         const { error: empError } = await supabase
           .from("employees")
-          .update({ is_active: false })
+          .update({ is_active: false, classification_iii: "Retired" })
           .eq("id", req.employee_id);
         if (empError) throw empError;
+
+        const { data: existingBenefit } = await supabase
+          .from("employee_benefits")
+          .select("id")
+          .eq("employee_id", req.employee_id)
+          .eq("benefit_key", "retirement")
+          .maybeSingle();
+
+        if (existingBenefit) {
+          await supabase
+            .from("employee_benefits")
+            .update({ award_level: "retired", is_eligible: true })
+            .eq("id", existingBenefit.id);
+        } else {
+          await supabase.from("employee_benefits").insert({
+            employee_id: req.employee_id,
+            benefit_key: "retirement",
+            is_eligible: true,
+            award_level: "retired",
+            eligibility_year: new Date().getFullYear(),
+            computed_at: new Date().toISOString()
+          });
+        }
       }
 
       // Notify the employee
@@ -89,9 +134,12 @@ export default function Retirements() {
       });
 
       toast.success(`Request ${action} successfully.`);
+      setModalOpen(false);
       fetchRequests();
     } catch (err) {
       toast.error(`Action failed: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -104,13 +152,6 @@ export default function Retirements() {
     return matchesStatus && matchesSearch;
   });
 
-  const statusCounts = {
-    all: requests.length,
-    pending: requests.filter((r) => r.status === "pending").length,
-    approved: requests.filter((r) => r.status === "approved").length,
-    rejected: requests.filter((r) => r.status === "rejected").length,
-  };
-
   const getStatusBadge = (status) => {
     switch (status) {
       case "pending":
@@ -122,10 +163,12 @@ export default function Retirements() {
     }
   };
 
+  const emp = selectedReq?.employees || {};
+  const empAge = computeAge(emp.birthdate);
+  const filingDateStr = selectedReq?.created_at ? format(new Date(selectedReq.created_at), "yyyy-MM-dd") : "—";
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-[1440px] mx-auto">
-      {/* Search & Filter Bar is now rendered at layout level */}
-
       {isLoading ? (
         <div className="text-center p-8 text-muted-foreground">Loading retirement requests...</div>
       ) : filteredRequests.length === 0 ? (
@@ -139,7 +182,7 @@ export default function Retirements() {
         <div className="grid gap-4">
           {filteredRequests.map((req) => (
             <Card key={req.id} className="overflow-hidden hover:shadow-md transition-all">
-              <CardHeader className="bg-muted/30 pb-3 p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <CardHeader className="bg-muted/30 pb-3 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
                     {req.employees?.photo_url ? (
@@ -159,42 +202,128 @@ export default function Retirements() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 self-start">
+
+                <div className="flex items-center gap-3 self-start sm:self-center">
                   {getStatusBadge(req.status)}
-                  <span className="text-[10px] text-slate-400 font-semibold ml-2">
-                    Filed on {format(new Date(req.created_at), "MMM d, yyyy h:mm a")}
+                  <span className="text-[10px] text-slate-400 font-semibold">
+                    Filed on {format(new Date(req.created_at), "MMM d, yyyy")}
                   </span>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedReq(req);
+                      setModalOpen(true);
+                    }}
+                    className="h-8 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs gap-1.5 px-3 rounded-lg"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Review Application
+                  </Button>
                 </div>
               </CardHeader>
-              <CardContent className="p-4 flex flex-col space-y-4">
-                <div className="text-xs text-slate-700 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
-                  <span className="font-bold text-slate-800 block mb-1">Statement of Retirement:</span>
-                  <p className="whitespace-pre-line leading-relaxed italic">{req.statement}</p>
-                </div>
-
-                {req.status === "pending" && (
-                  <div className="flex items-center gap-2 pt-2 self-end shrink-0 w-full sm:w-auto">
-                    <Button
-                      size="sm"
-                      onClick={() => handleAction(req, "approved")}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex-1 sm:flex-initial gap-1"
-                    >
-                      <Check className="w-3.5 h-3.5" /> Approve & Retire
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleAction(req, "rejected")}
-                      className="bg-red-600 hover:bg-red-700 text-white font-bold flex-1 sm:flex-initial gap-1"
-                    >
-                      <X className="w-3.5 h-3.5" /> Reject
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Retirement Review Modal */}
+      {selectedReq && (
+        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+          <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl">
+            {/* Minimal Header without Title/Subtitle text */}
+            <div className="bg-[#0C005F] h-12 flex items-center justify-between px-6 relative">
+              <DialogTitle className="sr-only">Retirement Application Review</DialogTitle>
+              <DialogDescription className="sr-only">Formal Statement of Retirement</DialogDescription>
+            </div>
+
+            <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+              {/* Employee Info Banner */}
+              <div className="flex items-center gap-4 p-4 bg-slate-50/80 rounded-xl border border-slate-200">
+                <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-300 shrink-0">
+                  {emp.photo_url ? (
+                    <img src={emp.photo_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-5 h-5 text-slate-500" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-extrabold text-base text-slate-900">
+                    {emp.first_name} {emp.last_name}
+                  </p>
+                  <p className="text-[11px] text-slate-600 font-semibold uppercase tracking-wider mt-0.5">
+                    {emp.employee_id} • {emp.department} • {emp.position}
+                  </p>
+                </div>
+                {getStatusBadge(selectedReq.status)}
+              </div>
+
+              {/* 6-Field Info Grid matching Image #2 */}
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-800 uppercase text-[11px]">Employee ID</Label>
+                  <Input value={emp.employee_id || "—"} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-slate-900 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-slate-900" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-800 uppercase text-[11px]">Full Name</Label>
+                  <Input value={`${emp.first_name || ""} ${emp.last_name || ""}`} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-slate-900 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-slate-900" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-800 uppercase text-[11px]">Email</Label>
+                  <Input value={emp.contact_email || "—"} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-slate-900 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-slate-900" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-800 uppercase text-[11px]">Phone Number</Label>
+                  <Input value={emp.contact_phone || "—"} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-slate-900 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-slate-900" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-800 uppercase text-[11px]">Filing Date</Label>
+                  <Input value={filingDateStr} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-slate-900 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-slate-900" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-800 uppercase text-[11px]">Employee Age</Label>
+                  <Input value={`${empAge} Years Old`} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-emerald-700 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-emerald-700" />
+                </div>
+              </div>
+
+              {/* Statement of Retirement */}
+              <div className="space-y-1.5">
+                <Label className="font-bold text-slate-800 uppercase text-[11px]">Statement of Retirement</Label>
+                <Textarea
+                  value={selectedReq.statement || ""}
+                  readOnly
+                  disabled
+                  className="min-h-[110px] border-slate-200 text-sm font-bold text-slate-900 bg-slate-50/80 opacity-100 disabled:opacity-100 disabled:text-slate-900"
+                />
+              </div>
+
+              {/* Action Footer */}
+              {selectedReq.status === "pending" && (
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={isProcessing}
+                    onClick={() => handleAction(selectedReq, "rejected")}
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold gap-2"
+                  >
+                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                    Reject
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={isProcessing}
+                    onClick={() => handleAction(selectedReq, "approved")}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2"
+                  >
+                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    Approve & Retire
+                  </Button>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

@@ -87,6 +87,21 @@ export default function NewRegistrations() {
           employee_id: emp.id
         });
 
+        // Automatically compute initial benefits eligibility for the newly approved employee
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          await fetch('/api/run-benefits-computation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.access_token ?? ''}`,
+            },
+            body: JSON.stringify({ employee_id: emp.id, year: new Date().getFullYear() }),
+          });
+        } catch (e) {
+          console.warn('Initial benefits calculation failed:', e);
+        }
+
         toast.success(`Registration for ${emp.first_name} approved.`);
       } else {
         // Log rejection before delete

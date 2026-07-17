@@ -129,6 +129,23 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
         metadata: { request_id: req.id }
       });
 
+      // Automatically recalculate benefits eligibility for this employee if approved
+      if (status === 'approved') {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          await fetch('/api/run-benefits-computation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.access_token ?? ''}`,
+            },
+            body: JSON.stringify({ employee_id: req.employee_id, year: new Date().getFullYear() }),
+          });
+        } catch (e) {
+          console.warn('Benefits recalculation failed:', e);
+        }
+      }
+
       toast.success(`Request ${status} successfully.`);
       onOpenChange(false); // Close the modal
       if (onSave) onSave();
@@ -161,6 +178,21 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
         
         // Auto-set is_active to true upon successful save
         editedEmployee.is_active = true;
+
+        // Auto-set classification_iii to Rehired if employee was Resigned or Retired
+        if (['resigned', 'retired'].includes(baselineEmployee.classification_iii?.toLowerCase()) || ['resigned', 'retired'].includes(editedEmployee.classification_iii?.toLowerCase())) {
+          editedEmployee.classification_iii = 'Rehired';
+        }
+      }
+
+      // Auto-transition New to Resident if date_hired is >= 12 months ago
+      if (editedEmployee.date_hired && (editedEmployee.classification_iii === 'New' || !editedEmployee.classification_iii)) {
+        const hired = new Date(editedEmployee.date_hired);
+        const today = new Date();
+        const months = (today.getFullYear() - hired.getFullYear()) * 12 + (today.getMonth() - hired.getMonth());
+        if (months >= 12) {
+          editedEmployee.classification_iii = 'Resident';
+        }
       }
 
       // Save semester changes
@@ -239,6 +271,21 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
         description: `Manually edited employee record for ${editedEmployee.first_name} ${editedEmployee.last_name}`,
         employee_id: editedEmployee.id
       });
+
+      // Automatically recalculate benefits eligibility for this employee
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch('/api/run-benefits-computation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token ?? ''}`,
+          },
+          body: JSON.stringify({ employee_id: editedEmployee.id, year: new Date().getFullYear() }),
+        });
+      } catch (e) {
+        console.warn('Benefits recalculation failed:', e);
+      }
 
       // Re-fetch fresh semester & leave data to sync baseline and local states
       await fetchLeaveData(editedEmployee.id);

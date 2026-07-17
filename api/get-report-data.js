@@ -191,15 +191,19 @@ export default async function handler(req, res) {
         const dayB = new Date(b.birthdate).getDate();
         return dayA - dayB;
       })
-      .map((emp, i) => ({
-        _no: i + 1,
-        _id: emp.employee_id,
-        _name: formatEmployeeName(emp),
-        _department: emp.department || '—',
-        _tenure: emp.employment_tenure || '—',
-        _yearsInService: computeYearsInService(emp.date_hired, referenceDate, semestersByEmployee[emp.id] || [], emp.employment_classification),
-        _birthDate: formatBirthDate(emp.birthdate),
-      }));
+      .map((emp, i) => {
+        const yrs = computeYearsInService(emp.date_hired, referenceDate, semestersByEmployee[emp.id] || [], emp.employment_classification);
+        return {
+          _no: i + 1,
+          _id: emp.employee_id,
+          _name: formatEmployeeName(emp),
+          _department: emp.department || '—',
+          _status: emp.employment_tenure || '—',
+          _longevity: yrs >= 3 ? 'More than 3 yrs' : 'Less than 3 yrs',
+          _yearsInService: yrs,
+          _birthDate: formatBirthDate(emp.birthdate),
+        };
+      });
 
     // Summer Pay
     const summer = filterEligible('summer_pay').map((emp, i) => ({

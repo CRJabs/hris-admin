@@ -134,7 +134,7 @@ function computeBenefitsEligibility(employee, referenceDate, tenureStartDate, se
   const yearsOnBirthday = hasBirthdate
     ? computeYearsInService(employee.date_hired, birthdayThisYear, semesters, employee.employment_classification)
     : 0;
-  const isBirthdayEligible = isActive && hasBirthdate && birthdayHasOccurred && yearsOnBirthday >= 1;
+  const isBirthdayEligible = isActive && hasBirthdate && yearsOnBirthday >= 1;
   results.birthday_bonus = {
     isEligible: isBirthdayEligible,
     awardLevel: null,
@@ -230,7 +230,7 @@ function computeBenefitsEligibility(employee, referenceDate, tenureStartDate, se
     isActive && ageBeforeMay31 >= 57 && yearsBeforeMay31 >= 25;
   results.retirement = {
     isEligible: isRetirementEligible,
-    awardLevel: isRetirementEligible ? "retired" : null,
+    awardLevel: null,
     reason: isRetirementEligible
       ? `Age ${ageBeforeMay31} with ${yearsBeforeMay31} year(s) of service before May 31. Eligible for retirement.`
       : ageBeforeMay31 < 57
@@ -264,7 +264,7 @@ function getEmployeeMessage(key, awardLevel) {
     thirteenth_month: "You are eligible for 13th Month Pay this year.",
     midyear_bonus: "You are eligible for the Midyear Bonus (disbursed June 30).",
     service_award: `Congratulations! You qualify for the ${awardLevel || ""} Service Award.`,
-    retirement: "You are now eligible for retirement benefits.",
+    retirement: "Congratulations! You are now eligible to file for retirement.",
   };
   return messages[key] || "You have new benefit eligibility updates.";
 }
@@ -324,11 +324,15 @@ export default async function handler(req, res) {
   console.log("Starting daily benefits computation...");
 
   try {
-    // 1. Fetch all active employees
-    const { data: employees, error: empError } = await adminClient
-      .from("employees")
-      .select("*")
-      .eq("is_active", true);
+    // 1. Fetch active employees (or specific single employee if employee_id parameter is passed)
+    const targetEmpId = req.method === "POST" && req.body?.employee_id ? req.body.employee_id : null;
+    
+    let empQuery = adminClient.from("employees").select("*").eq("is_active", true);
+    if (targetEmpId) {
+      empQuery = empQuery.eq("id", targetEmpId);
+    }
+    
+    const { data: employees, error: empError } = await empQuery;
 
     if (empError) throw empError;
     if (!employees || employees.length === 0) {
@@ -362,8 +366,10 @@ export default async function handler(req, res) {
     }, {});
 
     const today = new Date();
-    const currentYear = today.getUTCFullYear();
-    const isMidyearDue = isMidyearReminderDue(today);
+    const reqYear = req.method === "POST" && req.body?.year ? parseInt(req.body.year, 10) : null;
+    const targetYear = reqYear && !isNaN(reqYear) && reqYear > 2000 ? reqYear : today.getUTCFullYear();
+    const referenceDate = targetYear === today.getUTCFullYear() ? today : new Date(Date.UTC(targetYear, 11, 31));
+    const isMidyearDue = isMidyearReminderDue(referenceDate);
 
     const QUALIFYING_TENURES = ["Regular", "Probationary", "Part-Time"];
     const notificationsToInsert = [];
@@ -371,8 +377,17 @@ export default async function handler(req, res) {
 
     // 4. Process each employee
     for (const emp of employees) {
+      // Auto-transition Classification III from New to Resident after 1 year in service
+      if ((emp.classification_iii === 'New' || !emp.classification_iii) && emp.date_hired) {
+        const hired = new Date(emp.date_hired);
+        const months = (today.getFullYear() - hired.getFullYear()) * 12 + (today.getMonth() - hired.getMonth());
+        if (months >= 12) {
+          await adminClient.from('employees').update({ classification_iii: 'Resident' }).eq('id', emp.id);
+          emp.classification_iii = 'Resident';
+        }
+      }
+
       // Resolve the earliest start date of the continuous qualifying tenure block
-      // This correctly counts Probationary → Regular transitions as unbroken service for Summer Pay.
       let tenureStartDate = emp.date_hired;
       const history = (historyByEmployee[emp.id] || []).sort(
         (a, b) => new Date(a.effective_date) - new Date(b.effective_date)
@@ -405,7 +420,7 @@ export default async function handler(req, res) {
       // 5. Compute eligibility
       const eligibility = computeBenefitsEligibility(
         emp,
-        today,
+        referenceDate,
         tenureStartDate,
         semestersByEmployee[emp.id] || []
       );
@@ -415,7 +430,7 @@ export default async function handler(req, res) {
         .from("employee_benefits")
         .select("*")
         .eq("employee_id", emp.id)
-        .eq("eligibility_year", currentYear);
+        .eq("eligibility_year", targetYear);
 
       const existingMap = (existingRecords || []).reduce((acc, r) => {
         acc[r.benefit_key] = r;
@@ -429,7 +444,7 @@ export default async function handler(req, res) {
         const record = {
           employee_id: emp.id,
           benefit_key: key,
-          eligibility_year: currentYear,
+          eligibility_year: targetYear,
           is_eligible: result.isEligible,
           award_level: result.awardLevel,
           computed_at: new Date().toISOString(),

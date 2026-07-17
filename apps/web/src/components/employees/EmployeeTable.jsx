@@ -166,6 +166,16 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
                             <Crown className="w-2.5 h-2.5" /> Head
                           </Badge>
                         )}
+                        {emp.classification_iii?.toLowerCase() === 'resigned' && (
+                          <Badge className="h-4 text-[9px] px-1.5 bg-rose-50 text-rose-700 border border-rose-200 font-bold uppercase tracking-wider">
+                            Resigned
+                          </Badge>
+                        )}
+                        {emp.classification_iii?.toLowerCase() === 'retired' && (
+                          <Badge className="h-4 text-[9px] px-1.5 bg-purple-50 text-purple-700 border border-purple-200 font-bold uppercase tracking-wider">
+                            Retired
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-[11px] text-muted-foreground">{emp.email}</p>
                     </div>

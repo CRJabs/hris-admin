@@ -46,7 +46,30 @@ export default function BenefitsTab({ employee }) {
         setIsLoading(false);
       }
     }
+
     fetchBenefits();
+
+    if (!employee?.id) return;
+
+    const channel = supabase
+      .channel(`benefits_realtime_${employee.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'employee_benefits',
+          filter: `employee_id=eq.${employee.id}`,
+        },
+        () => {
+          fetchBenefits();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
   }, [employee?.id]);
 
   return (
@@ -112,9 +135,10 @@ export default function BenefitsTab({ employee }) {
                       
                       <div className="flex-1">
                         <h4 className="font-bold text-sm mb-1">{benefit.label}</h4>
-                        {record?.award_level && (
+                        {((benefit.id === 'retirement' && (!employee?.is_active || (record?.award_level?.toLowerCase() === 'retired' && !employee?.is_active)))
+                          || (benefit.id !== 'retirement' && record?.award_level && record?.award_level?.toLowerCase() !== 'retired')) && (
                           <p className="text-[10px] text-primary font-bold uppercase tracking-widest mb-2">
-                            {record.award_level}
+                            {benefit.id === 'retirement' ? 'RETIRED' : record.award_level}
                           </p>
                         )}
                         <Badge variant={isEligible ? "success" : (!record ? "outline" : "secondary")} className={`w-fit text-[10px] uppercase ${!record && 'text-amber-600 border-amber-200 bg-amber-50'}`}>

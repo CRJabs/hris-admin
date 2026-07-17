@@ -70,8 +70,43 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
   const [semesters, setSemesters] = useState([]);
   const [loadingMetadata, setLoadingMetadata] = useState(false);
 
+  const computeYearsInService = (dateHired) => {
+    if (!dateHired) return 0;
+    const start = new Date(dateHired);
+    const ref = new Date();
+    if (isNaN(start.getTime())) return 0;
+    let years = ref.getFullYear() - start.getFullYear();
+    const m = ref.getMonth() - start.getMonth();
+    if (m < 0 || (m === 0 && ref.getDate() < start.getDate())) years--;
+    return Math.max(0, years);
+  };
+
   const employeeAge = employee ? computeAge(employee.birthdate) : 0;
-  const isRetirementEligible = employeeAge >= 60;
+  const employeeYearsInService = employee ? computeYearsInService(employee.date_hired) : 0;
+  const [dbRetirementEligible, setDbRetirementEligible] = useState(false);
+
+  useEffect(() => {
+    const checkRetirementBenefit = async () => {
+      if (!employee?.id || !open) return;
+      const currentYear = new Date().getFullYear();
+      const { data } = await supabase
+        .from('employee_benefits')
+        .select('is_eligible')
+        .eq('employee_id', employee.id)
+        .eq('benefit_key', 'retirement')
+        .eq('eligibility_year', currentYear)
+        .maybeSingle();
+
+      if (data?.is_eligible) {
+        setDbRetirementEligible(true);
+      } else {
+        setDbRetirementEligible(false);
+      }
+    };
+    checkRetirementBenefit();
+  }, [employee?.id, open]);
+
+  const isRetirementEligible = dbRetirementEligible || employeeAge >= 60 || (employeeAge >= 57 && employeeYearsInService >= 25);
 
   // Reset form when modal opens or activeForm changes
   useEffect(() => {
