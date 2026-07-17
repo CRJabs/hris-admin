@@ -137,7 +137,7 @@ export default function LeaveApplicationViewModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl">
         {/* Header */}
-        <div className="bg-[#0C005F] p-6 text-white">
+        <div className="bg-[#0C005F] p-6 text-white pr-12 relative">
           <DialogTitle className="text-lg font-bold flex items-center gap-2">
             <CalendarDays className="w-5 h-5 text-white/70" />
             Leave Application Review

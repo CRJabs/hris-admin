@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, X, Search, Filter, Award, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, X, Search, Filter, Award, Eye, CalendarDays, User, Clock, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,13 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { useOutletContext } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 function computeAge(birthdate) {
   if (!birthdate) return 0;
@@ -25,12 +32,10 @@ function computeAge(birthdate) {
 export default function Retirements() {
   const [requests, setRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [expandedId, setExpandedId] = useState(null);
+  const [selectedReq, setSelectedReq] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { counts, searchQuery, statusFilter } = useOutletContext();
-
-  const toggleExpand = (id) => {
-    setExpandedId(prev => prev === id ? null : id);
-  };
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -66,6 +71,7 @@ export default function Retirements() {
   }, []);
 
   const handleAction = async (req, action) => {
+    setIsProcessing(true);
     try {
       // 1. Update status
       const { error } = await supabase
@@ -105,9 +111,12 @@ export default function Retirements() {
       });
 
       toast.success(`Request ${action} successfully.`);
+      setModalOpen(false);
       fetchRequests();
     } catch (err) {
       toast.error(`Action failed: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -131,6 +140,10 @@ export default function Retirements() {
     }
   };
 
+  const emp = selectedReq?.employees || {};
+  const empAge = computeAge(emp.birthdate);
+  const filingDateStr = selectedReq?.created_at ? format(new Date(selectedReq.created_at), "yyyy-MM-dd") : "—";
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-[1440px] mx-auto">
       {isLoading ? (
@@ -144,138 +157,155 @@ export default function Retirements() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {filteredRequests.map((req) => {
-            const isExpanded = expandedId === req.id;
-            const empAge = computeAge(req.employees?.birthdate);
-            const filingDateStr = req.created_at ? format(new Date(req.created_at), "yyyy-MM-dd") : "—";
-
-            return (
-              <Card key={req.id} className="overflow-hidden hover:shadow-md transition-all">
-                <CardHeader className="bg-muted/30 pb-3 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => toggleExpand(req.id)}>
-                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
-                      {req.employees?.photo_url ? (
-                        <img src={req.employees.photo_url} alt="Profile" className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-xs font-bold text-slate-500">
-                          {req.employees?.first_name?.[0]}{req.employees?.last_name?.[0]}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-800 text-sm">
-                        {req.employees?.first_name} {req.employees?.last_name}
-                      </h3>
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        ID: {req.employees?.employee_id || "—"} · {req.employees?.department || "—"}
-                      </p>
-                    </div>
+          {filteredRequests.map((req) => (
+            <Card key={req.id} className="overflow-hidden hover:shadow-md transition-all">
+              <CardHeader className="bg-muted/30 pb-3 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                    {req.employees?.photo_url ? (
+                      <img src={req.employees.photo_url} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xs font-bold text-slate-500">
+                        {req.employees?.first_name?.[0]}{req.employees?.last_name?.[0]}
+                      </span>
+                    )}
                   </div>
-
-                  <div className="flex items-center gap-3 self-start sm:self-center">
-                    {getStatusBadge(req.status)}
-                    <span className="text-[10px] text-slate-400 font-semibold">
-                      Filed on {format(new Date(req.created_at), "MMM d, yyyy")}
-                    </span>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleExpand(req.id)}
-                      className="h-8 px-2 text-xs font-semibold text-slate-600 hover:text-slate-900 gap-1"
-                    >
-                      {isExpanded ? (
-                        <>
-                          Less <ChevronUp className="w-4 h-4" />
-                        </>
-                      ) : (
-                        <>
-                          More <ChevronDown className="w-4 h-4" />
-                        </>
-                      )}
-                    </Button>
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-sm">
+                      {req.employees?.first_name} {req.employees?.last_name}
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      ID: {req.employees?.employee_id || "—"} · {req.employees?.department || "—"}
+                    </p>
                   </div>
-                </CardHeader>
+                </div>
 
-                <CardContent className="p-4 flex flex-col space-y-4">
-                  {/* Collapsed short statement preview */}
-                  {!isExpanded && (
-                    <div className="text-xs text-slate-700 bg-slate-50/50 p-3 rounded-xl border border-slate-100 line-clamp-2">
-                      <span className="font-bold text-slate-800 mr-1.5">Statement:</span>
-                      <span className="italic">{req.statement}</span>
-                    </div>
-                  )}
+                <div className="flex items-center gap-3 self-start sm:self-center">
+                  {getStatusBadge(req.status)}
+                  <span className="text-[10px] text-slate-400 font-semibold">
+                    Filed on {format(new Date(req.created_at), "MMM d, yyyy")}
+                  </span>
 
-                  {/* Expanded full details breakdown matching Image #2 */}
-                  {isExpanded && (
-                    <div className="space-y-4 border-t pt-3 animate-in fade-in-50 duration-200">
-                      <p className="text-xs text-slate-500">Details for formal statement of retirement.</p>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                        <div className="space-y-1">
-                          <Label className="font-bold text-slate-500 uppercase">Employee ID</Label>
-                          <Input value={req.employees?.employee_id || "—"} disabled className="h-9 bg-slate-50" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="font-bold text-slate-500 uppercase">Full Name</Label>
-                          <Input value={`${req.employees?.first_name || ""} ${req.employees?.last_name || ""}`} disabled className="h-9 bg-slate-50" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="font-bold text-slate-500 uppercase">Email</Label>
-                          <Input value={req.employees?.contact_email || "—"} disabled className="h-9 bg-slate-50" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="font-bold text-slate-500 uppercase">Phone Number</Label>
-                          <Input value={req.employees?.contact_phone || "—"} disabled className="h-9 bg-slate-50" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="font-bold text-slate-500 uppercase">Filing Date</Label>
-                          <Input value={filingDateStr} disabled className="h-9 bg-slate-50" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="font-bold text-slate-500 uppercase">Employee Age</Label>
-                          <Input value={`${empAge} Years Old`} disabled className="h-9 bg-slate-50 text-emerald-600 font-bold" />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-bold text-slate-500 uppercase">Statement of Retirement</Label>
-                        <Textarea
-                          value={req.statement || ""}
-                          readOnly
-                          disabled
-                          className="min-h-[100px] border-slate-200 text-sm bg-slate-50/50"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Actions for pending requests */}
-                  {req.status === "pending" && (
-                    <div className="flex items-center gap-2 pt-2 self-end shrink-0 w-full sm:w-auto">
-                      <Button
-                        size="sm"
-                        onClick={() => handleAction(req, "approved")}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex-1 sm:flex-initial gap-1"
-                      >
-                        <Check className="w-3.5 h-3.5" /> Approve & Retire
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleAction(req, "rejected")}
-                        className="bg-red-600 hover:bg-red-700 text-white font-bold flex-1 sm:flex-initial gap-1"
-                      >
-                        <X className="w-3.5 h-3.5" /> Reject
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedReq(req);
+                      setModalOpen(true);
+                    }}
+                    className="h-8 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs gap-1.5 px-3 rounded-lg"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Review Application
+                  </Button>
+                </div>
+              </CardHeader>
+            </Card>
+          ))}
         </div>
+      )}
+
+      {/* Retirement Review Modal */}
+      {selectedReq && (
+        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+          <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl">
+            {/* Header */}
+            <div className="bg-[#0C005F] p-6 text-white pr-12 relative">
+              <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                <Award className="w-5 h-5 text-emerald-400" />
+                Retirement Application Review
+              </DialogTitle>
+              <DialogDescription className="text-white/60 text-xs mt-1 uppercase tracking-widest font-medium">
+                FORMAL STATEMENT OF RETIREMENT
+              </DialogDescription>
+            </div>
+
+            <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+              {/* Employee Info Banner */}
+              <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                  {emp.photo_url ? (
+                    <img src={emp.photo_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-5 h-5 text-slate-400" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-slate-800">
+                    {emp.first_name} {emp.last_name}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                    {emp.employee_id} • {emp.department} • {emp.position}
+                  </p>
+                </div>
+                {getStatusBadge(selectedReq.status)}
+              </div>
+
+              {/* 6-Field Info Grid matching Image #2 */}
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Employee ID</Label>
+                  <Input value={emp.employee_id || "—"} disabled className="h-9 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Full Name</Label>
+                  <Input value={`${emp.first_name || ""} ${emp.last_name || ""}`} disabled className="h-9 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Email</Label>
+                  <Input value={emp.contact_email || "—"} disabled className="h-9 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Phone Number</Label>
+                  <Input value={emp.contact_phone || "—"} disabled className="h-9 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Filing Date</Label>
+                  <Input value={filingDateStr} disabled className="h-9 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Employee Age</Label>
+                  <Input value={`${empAge} Years Old`} disabled className="h-9 bg-slate-50 text-emerald-600 font-bold" />
+                </div>
+              </div>
+
+              {/* Statement of Retirement */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-500 uppercase">Statement of Retirement</Label>
+                <Textarea
+                  value={selectedReq.statement || ""}
+                  readOnly
+                  disabled
+                  className="min-h-[110px] border-slate-200 text-sm bg-slate-50/50"
+                />
+              </div>
+
+              {/* Action Footer */}
+              {selectedReq.status === "pending" && (
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={isProcessing}
+                    onClick={() => handleAction(selectedReq, "rejected")}
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold gap-2"
+                  >
+                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                    Reject
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={isProcessing}
+                    onClick={() => handleAction(selectedReq, "approved")}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2"
+                  >
+                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    Approve & Retire
+                  </Button>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

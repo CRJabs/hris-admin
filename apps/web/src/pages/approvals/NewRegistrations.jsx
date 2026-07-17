@@ -1,39 +1,39 @@
 import { useState, useEffect } from "react";
-import { Check, X, UserPlus, Eye, Search, Filter, Trash2 } from "lucide-react";
+import { Check, X, UserPlus, Eye, Search, Filter, Trash2, User, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import E201Modal from "@/components/employees/E201Modal";
 import { useOutletContext } from "react-router-dom";
-import ApprovalsTabs from "@/components/approvals/ApprovalsTabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export default function NewRegistrations() {
   const [registrations, setRegistrations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRegistrant, setSelectedRegistrant] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { counts, searchQuery, statusFilter } = useOutletContext();
 
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      // Fetch all employment statuses to support filtering
-      let query = supabase
+      const { data: regData, error: regError } = await supabase
         .from('employees')
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Only filter by Pending when "all" to include Pending + recently processed
-      // We fetch all and let client-side filtering handle the rest
-      const { data: regData, error: regError } = await query;
-
       if (!regError) {
-        // Only show employees that were registrations (Pending, Probationary that were recently approved, or ones that could be filtered)
-        // For a clean approach: show Pending registrations plus any we want to track
         setRegistrations(regData || []);
       }
     } catch (err) {
@@ -58,6 +58,7 @@ export default function NewRegistrations() {
   }, []);
 
   const handleRegistrationAction = async (emp, action) => {
+    setIsProcessing(true);
     try {
       if (action === 'approved') {
         const { error } = await supabase
@@ -70,7 +71,6 @@ export default function NewRegistrations() {
           .eq('id', emp.id);
         if (error) throw error;
 
-        // Notify the employee (Welcome message)
         await supabase.from('notifications').insert({
           employee_id: emp.id,
           type: 'approved',
@@ -78,7 +78,6 @@ export default function NewRegistrations() {
           message: "Your registration has been approved! You can now access all features of the HRIS."
         });
 
-        // Log to admin activity
         await supabase.from('admin_activity_log').insert({
           actor_type: 'admin',
           actor_name: 'Administrator',
@@ -87,7 +86,6 @@ export default function NewRegistrations() {
           employee_id: emp.id
         });
 
-        // Automatically compute initial benefits eligibility for the newly approved employee
         try {
           const { data: { session } } = await supabase.auth.getSession();
           await fetch('/api/run-benefits-computation', {
@@ -104,7 +102,6 @@ export default function NewRegistrations() {
 
         toast.success(`Registration for ${emp.first_name} approved.`);
       } else {
-        // Log rejection before delete
         await supabase.from('admin_activity_log').insert({
           actor_type: 'admin',
           actor_name: 'Administrator',
@@ -124,6 +121,8 @@ export default function NewRegistrations() {
       fetchRequests();
     } catch (err) {
       toast.error(`Failed to process registration: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -132,7 +131,6 @@ export default function NewRegistrations() {
       const empName = `${emp.first_name || ''} ${emp.last_name || ''}`;
       const label = `${empName.trim() || 'Unknown Registrant'} - New Registration`;
 
-      // 1. Snapshot registration to bin
       const { error: binError } = await supabase
         .from('bin')
         .insert({
@@ -144,7 +142,6 @@ export default function NewRegistrations() {
 
       if (binError) throw binError;
 
-      // 2. Delete registration from employees table
       const { error: deleteError } = await supabase
         .from('employees')
         .delete()
@@ -152,16 +149,16 @@ export default function NewRegistrations() {
 
       if (deleteError) throw deleteError;
 
-      // 3. Log to admin activity
       await supabase.from('admin_activity_log').insert({
         actor_type: 'admin',
         actor_name: 'Administrator',
-        action: 'admin_rejected_registration', // fallback action
+        action: 'admin_rejected_registration',
         description: `Moved New Registration for ${empName} to Bin`,
         employee_id: emp.id
       });
 
       toast.success("Registration request moved to Bin.");
+      setModalOpen(false);
       fetchRequests();
     } catch (err) {
       console.error(err);
@@ -174,21 +171,11 @@ export default function NewRegistrations() {
     setModalOpen(true);
   };
 
-  // Determine registration status label
-  const getStatusLabel = (emp) => {
-    if (emp.employment_status === 'Pending') return 'pending';
-    // If they were approved, they'll have a non-Pending status and is_active = true
-    if (emp.is_active) return 'approved';
-    return 'rejected';
-  };
-
-  // Filter: only show registrations that are Pending, or if "all" show just Pending
-  // Since rejected ones get deleted, we only really have Pending ones for this page
   const registrationPool = statusFilter === 'all'
     ? registrations.filter(emp => emp.employment_status === 'Pending')
     : statusFilter === 'pending'
     ? registrations.filter(emp => emp.employment_status === 'Pending')
-    : []; // approved/rejected registrations don't persist in this table's design
+    : [];
 
   const filteredRegistrations = registrationPool.filter(emp => {
     const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.toLowerCase();
@@ -201,10 +188,10 @@ export default function NewRegistrations() {
 
   const pendingCount = registrations.filter(e => e.employment_status === 'Pending').length;
 
+  const emp = selectedRegistrant || {};
+
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-[1440px] mx-auto">
-      {/* Search & Filter Bar is now rendered at layout level */}
-
       {isLoading ? (
         <div className="text-center p-8 text-muted-foreground">Loading registrations...</div>
       ) : filteredRegistrations.length === 0 ? (
@@ -221,31 +208,42 @@ export default function NewRegistrations() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {filteredRegistrations.map((emp) => (
-            <Card key={emp.id} className="overflow-hidden">
-               <CardHeader className="bg-muted/30 pb-3 p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                 <div>
-                   <CardTitle className="text-base flex items-center gap-2">
-                      {emp.first_name} {emp.last_name}
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Pending Registration</Badge>
-                   </CardTitle>
-                   <CardDescription className="mt-1">
-                      {emp.contact_email || emp.email || "No email"} • {emp.department || "No Department"}
-                   </CardDescription>
+          {filteredRegistrations.map((empItem) => (
+            <Card key={empItem.id} className="overflow-hidden hover:shadow-md transition-all">
+               <CardHeader className="bg-muted/30 pb-3 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                 <div className="flex items-center gap-4">
+                   <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                     {empItem.photo_url ? (
+                       <img src={empItem.photo_url} alt="Profile" className="w-full h-full object-cover" />
+                     ) : (
+                       <span className="text-xs font-bold text-slate-500">
+                         {empItem.first_name?.[0]}{empItem.last_name?.[0]}
+                       </span>
+                     )}
+                   </div>
+                   <div>
+                     <h3 className="font-bold text-slate-800 text-sm">
+                        {empItem.first_name} {empItem.last_name}
+                     </h3>
+                     <p className="text-[10px] text-slate-400 font-medium">
+                        {empItem.contact_email || empItem.email || "No email"} • {empItem.department || "No Department"}
+                     </p>
+                   </div>
                  </div>
-                 <div className="flex flex-row gap-2 shrink-0 justify-center">
-                    <Button size="sm" variant="outline" onClick={() => handleViewRegistrant(emp)} className="gap-1.5">
-                       <Eye className="w-4 h-4" /> View Details
-                    </Button>
-                    <Button size="sm" onClick={() => handleRegistrationAction(emp, 'approved')} className="gap-1.5 bg-green-600 hover:bg-green-700">
-                       <Check className="w-4 h-4" /> Approve
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleRegistrationAction(emp, 'rejected')} className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50">
-                       <X className="w-4 h-4" /> Reject
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleDelete(emp)} className="gap-1.5 text-red-600 border-red-200 hover:text-white hover:bg-red-600">
-                       <Trash2 className="w-4 h-4" /> Delete
-                    </Button>
+
+                 <div className="flex items-center gap-3 self-start sm:self-center">
+                   <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none font-bold uppercase text-[9px] px-2 py-0.5 shadow-none">
+                     Pending Registration
+                   </Badge>
+
+                   <Button
+                     type="button"
+                     size="sm"
+                     onClick={() => handleViewRegistrant(empItem)}
+                     className="h-8 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs gap-1.5 px-3 rounded-lg"
+                   >
+                     <Eye className="w-3.5 h-3.5" /> Review Application
+                   </Button>
                  </div>
                </CardHeader>
             </Card>
@@ -253,13 +251,118 @@ export default function NewRegistrations() {
         </div>
       )}
 
-      <E201Modal
-        employee={selectedRegistrant}
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        onToggleActive={() => {}}
-        onSave={() => fetchRequests()}
-      />
+      {/* Registration Review Modal */}
+      {selectedRegistrant && (
+        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+          <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl">
+            {/* Header */}
+            <div className="bg-[#0C005F] p-6 text-white pr-12 relative">
+              <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-emerald-400" />
+                New Registration Review
+              </DialogTitle>
+              <DialogDescription className="text-white/60 text-xs mt-1 uppercase tracking-widest font-medium">
+                EMPLOYEE REGISTRATION APPLICATION
+              </DialogDescription>
+            </div>
+
+            <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+              {/* Employee Info Banner */}
+              <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                  {emp.photo_url ? (
+                    <img src={emp.photo_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-5 h-5 text-slate-400" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-slate-800">
+                    {emp.first_name} {emp.last_name}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                    {emp.employee_id || "ID Pending"} • {emp.department || "No Department"} • {emp.position || "Staff"}
+                  </p>
+                </div>
+                <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none font-bold uppercase text-[9px] px-2 py-0.5 shadow-none">
+                  Pending
+                </Badge>
+              </div>
+
+              {/* Registration Fields Grid */}
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Employee ID</Label>
+                  <Input value={emp.employee_id || "—"} disabled className="h-9 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Full Name</Label>
+                  <Input value={`${emp.first_name || ""} ${emp.last_name || ""}`} disabled className="h-9 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Email</Label>
+                  <Input value={emp.contact_email || emp.email || "—"} disabled className="h-9 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Phone Number</Label>
+                  <Input value={emp.contact_phone || "—"} disabled className="h-9 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Department</Label>
+                  <Input value={emp.department || "—"} disabled className="h-9 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Position</Label>
+                  <Input value={emp.position || "—"} disabled className="h-9 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Date Hired</Label>
+                  <Input value={emp.date_hired || "—"} disabled className="h-9 bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-500 uppercase">Birthdate</Label>
+                  <Input value={emp.birthdate || "—"} disabled className="h-9 bg-slate-50" />
+                </div>
+              </div>
+
+              {/* Action Footer */}
+              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isProcessing}
+                  onClick={() => handleDelete(emp)}
+                  className="text-red-600 border-red-200 hover:bg-red-50 font-semibold gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" /> Move to Bin
+                </Button>
+
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={isProcessing}
+                    onClick={() => handleRegistrationAction(emp, 'rejected')}
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold gap-2"
+                  >
+                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                    Reject
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={isProcessing}
+                    onClick={() => handleRegistrationAction(emp, 'approved')}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2"
+                  >
+                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    Approve Registration
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
