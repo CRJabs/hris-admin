@@ -58,7 +58,7 @@ export default function AddEmployee() {
   const [errors, setErrors] = useState({});
   
   // Account State
-  const [accountData, setAccountData] = useState({ email: "", password: "" });
+  const [accountData, setAccountData] = useState({ first_name: "", middle_name: "", last_name: "", titles: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
@@ -117,8 +117,8 @@ export default function AddEmployee() {
   };
 
   const handleCreateAccount = async () => {
-    if (!accountData.email || !accountData.password) {
-      toast.error("Email and password are required.");
+    if (!accountData.first_name?.trim() || !accountData.last_name?.trim() || !accountData.email?.trim() || !accountData.password) {
+      toast.error("First name, last name, email, and password are required.");
       return;
     }
 
@@ -135,7 +135,7 @@ export default function AddEmployee() {
           'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         body: JSON.stringify({
-          email: accountData.email,
+          email: accountData.email.trim(),
           password: accountData.password,
           employeeId: generatedId,
         }),
@@ -146,13 +146,15 @@ export default function AddEmployee() {
         throw new Error(result.error || 'Account creation failed');
       }
 
-      // Create initial employee record linked to the user account
+      // Create initial employee record linked to the user account (do not pass middle_name or titles here)
       const { data: empRecord, error: empError } = await supabase
         .from('employees')
         .insert([{ 
+          first_name: accountData.first_name.trim(),
+          last_name: accountData.last_name.trim(),
           employee_id: generatedId,
           user_id: result.user.id,
-          contact_email: accountData.email,
+          contact_email: accountData.email.trim(),
           department: employeeData.department,
           position: employeeData.position,
           employment_status: employeeData.employment_status,
@@ -170,8 +172,12 @@ export default function AddEmployee() {
       setCreatedEmployee(empRecord);
       setEmployeeData(prev => ({
         ...prev,
+        first_name: accountData.first_name.trim(),
+        middle_name: accountData.middle_name.trim(),
+        last_name: accountData.last_name.trim(),
+        titles: accountData.titles.trim(),
         employee_id: generatedId,
-        contact_email: accountData.email
+        contact_email: accountData.email.trim()
       }));
 
       toast.success("Account created successfully. Now enter personnel information.");
@@ -300,7 +306,51 @@ export default function AddEmployee() {
                <p className="text-muted-foreground">Set up the login details before entering employee personnel details.</p>
             </div>
 
-            <div className="w-full space-y-6">
+            <div className="w-full space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="first_name" className="text-sm font-semibold">First Name</Label>
+                  <Input 
+                    id="first_name" 
+                    placeholder="First Name" 
+                    className="h-11 text-sm"
+                    value={accountData.first_name}
+                    onChange={(e) => setAccountData(prev => ({ ...prev, first_name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="middle_name" className="text-sm font-semibold">Middle Name</Label>
+                  <Input 
+                    id="middle_name" 
+                    placeholder="Middle Name" 
+                    className="h-11 text-sm"
+                    value={accountData.middle_name}
+                    onChange={(e) => setAccountData(prev => ({ ...prev, middle_name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="last_name" className="text-sm font-semibold">Last Name</Label>
+                  <Input 
+                    id="last_name" 
+                    placeholder="Last Name" 
+                    className="h-11 text-sm"
+                    value={accountData.last_name}
+                    onChange={(e) => setAccountData(prev => ({ ...prev, last_name: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="titles" className="text-sm font-semibold">Titles / Honorifics</Label>
+                <Input 
+                  id="titles" 
+                  placeholder="Titles (e.g. PhD, LPT)" 
+                  className="h-11 text-sm"
+                  value={accountData.titles}
+                  onChange={(e) => setAccountData(prev => ({ ...prev, titles: e.target.value }))}
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-semibold">Login Email</Label>
                 <div className="relative">
