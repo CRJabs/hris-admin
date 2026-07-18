@@ -43,6 +43,9 @@ export default function ForcePasswordChange() {
 
       if (updateError) throw updateError;
 
+      // Sync updated password to user_profiles table
+      await supabase.from("user_profiles").update({ temp_password: password }).eq("id", user.id);
+
       // Trigger email authentication / verification link
       if (user.email) {
         await supabase.auth.resend({

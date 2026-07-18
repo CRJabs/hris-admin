@@ -33,6 +33,11 @@ export default function ResetPassword() {
 
       if (error) throw error;
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        await supabase.from("user_profiles").update({ temp_password: password }).eq("id", user.id);
+      }
+
       toast.success("Password successfully updated. You can now log in.");
       navigate("/login");
       
