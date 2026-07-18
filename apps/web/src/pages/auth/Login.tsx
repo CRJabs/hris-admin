@@ -48,12 +48,13 @@ export default function Login() {
         // If they don't have a profile yet, you might want to handle that specific case
       }
 
+      if (authData.user.user_metadata?.must_change_password) {
+        toast.info("First login detected. Please change your password.");
+        navigate("/force-password-change");
+        return;
+      }
+
       toast.success("Successfully logged in!");
-
-      // We do not navigate manually here.
-      // We will let the useEffect listen for the AuthContext 'user' to populate, 
-      // which will happen after the root auth listener fetches the profile from Supabase.
-
     } catch (error: unknown) {
       const err = error as { code?: string; message?: string };
       const code = err?.code;
@@ -88,7 +89,11 @@ export default function Login() {
   // This prevents the race condition where App.jsx forces us back to /login because user is null
   useEffect(() => {
     if (user) {
-      navigate("/");
+      if (user.user_metadata?.must_change_password) {
+        navigate("/force-password-change");
+      } else {
+        navigate("/");
+      }
     }
   }, [user, navigate]);
 

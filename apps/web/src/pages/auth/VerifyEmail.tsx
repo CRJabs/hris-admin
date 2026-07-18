@@ -1,9 +1,38 @@
-
-import { Link } from "react-router-dom";
-import { Mail, ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export default function VerifyEmail() {
+  const navigate = useNavigate();
+  const [isVerified, setIsVerified] = useState(false);
+
+  useEffect(() => {
+    // Listen for auth state changes when user clicks confirmation link in email
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+        setIsVerified(true);
+        toast.success("Email authenticated successfully!");
+        setTimeout(() => {
+          navigate("/my-profile");
+        }, 1500);
+      }
+    });
+
+    // Also check current session if already verified via URL hash token
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email_confirmed_at) {
+        setIsVerified(true);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#0C005F] to-[#1900C5]"
@@ -26,14 +55,18 @@ export default function VerifyEmail() {
 
           {/* Icon */}
           <div className="w-20 h-20 bg-blue-50 text-[#0C005F] rounded-full flex items-center justify-center mb-6">
-            <Mail className="w-10 h-10" />
+            {isVerified ? <CheckCircle2 className="w-10 h-10 text-emerald-600" /> : <Mail className="w-10 h-10" />}
           </div>
 
           {/* Content */}
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">Check your inbox</h2>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">
+            {isVerified ? "Email Verified!" : "Check your inbox"}
+          </h2>
           <p className="text-slate-500 mb-8 leading-relaxed">
-            We've sent a confirmation link to your email address. 
-            Please click the link to verify your account and start your 201 Personnel Filing.
+            {isVerified 
+              ? "Your email has been authenticated. Redirecting you to your employee profile..."
+              : "We've sent an authentication link to your email address. Please open the link sent to your email to verify your account and access your employee profile."
+            }
           </p>
 
           <div className="w-full space-y-4">

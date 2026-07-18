@@ -46,7 +46,7 @@ export default async function handler(req, res) {
         email,
         password,
         email_confirm: true,
-        user_metadata: { employee_id: employeeId }
+        user_metadata: { employee_id: employeeId, must_change_password: true }
       });
 
       if (createError) {
