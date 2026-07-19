@@ -42,7 +42,7 @@ export default function ForcePasswordChange() {
 
       if (updateError) throw updateError;
 
-      await supabase.from("user_profiles").update({ temp_password: password }).eq("id", user.id);
+      await supabase.from("user_profiles").update({ temp_password: null }).eq("id", user.id);
 
       toast.success("Password updated successfully! You are now logged in.");
       navigate("/my-profile");

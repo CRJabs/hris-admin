@@ -8,7 +8,6 @@ import { Loader2, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -16,7 +15,6 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [inlineError, setInlineError] = useState("");
@@ -85,7 +83,7 @@ export default function Login() {
 
   useEffect(() => {
     if (user) {
-      if (user.user_metadata?.must_change_password) {
+      if (user.temp_password) {
         navigate("/force-password-change");
       } else {
         navigate("/");
@@ -178,18 +176,7 @@ export default function Login() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(!!checked)}
-                    className="border-slate-300 data-[state=checked]:bg-[#0C005F] data-[state=checked]:border-[#0C005F]"
-                  />
-                  <label htmlFor="remember" className="text-xs text-[#333] cursor-pointer font-medium">
-                    Remember me
-                  </label>
-                </div>
+              <div className="flex items-center justify-end pt-1">
                 <Link to="/forgot-password" className="text-xs text-[#0C005F] font-semibold hover:underline">
                   Forgot Password?
                 </Link>

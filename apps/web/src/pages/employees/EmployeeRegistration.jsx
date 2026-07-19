@@ -139,10 +139,21 @@ export default function EmployeeRegistration() {
   const [signaturePreviewUrl, setSignaturePreviewUrl] = useState("");
   const [isUploadingSignature, setIsUploadingSignature] = useState(false);
 
-  // Signature preview management handled directly by state and public URL to avoid revocation issues
+  // Check if current user already submitted registration
   useEffect(() => {
-    // Component handles URL state directly
-  }, []);
+    if (!user?.id) return;
+    supabase
+      .from('employees')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          toast.info("You have already submitted your registration.");
+          navigate("/my-profile");
+        }
+      });
+  }, [user?.id, navigate]);
 
   // Flat State Dictionary carrying ALL elements
   const [formData, setFormData] = useState({
