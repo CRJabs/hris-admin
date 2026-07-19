@@ -48,13 +48,19 @@ export default function ForcePasswordChange() {
 
       // Trigger email authentication / verification link
       if (user.email) {
-        await supabase.auth.resend({
-          type: 'signup',
+        const { error: otpError } = await supabase.auth.signInWithOtp({
           email: user.email,
-        }).catch((e) => console.warn("Resend email auth notice:", e));
+          options: {
+            emailRedirectTo: `${window.location.origin}/verify-email`,
+          },
+        });
+        if (otpError) {
+          console.warn("Error sending verification OTP link:", otpError);
+          toast.error("Could not send verification email: " + otpError.message);
+        }
       }
 
-      toast.success("Password updated! Please check your email to complete authentication.");
+      toast.success("Password updated! Please check your email inbox to complete authentication.");
       
       // Navigate to email verification pending screen
       navigate("/verify-email");

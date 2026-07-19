@@ -10,21 +10,34 @@ export default function VerifyEmail() {
   const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
-    // Listen for auth state changes when user clicks confirmation link in email
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+    // Check if the current URL contains token parameters (indicating the user clicked the link in their email)
+    const hasAuthTokenInUrl = 
+      window.location.hash.includes("access_token") || 
+      window.location.hash.includes("type=") || 
+      window.location.search.includes("code=");
+
+    if (hasAuthTokenInUrl) {
+      setIsVerified(true);
+      toast.success("Email authenticated successfully!");
+      const timer = setTimeout(() => {
+        navigate("/my-profile");
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+
+    // Listen for auth state change when Supabase parses token hash asynchronously
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const urlHasToken = 
+        window.location.hash.includes("access_token") || 
+        window.location.hash.includes("type=") || 
+        window.location.search.includes("code=");
+
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && urlHasToken && session?.user) {
         setIsVerified(true);
         toast.success("Email authenticated successfully!");
         setTimeout(() => {
           navigate("/my-profile");
         }, 1500);
-      }
-    });
-
-    // Also check current session if already verified via URL hash token
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.email_confirmed_at) {
-        setIsVerified(true);
       }
     });
 
