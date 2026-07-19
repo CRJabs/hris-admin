@@ -168,15 +168,15 @@ function computeBenefitsEligibility(employee, referenceDate, tenureStartDate, se
       : `Requires at least 3 years of qualifying service before May 31. Current: ${yearsSummerTenure} year(s).`,
   };
 
-  // 4. 13th Month Pay — ≥1 complete month of service before Dec 31
-  const monthsToDecEnd = computeMonthsInService(employee.date_hired, dec31);
-  const is13thEligible = isActive && monthsToDecEnd >= 1;
+  // 4. 13th Month Pay — ≥1 complete month of service rendered as of reference date
+  const monthsRendered = computeMonthsInService(employee.date_hired, ref);
+  const is13thEligible = isActive && monthsRendered >= 1;
   results.thirteenth_month = {
     isEligible: is13thEligible,
     awardLevel: null,
     reason: is13thEligible
-      ? `${monthsToDecEnd} month(s) of service this year. Eligible.`
-      : "Requires at least 1 month of service before December 31.",
+      ? `${monthsRendered} month(s) of rendered service. Eligible.`
+      : `Requires at least 1 month of rendered service. Current: ${monthsRendered} month(s).`,
   };
 
   // 5. Midyear Bonus — eligible for 13th Month AND Regular tenure
