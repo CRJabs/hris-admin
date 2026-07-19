@@ -49,59 +49,69 @@ export default function VerifyEmail() {
       className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4 md:p-8"
       style={{ fontFamily: '"Figtree", sans-serif' }}
     >
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-xl w-full max-w-md overflow-hidden">
-        <div className="p-8 md:p-10 flex flex-col items-center text-center">
+      <div className="w-full max-w-6xl xl:max-w-7xl flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
+        
+        {/* Left Side - Content */}
+        <div className="w-full md:w-1/2 lg:w-5/12 flex flex-col justify-between py-6 px-2 md:px-6 space-y-8">
           
           {/* Logo */}
-          <div className="mb-6">
+          <div>
             <img
               src="/assets/ub-hris-logo.png"
               alt="University of Bohol HRIS Logo"
-              className="h-14 object-contain"
+              className="h-12 md:h-16 object-contain"
               onError={(e) => {
                 e.currentTarget.src = "https://via.placeholder.com/300x80?text=UB+HRIS+Logo";
               }}
             />
           </div>
 
-          {/* Icon */}
-          <div className="w-16 h-16 bg-blue-50 text-[#0C005F] rounded-2xl flex items-center justify-center mb-5">
-            {isVerified ? <CheckCircle2 className="w-8 h-8 text-emerald-600" /> : <Mail className="w-8 h-8 text-[#0C005F]" />}
-          </div>
-
           {/* Content */}
-          <h2 className="text-2xl font-extrabold text-[#333] mb-2">
-            {isVerified ? "Email Verified!" : "Check your inbox"}
-          </h2>
-          <p className="text-xs text-slate-500 mb-8 leading-relaxed">
-            {isVerified 
-              ? "Your email has been authenticated. Redirecting you to your employee profile..."
-              : "We've sent an authentication link to your email address. Please open the link sent to your email to verify your account and access your employee profile."
-            }
-          </p>
+          <div className="w-full max-w-md space-y-6">
+            <div className="w-16 h-16 bg-blue-50 text-[#0C005F] rounded-2xl flex items-center justify-center mb-2">
+              {isVerified ? <CheckCircle2 className="w-8 h-8 text-emerald-600" /> : <Mail className="w-8 h-8 text-[#0C005F]" />}
+            </div>
 
-          <div className="w-full space-y-4">
-            <Button
-              variant="outline"
-              className="w-full border-slate-200 text-[#333] hover:bg-slate-50 flex items-center justify-center gap-2 h-11 text-xs font-semibold rounded-lg"
-              asChild
-            >
-              <Link to="/login">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Login
-              </Link>
-            </Button>
-          </div>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-[#333] tracking-tight">
+              {isVerified ? "Email Verified!" : "Check your inbox"}
+            </h1>
 
-          {/* Footer Logo */}
-          <div className="flex justify-center mt-10">
-            <img
-              src="/assets/ub-footer-logo.png"
-              alt="UB Secondary Logo"
-              className="h-7 object-contain opacity-70"
-            />
+            <p className="text-sm text-slate-500 leading-relaxed">
+              {isVerified 
+                ? "Your email has been authenticated. Redirecting you to your employee profile..."
+                : "We've sent an authentication link to your email address. Please open the link sent to your email to verify your account and access your employee profile."
+              }
+            </p>
+
+            <div className="pt-2">
+              <Button
+                variant="outline"
+                className="w-full border-slate-200 text-[#333] hover:bg-slate-50 flex items-center justify-center gap-2 h-11 text-xs font-semibold rounded-lg"
+                asChild
+              >
+                <Link to="/login">
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Login
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* Right Side - Picture Block */}
+        <div className="hidden md:flex w-full md:w-1/2 lg:w-7/12 h-[680px] lg:h-[720px] rounded-3xl overflow-hidden relative shadow-2xl">
+          <img
+            src="/assets/login-building-bg.jpg"
+            alt="UB Campus Building"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1470&auto=format&fit=crop";
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-tr from-[#0C005F]/85 via-[#0C005F]/55 to-[#1900C5]/45 mix-blend-multiply"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0C005F]/70 via-transparent to-transparent"></div>
+        </div>
+
       </div>
     </div>
   );

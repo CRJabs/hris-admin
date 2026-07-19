@@ -64,124 +64,128 @@ export default function Register() {
       className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4 md:p-8"
       style={{ fontFamily: '"Figtree", sans-serif' }}
     >
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-xl w-full max-w-md py-10 px-8 flex flex-col relative overflow-hidden">
+      <div className="w-full max-w-6xl xl:max-w-7xl flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
         
-        {/* Logo */}
-        <div className="flex justify-center mb-6">
-          <img
-            src="/assets/ub-hris-logo.png"
-            alt="University of Bohol HRIS Logo"
-            className="h-14 object-contain"
-            onError={(e) => {
-              e.currentTarget.src = "https://via.placeholder.com/300x80?text=UB+HRIS+Logo";
-            }}
-          />
-        </div>
-
-        {/* Content */}
-        <div className="w-full mx-auto space-y-6">
-          <div className="space-y-1 text-center">
-            <h2 className="text-2xl md:text-3xl font-extrabold text-[#333]">Create Account</h2>
-            <p className="text-xs text-slate-500">Get started with your Digital 201 Filing</p>
+        {/* Left Side - Form */}
+        <div className="w-full md:w-1/2 lg:w-5/12 flex flex-col justify-between py-6 px-2 md:px-6 space-y-8">
+          
+          {/* Logo */}
+          <div>
+            <img
+              src="/assets/ub-hris-logo.png"
+              alt="University of Bohol HRIS Logo"
+              className="h-12 md:h-16 object-contain"
+              onError={(e) => {
+                e.currentTarget.src = "https://via.placeholder.com/300x80?text=UB+HRIS+Logo";
+              }}
+            />
           </div>
 
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-semibold text-[#333]">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="example@universityofbohol.edu.ph"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={isLoading}
-                  className="pl-10 h-11 rounded-lg border-slate-300 text-[#333] focus-visible:ring-[#0C005F]"
-                />
-              </div>
-            </div>
+          {/* Form Content */}
+          <div className="w-full max-w-md space-y-6">
+            <h1 className="text-3xl md:text-4xl font-extrabold text-[#333] tracking-tight">Create Account</h1>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-xs font-semibold text-[#333]">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-xs font-semibold text-[#333]">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="example@universityofbohol.edu.ph"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    className="pl-10 h-11 rounded-lg border-slate-300 text-[#333] focus-visible:ring-[#0C005F]"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-xs font-semibold text-[#333]">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    className="pl-10 pr-10 h-11 rounded-lg border-slate-300 text-[#333] focus-visible:ring-[#0C005F]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#333] transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-xs font-semibold text-[#333]">Confirm Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="confirmPassword"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    className="pl-10 h-11 rounded-lg border-slate-300 text-[#333] focus-visible:ring-[#0C005F]"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  className="w-full bg-gradient-to-r from-[#0C005F] to-[#1900C5] text-white hover:opacity-95 transition-opacity rounded-lg h-11 text-sm font-semibold shadow-md"
+                  type="submit"
                   disabled={isLoading}
-                  className="pl-10 pr-10 h-11 rounded-lg border-slate-300 text-[#333] focus-visible:ring-[#0C005F]"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#333] transition-colors"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    "Register"
+                  )}
+                </Button>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-xs font-semibold text-[#333]">Confirm Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  id="confirmPassword"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  disabled={isLoading}
-                  className="pl-10 h-11 rounded-lg border-slate-300 text-[#333] focus-visible:ring-[#0C005F]"
-                />
+              <div className="text-center pt-2 text-xs text-slate-600">
+                Already have an account?{" "}
+                <Link to="/login" className="text-[#0C005F] font-bold hover:underline">
+                  Login here
+                </Link>
               </div>
-            </div>
-
-            <div className="pt-2">
-              <Button
-                className="w-full bg-gradient-to-r from-[#0C005F] to-[#1900C5] text-white hover:opacity-95 transition-opacity rounded-lg h-11 text-sm font-semibold shadow-md"
-                type="submit"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating Account...
-                  </>
-                ) : (
-                  "Register"
-                )}
-              </Button>
-            </div>
-
-            <div className="text-center pt-2 text-xs text-slate-600">
-              Already have an account?{" "}
-              <Link to="/login" className="text-[#0C005F] font-bold hover:underline">
-                Login here
-              </Link>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
 
-        {/* Footer Logo */}
-        <div className="flex justify-center mt-10">
+        {/* Right Side - Picture Block */}
+        <div className="hidden md:flex w-full md:w-1/2 lg:w-7/12 h-[680px] lg:h-[720px] rounded-3xl overflow-hidden relative shadow-2xl">
           <img
-            src="/assets/ub-footer-logo.png"
-            alt="UB Secondary Logo"
-            className="h-7 object-contain opacity-70 block mx-auto"
+            src="/assets/login-building-bg.jpg"
+            alt="UB Campus Building"
+            className="w-full h-full object-cover"
             onError={(e) => {
-              e.currentTarget.src = "https://via.placeholder.com/250x40?text=Secondary+Logo";
+              e.currentTarget.src = "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1470&auto=format&fit=crop";
             }}
           />
+          <div className="absolute inset-0 bg-gradient-to-tr from-[#0C005F]/85 via-[#0C005F]/55 to-[#1900C5]/45 mix-blend-multiply"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0C005F]/70 via-transparent to-transparent"></div>
         </div>
+
       </div>
     </div>
   );

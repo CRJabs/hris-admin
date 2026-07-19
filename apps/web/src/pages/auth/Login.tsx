@@ -29,7 +29,6 @@ export default function Login() {
     setInlineHint("");
 
     try {
-      // 1. Authenticate with Supabase
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -37,7 +36,6 @@ export default function Login() {
 
       if (authError) throw authError;
 
-      // 2. Fetch the user's role from user_profiles
       const { error: profileError } = await supabase
         .from("user_profiles")
         .select("role")
@@ -100,10 +98,10 @@ export default function Login() {
       className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4 md:p-8"
       style={{ fontFamily: '"Figtree", sans-serif' }}
     >
-      <div className="w-full max-w-6xl flex flex-col md:flex-row items-center gap-8 md:gap-12">
+      <div className="w-full max-w-6xl xl:max-w-7xl flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
         
         {/* Left Side - Login Form */}
-        <div className="w-full md:w-1/2 flex flex-col justify-between py-6 px-4 md:px-8 space-y-8">
+        <div className="w-full md:w-1/2 lg:w-5/12 flex flex-col justify-between py-6 px-2 md:px-6 space-y-8">
           
           {/* Logo */}
           <div>
@@ -119,10 +117,7 @@ export default function Login() {
 
           {/* Form Content */}
           <div className="w-full max-w-md space-y-6">
-            <div className="space-y-1">
-              <h1 className="text-3xl md:text-4xl font-extrabold text-[#333] tracking-tight">Sign In</h1>
-              <p className="text-sm text-slate-500">Access your HRIS employee portal</p>
-            </div>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-[#333] tracking-tight">Sign In</h1>
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
@@ -230,37 +225,20 @@ export default function Login() {
               </div>
             </form>
           </div>
-
-          {/* Footer Logo */}
-          <div className="pt-4">
-            <img
-              src="/assets/ub-footer-logo.png"
-              alt="UB Secondary Logo"
-              className="h-8 object-contain opacity-70"
-              onError={(e) => {
-                e.currentTarget.src = "https://via.placeholder.com/250x40?text=Secondary+Logo";
-              }}
-            />
-          </div>
         </div>
 
-        {/* Right Side - Blue Block Container with Image */}
-        <div className="hidden md:flex w-full md:w-1/2 h-[600px] lg:h-[650px] rounded-3xl bg-gradient-to-br from-[#0C005F] to-[#1900C5] p-3 shadow-2xl relative overflow-hidden flex-col justify-end">
-          <div className="w-full h-full rounded-2xl overflow-hidden relative shadow-inner">
-            <img
-              src="/assets/login-building-bg.jpg"
-              alt="UB Campus Building"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1470&auto=format&fit=crop";
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0C005F]/85 via-[#0C005F]/20 to-transparent"></div>
-            <div className="absolute bottom-6 left-6 right-6 text-white space-y-1">
-              <h3 className="text-xl font-bold">University of Bohol</h3>
-              <p className="text-xs text-white/80">Human Resources Information System</p>
-            </div>
-          </div>
+        {/* Right Side - Picture Block without text or blue border */}
+        <div className="hidden md:flex w-full md:w-1/2 lg:w-7/12 h-[680px] lg:h-[720px] rounded-3xl overflow-hidden relative shadow-2xl">
+          <img
+            src="/assets/login-building-bg.jpg"
+            alt="UB Campus Building"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1470&auto=format&fit=crop";
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-tr from-[#0C005F]/85 via-[#0C005F]/55 to-[#1900C5]/45 mix-blend-multiply"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0C005F]/70 via-transparent to-transparent"></div>
         </div>
 
       </div>
