@@ -123,6 +123,7 @@ const AuthenticatedApp = () => {
   // Employee Routes
   return (
     <Routes>
+      <Route path="/registration" element={<EmployeeRegistration />} />
       <Route element={<EmployeeLayout />}>
         <Route path="/" element={<Navigate to="/my-profile" replace />} />
         <Route path="/my-profile" element={<EmployeeProfile />} />
