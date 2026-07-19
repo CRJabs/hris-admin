@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, KeyRound } from "lucide-react";
+import { Loader2, Eye, EyeOff, Lock, KeyRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,40 +74,41 @@ export default function ForcePasswordChange() {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#0C005F] to-[#1900C5]"
+      className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4 md:p-8"
       style={{ fontFamily: '"Figtree", sans-serif' }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md py-12 px-8 flex flex-col relative overflow-hidden">
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-xl w-full max-w-md py-10 px-8 flex flex-col relative overflow-hidden">
         
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <img 
             src="/assets/ub-hris-logo.png" 
             alt="University of Bohol HRIS Logo" 
-            className="h-16 object-contain"
+            className="h-14 object-contain"
             onError={(e) => {
               e.currentTarget.src = "https://via.placeholder.com/300x80?text=UB+HRIS+Logo";
             }}
           />
         </div>
 
-        {/* Header Icon */}
-        <div className="w-16 h-16 bg-blue-50 text-[#0C005F] rounded-full flex items-center justify-center mx-auto mb-4">
-          <KeyRound className="w-8 h-8" />
-        </div>
-
+        {/* Content */}
         <div className="w-full mx-auto space-y-6">
-          <div className="space-y-2 text-center">
-            <h2 className="text-2xl font-bold text-slate-800">Change Your Password</h2>
-            <p className="text-sm text-slate-500">
-              For security, you must update your temporary password before accessing your account.
+          <div className="space-y-1.5 text-center">
+            <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-2">
+              <KeyRound className="w-6 h-6" />
+            </div>
+            <h2 className="text-2xl font-extrabold text-[#333]">Change Temporary Password</h2>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              For security, you must update your temporary password before accessing your HRIS account.
             </p>
           </div>
           
-          <form onSubmit={handleUpdatePassword} className="space-y-4 mt-4">
-            <div className="space-y-1.5 relative">
-              <Label htmlFor="password" className="text-xs font-semibold text-slate-700">New Password</Label>
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-xs font-semibold text-[#333]">New Permanent Password</Label>
               <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -116,22 +117,23 @@ export default function ForcePasswordChange() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="rounded-md border-slate-300 focus-visible:ring-[#0C005F] pr-10"
+                  className="pl-10 pr-10 h-11 rounded-lg border-slate-300 text-[#333] focus-visible:ring-[#0C005F]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0C005F] transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#333] transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            <div className="space-y-1.5 relative">
-              <Label htmlFor="confirm-password" className="text-xs font-semibold text-slate-700">Confirm New Password</Label>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password" className="text-xs font-semibold text-[#333]">Confirm New Password</Label>
               <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
                   id="confirm-password"
                   type={showConfirmPassword ? "text" : "password"}
@@ -140,45 +142,48 @@ export default function ForcePasswordChange() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="rounded-md border-slate-300 focus-visible:ring-[#0C005F] pr-10"
+                  className="pl-10 pr-10 h-11 rounded-lg border-slate-300 text-[#333] focus-visible:ring-[#0C005F]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0C005F] transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#333] transition-colors"
                 >
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            <div className="pt-4">
-               <Button 
-                 className="w-full bg-gradient-to-r from-[#0C005F] to-[#1900C5] text-white hover:opacity-90 transition-opacity rounded-md py-6 text-sm font-semibold" 
-                 type="submit" 
-                 disabled={isLoading}
-               >
-                 {isLoading ? (
-                   <>
-                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                     Updating Password...
-                   </>
-                 ) : (
-                   "Update Password & Send Verification"
-                 )}
-               </Button>
+            <div className="pt-2">
+              <Button 
+                className="w-full bg-gradient-to-r from-[#0C005F] to-[#1900C5] text-white hover:opacity-95 transition-opacity rounded-lg h-11 text-sm font-semibold shadow-md" 
+                type="submit" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating Password...
+                  </>
+                ) : (
+                  "Update & Continue"
+                )}
+              </Button>
             </div>
           </form>
 
         </div>
 
         {/* Footer Logo */}
-        <div className="flex justify-center mt-12">
+        <div className="flex justify-center mt-10">
           <img 
             src="/assets/ub-footer-logo.png" 
-            alt="UB Scholarship Character Service" 
-            className="h-8 object-contain opacity-50 block mx-auto"
+            alt="UB Secondary Logo" 
+            className="h-7 object-contain opacity-70 block mx-auto"
+            onError={(e) => {
+              e.currentTarget.src = "https://via.placeholder.com/250x40?text=Secondary+Logo";
+            }}
           />
         </div>
       </div>
