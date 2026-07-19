@@ -44,21 +44,8 @@ export default function ForcePasswordChange() {
 
       await supabase.from("user_profiles").update({ temp_password: password }).eq("id", user.id);
 
-      if (user.email) {
-        const { error: otpError } = await supabase.auth.signInWithOtp({
-          email: user.email,
-          options: {
-            emailRedirectTo: `${window.location.origin}/verify-email`,
-          },
-        });
-        if (otpError) {
-          console.warn("Error sending verification OTP link:", otpError);
-          toast.error("Could not send verification email: " + otpError.message);
-        }
-      }
-
-      toast.success("Password updated! Please check your email inbox to complete authentication.");
-      navigate("/verify-email");
+      toast.success("Password updated successfully! You are now logged in.");
+      navigate("/my-profile");
     } catch (error: unknown) {
       const err = error as Error;
       toast.error(err.message || "Failed to update password.");

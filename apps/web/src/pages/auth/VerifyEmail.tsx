@@ -1,49 +1,8 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Mail, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
 
 export default function VerifyEmail() {
-  const navigate = useNavigate();
-  const [isVerified, setIsVerified] = useState(false);
-
-  useEffect(() => {
-    const hasAuthTokenInUrl = 
-      window.location.hash.includes("access_token") || 
-      window.location.hash.includes("type=") || 
-      window.location.search.includes("code=");
-
-    if (hasAuthTokenInUrl) {
-      setIsVerified(true);
-      toast.success("Email authenticated successfully!");
-      const timer = setTimeout(() => {
-        navigate("/my-profile");
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      const urlHasToken = 
-        window.location.hash.includes("access_token") || 
-        window.location.hash.includes("type=") || 
-        window.location.search.includes("code=");
-
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && urlHasToken && session?.user) {
-        setIsVerified(true);
-        toast.success("Email authenticated successfully!");
-        setTimeout(() => {
-          navigate("/my-profile");
-        }, 1500);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate]);
-
   return (
     <div
       className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4 md:p-8"
@@ -69,18 +28,15 @@ export default function VerifyEmail() {
           {/* Content */}
           <div className="w-full max-w-md space-y-6">
             <div className="w-16 h-16 bg-blue-50 text-[#0C005F] rounded-2xl flex items-center justify-center mb-2">
-              {isVerified ? <CheckCircle2 className="w-8 h-8 text-emerald-600" /> : <Mail className="w-8 h-8 text-[#0C005F]" />}
+              <Mail className="w-8 h-8 text-[#0C005F]" />
             </div>
 
             <h1 className="text-3xl md:text-4xl font-extrabold text-[#333] tracking-tight">
-              {isVerified ? "Email Verified!" : "Check your inbox"}
+              Check your inbox
             </h1>
 
             <p className="text-sm text-slate-500 leading-relaxed">
-              {isVerified 
-                ? "Your email has been authenticated. Redirecting you to your employee profile..."
-                : "We've sent an authentication link to your email address. Please open the link sent to your email to verify your account and access your employee profile."
-              }
+              We've sent a verification link to your email address. Please open the link sent to your email to verify your account and complete your registration.
             </p>
 
             <div className="pt-2">
