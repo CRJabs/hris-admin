@@ -44,12 +44,9 @@ export default function Login() {
         console.warn("Could not fetch user profile:", profileError);
       }
 
-      if (authData.user.user_metadata?.must_change_password) {
-        toast.info("First login detected. Please change your password.");
-        navigate("/force-password-change");
-        return;
-      }
-
+      // Navigation is handled by the useEffect watching `user` from AuthContext.
+      // AuthContext will re-fetch user_profiles after auth state changes and set
+      // user.temp_password, which determines whether to force a password change.
       toast.success("Successfully logged in!");
     } catch (error: unknown) {
       const err = error as { code?: string; message?: string };

@@ -44,8 +44,20 @@ export default function ForcePasswordChange() {
 
       await supabase.from("user_profiles").update({ temp_password: null }).eq("id", user.id);
 
+      // Determine where to send the user based on their role
+      const { data: profileData } = await supabase
+        .from("user_profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
       toast.success("Password updated successfully! You are now logged in.");
-      navigate("/my-profile");
+
+      if (profileData?.role === "employee") {
+        navigate("/my-profile");
+      } else {
+        navigate("/");
+      }
     } catch (error: unknown) {
       const err = error as Error;
       toast.error(err.message || "Failed to update password.");
