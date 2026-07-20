@@ -78,7 +78,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
             <Filter className="w-4 h-4 text-slate-500" />
             <span className="font-semibold text-slate-700">Filters</span>
             {activeCount > 0 && (
-              <Badge variant="secondary" className="ml-1 px-1.5 h-5 rounded-full text-[10px] bg-primary text-primary-foreground">
+              <Badge variant="secondary" className="ml-1 px-1.5 h-5 rounded-full text-2xs bg-primary text-primary-foreground">
                 {activeCount}
               </Badge>
             )}
@@ -108,7 +108,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
             <div className="space-y-6">
               <div className="flex items-center justify-between border-b pb-2">
                 <h4 className="font-bold text-xs uppercase text-slate-800 tracking-wider">Departments / Offices</h4>
-                <Badge variant="outline" className="text-[9px] font-bold text-slate-500 uppercase bg-slate-50 border-slate-200">
+                <Badge variant="outline" className="text-2xs font-bold text-slate-500 uppercase bg-slate-50 border-slate-200">
                   {filters.departments?.length || 0} Selected
                 </Badge>
               </div>
@@ -116,7 +116,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
               {/* Executive Offices */}
               {executiveOffices.length > 0 && (
                 <div className="space-y-3">
-                  <h5 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Executive Offices</h5>
+                  <h5 className="font-bold text-xs uppercase text-slate-400 tracking-widest">Executive Offices</h5>
                   {renderFilterGrid(executiveOffices, "departments", filters.departments)}
                 </div>
               )}
@@ -124,7 +124,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
               {/* Institutional Departments */}
               {academicDepts.length > 0 && (
                 <div className="space-y-3">
-                  <h5 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Institutional Departments</h5>
+                  <h5 className="font-bold text-xs uppercase text-slate-400 tracking-widest">Institutional Departments</h5>
                   {renderFilterGrid(academicDepts, "departments", filters.departments)}
                 </div>
               )}
@@ -132,7 +132,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
               {/* Non-Institutional Departments */}
               {nonAcademicDepts.length > 0 && (
                 <div className="space-y-3">
-                  <h5 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Non-Institutional Departments</h5>
+                  <h5 className="font-bold text-xs uppercase text-slate-400 tracking-widest">Non-Institutional Departments</h5>
                   {renderFilterGrid(nonAcademicDepts, "departments", filters.departments)}
                 </div>
               )}
@@ -140,7 +140,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
               {/* Fallback all depts grid if hook data is loading */}
               {executiveOffices.length === 0 && academicDepts.length === 0 && nonAcademicDepts.length === 0 && (
                 <div className="space-y-3">
-                  <h5 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">All Departments</h5>
+                  <h5 className="font-bold text-xs uppercase text-slate-400 tracking-widest">All Departments</h5>
                   {renderFilterGrid(allDepts, "departments", filters.departments)}
                 </div>
               )}
@@ -151,7 +151,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                {/* Classification I */}
                <div className="space-y-4">
-                  <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Classification I</h4>
+                  <h4 className="font-bold text-xs uppercase text-slate-400 tracking-widest">Classification I</h4>
                   <div className="space-y-3">
                     {filterListBySearch(CLASSIFICATION_I_OPTIONS).map((item) => (
                       <div key={item} className="flex items-center space-x-2">
@@ -170,7 +170,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
 
                {/* Classification II */}
                <div className="space-y-4">
-                  <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Classification II</h4>
+                  <h4 className="font-bold text-xs uppercase text-slate-400 tracking-widest">Classification II</h4>
                   <div className="space-y-3">
                     {filterListBySearch(CLASSIFICATION_II_OPTIONS).map((item) => (
                       <div key={item} className="flex items-center space-x-2">
@@ -189,7 +189,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
 
                {/* Classification III */}
                <div className="space-y-4">
-                  <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Classification III</h4>
+                  <h4 className="font-bold text-xs uppercase text-slate-400 tracking-widest">Classification III</h4>
                   <div className="space-y-3">
                     {filterListBySearch(CLASSIFICATION_III_OPTIONS).map((item) => (
                       <div key={item} className="flex items-center space-x-2">
@@ -212,7 +212,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                {/* Employment Status */}
                <div className="space-y-4">
-                  <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Employment Status</h4>
+                  <h4 className="font-bold text-xs uppercase text-slate-400 tracking-widest">Employment Status</h4>
                   <div className="space-y-3">
                     {employmentStatuses.map((status) => (
                       <div key={status} className="flex items-center space-x-2">
@@ -231,7 +231,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
 
                {/* Tenure */}
                <div className="space-y-4">
-                  <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Employment Tenure</h4>
+                  <h4 className="font-bold text-xs uppercase text-slate-400 tracking-widest">Employment Tenure</h4>
                   <div className="space-y-3">
                     {tenures.map((tenure) => (
                       <div key={tenure} className="flex items-center space-x-2">
@@ -250,7 +250,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
 
                {/* Active Status */}
                <div className="space-y-4">
-                  <h4 className="font-bold text-[11px] uppercase text-slate-400 tracking-widest">Account Status</h4>
+                  <h4 className="font-bold text-xs uppercase text-slate-400 tracking-widest">Account Status</h4>
                   <div className="space-y-3">
                     {activeStatuses.map((status) => (
                       <div key={status} className="flex items-center space-x-2">

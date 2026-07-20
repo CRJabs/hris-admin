@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -155,11 +155,11 @@ export default function Retirements() {
   const getStatusBadge = (status) => {
     switch (status) {
       case "pending":
-        return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none font-bold uppercase text-[9px] px-2 py-0.5 shadow-none">Pending</Badge>;
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 text-2xs font-bold uppercase tracking-wider">Pending</Badge>;
       case "approved":
-        return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none font-bold uppercase text-[9px] px-2 py-0.5 shadow-none">Approved</Badge>;
+        return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 text-2xs font-bold uppercase tracking-wider">Approved</Badge>;
       default:
-        return <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-none font-bold uppercase text-[9px] px-2 py-0.5 shadow-none">Rejected</Badge>;
+        return <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 text-2xs font-bold uppercase tracking-wider">Rejected</Badge>;
     }
   };
 
@@ -168,60 +168,76 @@ export default function Retirements() {
   const filingDateStr = selectedReq?.created_at ? format(new Date(selectedReq.created_at), "yyyy-MM-dd") : "—";
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-[1440px] mx-auto">
+    <div className="space-y-4 w-full">
       {isLoading ? (
-        <div className="text-center p-8 text-muted-foreground">Loading retirement requests...</div>
+        <div className="text-center p-8 text-slate-400 text-xs font-semibold">Loading retirement requests...</div>
       ) : filteredRequests.length === 0 ? (
-        <Card className="border-dashed shadow-none bg-muted/10">
-          <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
-            <Award className="w-12 h-12 mb-3 opacity-20" />
-            <p className="font-medium text-lg">No retirement requests found</p>
+        <Card className="border-dashed border-slate-200 shadow-none bg-slate-50/50 rounded-xl">
+          <CardContent className="flex flex-col items-center justify-center p-12 text-center text-slate-400">
+            <Award className="w-12 h-12 mb-3 opacity-20 text-[#0C005F]" />
+            <p className="font-bold text-base text-slate-600">No retirement requests found</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           {filteredRequests.map((req) => (
-            <Card key={req.id} className="overflow-hidden hover:shadow-md transition-all">
-              <CardHeader className="bg-muted/30 pb-3 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-4">
+            <Card key={req.id} className="overflow-hidden shadow-none rounded-xl border border-slate-200 bg-white hover:border-[#0C005F] transition-all group">
+              <CardHeader className="bg-slate-50/50 group-hover:bg-blue-50/20 transition-colors pb-3 p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 border-b border-slate-100">
+                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
                     {req.employees?.photo_url ? (
                       <img src={req.employees.photo_url} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-xs font-bold text-slate-500">
+                      <span className="text-xs font-bold text-slate-600">
                         {req.employees?.first_name?.[0]}{req.employees?.last_name?.[0]}
                       </span>
                     )}
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-800 text-sm">
+                    <CardTitle className="text-sm font-black text-slate-900 flex items-center gap-2 flex-wrap">
                       {req.employees?.first_name} {req.employees?.last_name}
-                    </h3>
-                    <p className="text-[10px] text-slate-400 font-medium">
-                      ID: {req.employees?.employee_id || "—"} · {req.employees?.department || "—"}
-                    </p>
+                      {getStatusBadge(req.status)}
+                    </CardTitle>
+                    <CardDescription className="mt-0.5 text-xs text-slate-500 font-medium">
+                      {req.employees?.employee_id || "—"} • {req.employees?.department || "—"}
+                    </CardDescription>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3 self-start sm:self-center">
-                  {getStatusBadge(req.status)}
-                  <span className="text-[10px] text-slate-400 font-semibold">
-                    Filed on {format(new Date(req.created_at), "MMM d, yyyy")}
-                  </span>
-
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedReq(req);
-                      setModalOpen(true);
-                    }}
-                    className="h-8 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs gap-1.5 px-3 rounded-lg"
-                  >
-                    <Eye className="w-3.5 h-3.5" /> Review Application
-                  </Button>
+                <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5 shrink-0">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  Filed on {format(new Date(req.created_at || new Date()), "MMM d, yyyy h:mm a")}
                 </div>
               </CardHeader>
+              <CardContent className="p-4 pt-3.5">
+                <div className="flex flex-col md:flex-row gap-5">
+                  <div className="flex-1 space-y-2">
+                    <p className="text-xs font-semibold text-slate-700">
+                      Retirement Application: <span className="text-[#0C005F] font-bold">Formal Application for Retirement</span>
+                    </p>
+                    <div className="p-3 border border-slate-200 rounded-lg bg-slate-50/50">
+                      <p className="text-2xs font-bold text-[#0C005F] uppercase tracking-wider mb-1">
+                        REASON / REMARKS
+                      </p>
+                      <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                        {req.reason || "Employee submitted formal application for retirement."} {req.retirement_date ? `(Intended retirement date: ${req.retirement_date})` : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-row md:flex-col gap-2 shrink-0 justify-center">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedReq(req);
+                        setModalOpen(true);
+                      }}
+                      className="h-8 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs gap-1.5 px-3 rounded-lg shadow-none"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> Review Application
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
           ))}
         </div>
@@ -230,7 +246,7 @@ export default function Retirements() {
       {/* Retirement Review Modal */}
       {selectedReq && (
         <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-          <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl">
+          <DialogContent className="sm:max-w-4xl p-0 overflow-hidden border-none shadow-2xl">
             {/* Minimal Header without Title/Subtitle text */}
             <div className="bg-[#0C005F] h-12 flex items-center justify-between px-6 relative">
               <DialogTitle className="sr-only">Retirement Application Review</DialogTitle>
@@ -293,7 +309,7 @@ export default function Retirements() {
                   value={selectedReq.statement || ""}
                   readOnly
                   disabled
-                  className="min-h-[110px] border-slate-200 text-sm font-bold text-slate-900 bg-slate-50/80 opacity-100 disabled:opacity-100 disabled:text-slate-900"
+                  className="min-h-[110px] border-slate-200 text-sm font-bold text-slate-900 bg-slate-50/80 opacity-100 disabled:opacity-100 disabled:text-slate-900 resize-none"
                 />
               </div>
 

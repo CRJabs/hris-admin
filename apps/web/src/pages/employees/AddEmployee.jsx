@@ -293,88 +293,84 @@ export default function AddEmployee() {
   };
 
   return (
-    <div className="p-6 max-w-[1440px] mx-auto space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        {step === 1 ? (
-          <div className="p-16 flex flex-col items-center justify-center max-w-lg mx-auto space-y-8 animate-in fade-in duration-300">
-            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
-               <Mail className="w-12 h-12 text-primary" />
-            </div>
-            
-            <div className="text-center space-y-2">
-               <h3 className="text-2xl font-bold">Create Employee Credentials</h3>
-               <p className="text-muted-foreground">Set up the login details before entering employee personnel details.</p>
-            </div>
+    <div className="p-4 w-full h-full flex flex-col gap-4 animate-in fade-in duration-300">
+      {step === 1 ? (
+        <div className="py-12 px-6 flex flex-col items-center justify-center max-w-4xl mx-auto w-full space-y-8">
+          <div className="flex flex-col items-center text-center gap-3">
+            <img src="/assets/ub-hris-logo.png" alt="UB HRIS" className="h-16 object-contain" />
+            <h3 className="text-5xl font-black text-slate-900 tracking-tight">Personnel Onboarding</h3>
+          </div>
 
-            <div className="w-full space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="first_name" className="text-sm font-semibold">First Name</Label>
-                  <Input 
-                    id="first_name" 
-                    placeholder="First Name" 
-                    className="h-11 text-sm"
-                    value={accountData.first_name}
-                    onChange={(e) => setAccountData(prev => ({ ...prev, first_name: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="middle_name" className="text-sm font-semibold">Middle Name</Label>
-                  <Input 
-                    id="middle_name" 
-                    placeholder="Middle Name" 
-                    className="h-11 text-sm"
-                    value={accountData.middle_name}
-                    onChange={(e) => setAccountData(prev => ({ ...prev, middle_name: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="last_name" className="text-sm font-semibold">Last Name</Label>
-                  <Input 
-                    id="last_name" 
-                    placeholder="Last Name" 
-                    className="h-11 text-sm"
-                    value={accountData.last_name}
-                    onChange={(e) => setAccountData(prev => ({ ...prev, last_name: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="titles" className="text-sm font-semibold">Titles / Honorifics</Label>
+          <div className="w-full space-y-5 bg-white border border-slate-200 rounded-2xl p-8 shadow-none">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="first_name" className="text-xs font-bold uppercase tracking-wider text-slate-700">First Name</Label>
                 <Input 
-                  id="titles" 
-                  placeholder="Titles (e.g. PhD, LPT)" 
-                  className="h-11 text-sm"
-                  value={accountData.titles}
-                  onChange={(e) => setAccountData(prev => ({ ...prev, titles: e.target.value }))}
+                  id="first_name" 
+                  placeholder="First Name" 
+                  className="h-10 text-xs border-slate-200"
+                  value={accountData.first_name}
+                  onChange={(e) => setAccountData(prev => ({ ...prev, first_name: e.target.value }))}
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="middle_name" className="text-xs font-bold uppercase tracking-wider text-slate-700">Middle Name</Label>
+                <Input 
+                  id="middle_name" 
+                  placeholder="Middle Name" 
+                  className="h-10 text-xs border-slate-200"
+                  value={accountData.middle_name}
+                  onChange={(e) => setAccountData(prev => ({ ...prev, middle_name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="last_name" className="text-xs font-bold uppercase tracking-wider text-slate-700">Last Name</Label>
+                <Input 
+                  id="last_name" 
+                  placeholder="Last Name" 
+                  className="h-10 text-xs border-slate-200"
+                  value={accountData.last_name}
+                  onChange={(e) => setAccountData(prev => ({ ...prev, last_name: e.target.value }))}
+                />
+              </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold">Login Email</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="titles" className="text-xs font-bold uppercase tracking-wider text-slate-700">Titles / Honorifics</Label>
+              <Input 
+                id="titles" 
+                placeholder="Titles (e.g. PhD, LPT)" 
+                className="h-10 text-xs border-slate-200"
+                value={accountData.titles}
+                onChange={(e) => setAccountData(prev => ({ ...prev, titles: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-slate-700">Login Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input 
                     id="email" 
                     type="email" 
-                    placeholder="name@university.edu.ph" 
-                    className="pl-10 h-11"
+                    placeholder="name@universityofbohol.edu.ph" 
+                    className="pl-9 h-10 text-xs border-slate-200"
                     value={accountData.email}
                     onChange={(e) => setAccountData(prev => ({ ...prev, email: e.target.value }))}
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" title="Temporary Password" className="text-sm font-semibold">Temporary Password</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="password" title="Temporary Password" className="text-xs font-bold uppercase tracking-wider text-slate-700">Temporary Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input 
                     id="password" 
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••" 
-                    className="pl-10 pr-10 h-11"
+                    className="pl-9 pr-9 h-10 text-xs border-slate-200"
                     value={accountData.password}
                     onChange={(e) => setAccountData(prev => ({ ...prev, password: e.target.value }))}
                   />
@@ -386,98 +382,112 @@ export default function AddEmployee() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <p className="text-[11px] text-muted-foreground italic bg-slate-50 p-2 rounded border border-slate-100">
-                  Tip: Employees will be prompted to change this password upon their first login.
-                </p>
               </div>
             </div>
 
-            <div className="flex flex-col w-full gap-4 pt-6">
-               <Button 
-                 onClick={handleCreateAccount} 
-                 disabled={isCreatingAccount}
-                 className="w-full bg-[#0C005F] hover:bg-[#0C005F]/90 h-12 text-base font-bold shadow-lg"
-               >
-                 {isCreatingAccount ? (
-                   <>
-                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                     Creating Account...
-                   </>
-                 ) : (
-                   "Create Account & Proceed to Details"
-                 )}
-               </Button>
-               <Button variant="outline" onClick={() => navigate("/employees")} disabled={isCreatingAccount}>
-                 Cancel
-               </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col">
-            <Tabs defaultValue="profiling" className="w-full">
-              <div className="px-6 border-b bg-slate-50/50">
-                <TabsList className="w-full justify-start bg-transparent h-auto flex-wrap gap-1 p-0 py-2">
-                  <TabsTrigger value="profiling" className="gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                    <User className="w-4 h-4" /> Personal Details
-                  </TabsTrigger>
-                  <TabsTrigger value="education" className="gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                    <GraduationCap className="w-4 h-4" /> Education
-                  </TabsTrigger>
-                  <TabsTrigger value="training" className="gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                    <Award className="w-4 h-4" /> Trainings and Development
-                  </TabsTrigger>
-                  <TabsTrigger value="employment" className="gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                    <Briefcase className="w-4 h-4" /> Employment
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+            <p className="text-2xs text-slate-500 italic bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              Tip: Personnel will be prompted to change this password upon their first login.
+            </p>
 
-              <div className="p-8">
-                <TabsContent value="profiling" className="m-0 focus-visible:ring-0">
-                  <PersonalDetailsTab 
-                    employee={employeeData} 
-                    onChange={handleFieldChange} 
-                    isReadOnly={false} 
-                    isEditMode={true} 
-                    errors={errors}
-                  />
-                </TabsContent>
-                <TabsContent value="education" className="m-0 focus-visible:ring-0">
-                  <EducationTab 
-                    employee={employeeData} 
-                    isEditing={true} 
-                    onUpdate={(newData) => handleFieldChange('educational_record', newData)} 
-                  />
-                </TabsContent>
-                <TabsContent value="training" className="m-0 focus-visible:ring-0">
-                  <TrainingDevTab 
-                    employee={employeeData} 
-                    isEditing={true} 
-                    onUpdate={(field, newData) => handleFieldChange(field, newData)} 
-                  />
-                </TabsContent>
-                <TabsContent value="employment" className="m-0 focus-visible:ring-0">
-                  <EmploymentInfoTab 
-                    employee={employeeData} 
-                    onChange={handleFieldChange} 
-                    isReadOnly={false} 
-                    isAdminView={true}
-                    errors={errors}
-                  />
-                </TabsContent>
-              </div>
-            </Tabs>
-            
-            <div className="p-6 bg-slate-50 border-t flex justify-end gap-3">
-               <Button variant="outline" onClick={() => navigate("/employees")} disabled={isSaving}>Cancel</Button>
-               <Button onClick={handleSaveEmployee} disabled={isSaving} className="gap-2 bg-[#0C005F] hover:bg-[#0C005F]/90 px-8">
-                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Save Employee Profile
-               </Button>
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <Button variant="outline" onClick={() => navigate("/employees")} disabled={isCreatingAccount} className="h-9 text-xs font-bold border-slate-200">
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleCreateAccount} 
+                disabled={isCreatingAccount}
+                className="bg-[#0C005F] hover:bg-[#0C005F]/90 h-9 px-6 text-xs font-bold text-white shadow-none"
+              >
+                {isCreatingAccount ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  "Create Account & Proceed to Details"
+                )}
+              </Button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {/* Top Info Banner Card */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-black text-slate-900">
+                {accountData.first_name} {accountData.last_name}{accountData.titles ? `, ${accountData.titles}` : ""}
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                {employeeData.employee_id || "ID Generating..."} • Personnel Onboarding Form
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={() => navigate("/employees")} disabled={isSaving} className="h-8 text-xs font-bold border-slate-200">
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEmployee} disabled={isSaving} className="h-8 text-xs font-bold gap-2 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white px-6">
+                {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                Save Personnel Profile
+              </Button>
+            </div>
+          </div>
+
+          <Tabs defaultValue="profiling" className="w-full flex flex-col gap-4">
+            <div className="px-6 py-2 bg-slate-50/50 border border-slate-200 rounded-xl">
+              <TabsList className="w-full flex bg-slate-100/80 border border-slate-200 rounded-xl p-1 gap-1 h-auto shadow-none">
+                <TabsTrigger value="profiling" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+                  <User className="w-3.5 h-3.5" /> Personal Details
+                </TabsTrigger>
+                <TabsTrigger value="education" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+                  <GraduationCap className="w-3.5 h-3.5" /> Educational Record
+                </TabsTrigger>
+                <TabsTrigger value="training" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+                  <Award className="w-3.5 h-3.5" /> Trainings and Development
+                </TabsTrigger>
+                <TabsTrigger value="employment" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5" /> Employment Info
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
+              <TabsContent value="profiling" className="mt-0 focus-visible:ring-0">
+                <PersonalDetailsTab 
+                  employee={employeeData} 
+                  onChange={handleFieldChange} 
+                  isReadOnly={false} 
+                  isEditMode={true} 
+                  errors={errors}
+                />
+              </TabsContent>
+              <TabsContent value="education" className="mt-0 focus-visible:ring-0">
+                <EducationTab 
+                  employee={employeeData} 
+                  isEditing={true} 
+                  onUpdate={(newData) => handleFieldChange('educational_record', newData)} 
+                />
+              </TabsContent>
+              <TabsContent value="training" className="mt-0 focus-visible:ring-0">
+                <TrainingDevTab 
+                  employee={employeeData} 
+                  isEditing={true} 
+                  onUpdate={(field, newData) => handleFieldChange(field, newData)} 
+                />
+              </TabsContent>
+              <TabsContent value="employment" className="mt-0 focus-visible:ring-0">
+                <EmploymentInfoTab 
+                  employee={employeeData} 
+                  onChange={handleFieldChange} 
+                  isReadOnly={false} 
+                  isAdminView={true}
+                  errors={errors}
+                />
+              </TabsContent>
+            </div>
+          </Tabs>
+        </div>
+      )}
     </div>
   );
 }

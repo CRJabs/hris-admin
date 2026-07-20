@@ -25,7 +25,7 @@ export default function DynamicGrid({ title, columns, data, onChange, emptyState
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center bg-muted/30 p-3 rounded-md shadow-sm border border-muted">
-        <Label className="font-bold text-base text-slate-800">{title}</Label>
+        <Label className="text-xs font-black uppercase tracking-widest text-slate-700">{title}</Label>
         <Button type="button" variant="default" size="sm" onClick={addRow} className="gap-1 h-8">
           <Plus className="w-3.5 h-3.5" /> Add Row
         </Button>
@@ -38,7 +38,7 @@ export default function DynamicGrid({ title, columns, data, onChange, emptyState
             <div className="flex-1 grid grid-cols-12 gap-3">
               {columns.map((col) => (
                 <div key={col.key} className="space-y-1.5" style={{ gridColumn: `span ${col.span || Math.max(1, Math.floor(12 / columns.length))}` }}>
-                  <Label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider whitespace-nowrap overflow-hidden text-ellipsis block">{col.label}</Label>
+                  <Label className="text-2xs uppercase font-bold text-slate-500 tracking-wider whitespace-nowrap overflow-hidden text-ellipsis block">{col.label}</Label>
                   {col.type === 'select' ? (
                     <select
                       value={row[col.key] || ""}

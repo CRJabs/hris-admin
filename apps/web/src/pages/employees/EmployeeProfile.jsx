@@ -497,7 +497,7 @@ export default function EmployeeProfile() {
               <span className="sm:hidden">Update</span>
             </Button>
           ) : (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30 text-[10px] font-bold uppercase tracking-widest animate-pulse">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30 text-2xs font-bold uppercase tracking-widest animate-pulse">
               Editing Mode
             </div>
           )}
@@ -512,7 +512,7 @@ export default function EmployeeProfile() {
                 >
                   <Bell className="h-5 w-5 fill-current" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white">
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-2xs font-bold text-white border-2 border-white">
                       {unreadCount}
                     </span>
                   )}
@@ -530,7 +530,7 @@ export default function EmployeeProfile() {
                       {notifications.map((notif) => (
                         <div key={notif.id} className="p-4 hover:bg-slate-50 transition-colors">
                           <div className="flex justify-between items-start mb-1">
-                            <p className={`text-[10px] font-bold uppercase tracking-wider ${
+                            <p className={`text-2xs font-bold uppercase tracking-wider ${
                               notif.type === 'approved' ? 'text-green-600' :
                               notif.type === 'rejected' ? 'text-red-600' :
                               notif.type === 'expired' ? 'text-red-600' :
@@ -539,7 +539,7 @@ export default function EmployeeProfile() {
                             }`}>
                               {notif.title}
                             </p>
-                            <span className="text-[9px] text-muted-foreground">
+                            <span className="text-2xs text-muted-foreground">
                               {notif.date && !isNaN(notif.date) ? format(notif.date, "MMM d") : ""}
                             </span>
                           </div>
@@ -559,7 +559,7 @@ export default function EmployeeProfile() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-[10px] h-6 text-primary hover:text-primary font-bold"
+                      className="text-2xs h-6 text-primary hover:text-primary font-bold"
                       onClick={async () => {
                         if (employeeData?.id) {
                           await supabase.from('notifications').delete().eq('employee_id', employeeData.id);
@@ -594,24 +594,24 @@ export default function EmployeeProfile() {
             {/* Horizontally scrollable tab bar — icon-only on mobile */}
             <div className="overflow-x-auto shrink-0 mb-4 md:mb-6">
             <TabsList className="flex w-max min-w-full bg-white border shadow-sm h-10 p-1">
-              <TabsTrigger value="home" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+              <TabsTrigger value="home" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
                 <Home className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Home</span>
               </TabsTrigger>
               {/* Removed Pending Approvals Tab Trigger */}
-              <TabsTrigger value="profiling" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+              <TabsTrigger value="profiling" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
                 <User className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Personal Data</span>
               </TabsTrigger>
-              <TabsTrigger value="education" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+              <TabsTrigger value="education" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
                 <GraduationCap className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Educational Record</span>
               </TabsTrigger>
-              <TabsTrigger value="training" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+              <TabsTrigger value="training" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
                 <Award className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Trainings</span>
               </TabsTrigger>
-              <TabsTrigger value="employment" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+              <TabsTrigger value="employment" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
                 <Briefcase className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Employment Info</span>
               </TabsTrigger>
@@ -619,17 +619,17 @@ export default function EmployeeProfile() {
                 const isTeaching = employeeData?.employment_classification?.toLowerCase() === "teaching";
                 const showSemestral = isTeaching || hasTeachingLoad;
                 return showSemestral ? (
-                  <TabsTrigger value="semestral" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+                  <TabsTrigger value="semestral" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
                     <BookOpen className="w-4 h-4 shrink-0" />
                     <span className="hidden md:inline">Semestral Records</span>
                   </TabsTrigger>
                 ) : null;
               })()}
-              <TabsTrigger value="leave" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+              <TabsTrigger value="leave" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
                 <CalendarDays className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Leave Credits</span>
               </TabsTrigger>
-              <TabsTrigger value="benefits" className="flex-1 gap-1 md:gap-2 text-[11px] h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
+              <TabsTrigger value="benefits" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
                 <Gift className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">Benefits</span>
               </TabsTrigger>

@@ -99,7 +99,7 @@ const navItems = [
     ]
   },
   { 
-    label: "Employees", 
+    label: "Personnel", 
     icon: Users, 
     path: "/employees",
     children: [
@@ -218,17 +218,78 @@ export default function Sidebar({ collapsed, setCollapsed }) {
     }
   };
 
+  const [pendingCounts, setPendingCounts] = useState({
+    '/approvals/updates': 0,
+    '/approvals/registrations': 0,
+    '/approvals/leaves': 0,
+    '/approvals/commutations': 0,
+    '/approvals/resignations': 0,
+    '/approvals/retirements': 0,
+  });
+
+  const fetchPendingCounts = async () => {
+    try {
+      const [updates, regs, leaves, commutations, resignations, retirements] = await Promise.all([
+        supabase.from('employee_update_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('employees').select('id', { count: 'exact', head: true }).eq('employment_status', 'Pending'),
+        supabase.from('leave_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('commutation_requests').select('id', { count: 'exact', head: true }).not('status', 'in', '("approved","rejected")'),
+        supabase.from('resignation_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('retirement_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending')
+      ]);
+
+      setPendingCounts({
+        '/approvals/updates': updates.count || 0,
+        '/approvals/registrations': regs.count || 0,
+        '/approvals/leaves': leaves.count || 0,
+        '/approvals/commutations': commutations.count || 0,
+        '/approvals/resignations': resignations.count || 0,
+        '/approvals/retirements': retirements.count || 0,
+      });
+    } catch (err) {
+      console.error("Error fetching pending counts in sidebar:", err);
+    }
+  };
+
   useEffect(() => {
     fetchNotifications();
+    fetchPendingCounts();
 
     const activitySub = supabase.channel('sidebar_activity_log')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_activity_log' }, fetchNotifications)
       .subscribe();
 
+    const updatesSub = supabase.channel('sidebar-pending-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_update_requests' }, fetchPendingCounts)
+      .subscribe();
+    const regsSub = supabase.channel('sidebar-pending-regs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, fetchPendingCounts)
+      .subscribe();
+    const leavesSub = supabase.channel('sidebar-pending-leaves')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_applications' }, fetchPendingCounts)
+      .subscribe();
+    const commSub = supabase.channel('sidebar-pending-comm')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commutation_requests' }, fetchPendingCounts)
+      .subscribe();
+    const resigSub = supabase.channel('sidebar-pending-resig')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'resignation_requests' }, fetchPendingCounts)
+      .subscribe();
+    const retSub = supabase.channel('sidebar-pending-ret')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'retirement_requests' }, fetchPendingCounts)
+      .subscribe();
+
     return () => {
       activitySub.unsubscribe();
+      updatesSub.unsubscribe();
+      regsSub.unsubscribe();
+      leavesSub.unsubscribe();
+      commSub.unsubscribe();
+      resigSub.unsubscribe();
+      retSub.unsubscribe();
     };
   }, []);
+
+  const totalPendingApprovals = Object.values(pendingCounts).reduce((a, b) => a + b, 0);
 
   const handlePopoverOpen = async (open) => {
     if (open && unreadCount > 0) {
@@ -256,7 +317,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       {/* Toggle Button */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-[28px] bg-white text-[#0C005F] border border-slate-200 rounded-md p-0.5 shadow-md hover:bg-slate-50 z-50 transition-all"
+        className="absolute -right-3 top-[28px] bg-white text-[#0C005F] border border-slate-200 rounded-md p-0.5 shadow-none hover:bg-slate-50 z-50 transition-all"
       >
         {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
@@ -275,7 +336,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         </div>
       </div>
 
-      <nav className="flex-1 py-3 px-2 space-y-1 mt-2 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 py-3 px-2 space-y-1 mt-2 overflow-y-auto no-scrollbar">
         {filteredNavItems.map((item) => {
           const { label, icon: Icon, path, children } = item;
           const isActive = location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
@@ -291,17 +352,25 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                     isActive ? "text-white bg-white/10" : "text-white/70 hover:text-white hover:bg-white/10"
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <Icon className="w-4.5 h-4.5 shrink-0" />
                     <span className="truncate">{label}</span>
                   </div>
-                  {isExpanded ? <ChevronLeft className="w-3.5 h-3.5 -rotate-90 transition-transform" /> : <ChevronLeft className="w-3.5 h-3.5 transition-transform" />}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {label === "Pending Approvals" && totalPendingApprovals > 0 && (
+                      <span className="bg-amber-400 text-[#0C005F] font-black text-[10px] px-1.5 py-0.5 rounded-full leading-none">
+                        {totalPendingApprovals}
+                      </span>
+                    )}
+                    {isExpanded ? <ChevronLeft className="w-3.5 h-3.5 -rotate-90 transition-transform" /> : <ChevronLeft className="w-3.5 h-3.5 transition-transform" />}
+                  </div>
                 </button>
                 {isExpanded && (
                   <div className="ml-4 pl-3 border-l border-white/10 space-y-1 animate-in slide-in-from-top-2 duration-200">
                     {children.map((child) => {
                       const isChildActive = location.pathname === child.path;
                       const ChildIcon = child.icon;
+                      const childCount = pendingCounts[child.path] || 0;
                       return (
                         <Link
                           key={child.path}
@@ -309,12 +378,17 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                           className={cn(
                             "flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200",
                             isChildActive
-                              ? "bg-white/20 text-white shadow-sm"
+                              ? "bg-white/20 text-white shadow-none font-bold"
                               : "text-white/60 hover:text-white hover:bg-white/5"
                           )}
                         >
                           <ChildIcon className="w-3.5 h-3.5 shrink-0" />
                           <span className="truncate">{child.label}</span>
+                          {childCount > 0 && (
+                            <span className="ml-auto bg-amber-400 text-[#0C005F] font-black text-[10px] px-1.5 py-0.5 rounded-full shrink-0 leading-none">
+                              {childCount}
+                            </span>
+                          )}
                         </Link>
                       );
                     })}
@@ -331,13 +405,18 @@ export default function Sidebar({ collapsed, setCollapsed }) {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-white/20 text-white shadow-md"
+                  ? "bg-white/20 text-white shadow-none font-bold"
                   : "text-white/70 hover:text-white hover:bg-white/10"
               )}
               title={collapsed ? label : ""}
             >
               <Icon className="w-4.5 h-4.5 shrink-0" />
               {!collapsed && <span className="truncate">{label}</span>}
+              {!collapsed && path === "/approvals" && totalPendingApprovals > 0 && (
+                <span className="ml-auto bg-amber-400 text-[#0C005F] font-black text-[10px] px-1.5 py-0.5 rounded-full shrink-0 leading-none">
+                  {totalPendingApprovals}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -356,7 +435,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
               <div className="relative">
                 <Bell className="w-4.5 h-4.5 shrink-0" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white border border-[#0C005F] animate-in zoom-in duration-300">
+                  <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-2xs font-bold text-white border border-[#0C005F] animate-in zoom-in duration-300">
                     {unreadCount}
                   </span>
                 )}
@@ -384,15 +463,15 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                     return (
                       <div key={n.id} onClick={n.action} className="p-4 hover:bg-slate-50 transition-colors cursor-pointer group/item">
                         <div className="flex justify-between items-start mb-1">
-                          <p className={`text-[10px] font-bold uppercase tracking-wider ${colorClass}`}>
+                          <p className={`text-2xs font-bold uppercase tracking-wider ${colorClass}`}>
                             {n.title}
                           </p>
-                          <span className="text-[9px] text-muted-foreground shrink-0 ml-2">
+                          <span className="text-2xs text-muted-foreground shrink-0 ml-2">
                             {format(n.time, "MMM d")}
                           </span>
                         </div>
                         <p className="text-xs text-slate-700 leading-snug line-clamp-2">{n.message}</p>
-                        <p className="text-[9px] text-slate-400 mt-1.5 flex items-center justify-between">
+                        <p className="text-2xs text-slate-400 mt-1.5 flex items-center justify-between">
                           <span>{formatDistanceToNow(n.time, { addSuffix: true })}</span>
                           {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-red-500" />}
                         </p>

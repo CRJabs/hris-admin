@@ -51,13 +51,12 @@ function SectionBlock({ title, data, icon: Icon, isEditing, columns, onUpdate, i
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
-    <Card className="shadow-sm border-slate-300">
+    <Card className="shadow-none border border-slate-200 rounded-xl bg-white">
       <CardHeader 
         className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 bg-[#0C005F]/5 cursor-pointer hover:bg-[#0C005F]/10 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <CardTitle className="text-sm font-bold flex items-center gap-2">
-          <Icon className="w-4 h-4 text-primary" />
+        <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
           {title}
         </CardTitle>
         <div className="flex items-center gap-2">
@@ -170,7 +169,7 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
               titleContent={
                 <div className="max-w-[95%]">
                   <p className="text-sm font-bold leading-tight uppercase">{train.name}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">{train.venue} • {train.duration}</p>
+                  <p className="text-2xs text-muted-foreground mt-1 uppercase tracking-wider">{train.venue} • {train.duration}</p>
                 </div>
               }
               sideContent={
@@ -218,7 +217,7 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
               titleContent={
                 <div className="max-w-[95%]">
                   <p className="text-sm font-bold leading-tight uppercase">{train.name}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">{train.venue} • {train.duration}</p>
+                  <p className="text-2xs text-muted-foreground mt-1 uppercase tracking-wider">{train.venue} • {train.duration}</p>
                 </div>
               }
               sideContent={
@@ -310,7 +309,7 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
                 </div>
                 <Badge 
                   variant="outline" 
-                  className={`text-[10px] bg-white ${
+                  className={`text-2xs bg-white ${
                     lic.expiry && new Date(lic.expiry) < new Date() 
                       ? 'text-red-600 border-red-200' 
                       : lic.expiry && (new Date(lic.expiry) - new Date()) / (1000 * 60 * 60 * 24) <= 90
@@ -321,7 +320,7 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
                   Valid until {lic.expiry}
                 </Badge>
               </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground pt-1 border-t">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1 border-t">
                 <span>Issued: <span className="text-foreground">{lic.issued}</span></span>
                 <span>Place: <span className="text-foreground">{lic.place}</span></span>
               </div>

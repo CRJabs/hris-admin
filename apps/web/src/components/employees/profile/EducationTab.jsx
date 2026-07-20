@@ -32,13 +32,12 @@ export default function EducationTab({ employee, isReadOnly = false, isEditing =
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-sm border-slate-300">
+      <Card className="shadow-none border border-slate-200 rounded-xl bg-white">
         <CardHeader 
           className="flex flex-row items-center justify-between pb-2 bg-[#0C005F]/5 cursor-pointer hover:bg-[#0C005F]/10 transition-colors"
           onClick={() => setIsMainExpanded(!isMainExpanded)}
         >
-          <CardTitle className="text-sm font-bold flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-primary" />
+          <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
             Educational Record
           </CardTitle>
           <div className="flex items-center gap-3">

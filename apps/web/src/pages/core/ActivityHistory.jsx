@@ -223,7 +223,7 @@ export default function ActivityHistory() {
               <div
                 key={notif.id}
                 onClick={() => navTarget && navigate(navTarget)}
-                className={`relative rounded-xl border bg-white p-5 transition-all hover:shadow-md hover:border-slate-200 group ${
+                className={`relative rounded-xl border border-slate-200 bg-white p-5 transition-all hover:border-slate-300 group ${
                   navTarget ? "cursor-pointer" : ""
                 } ${!notif.is_read ? "border-l-4 border-l-[#0C005F]" : ""}`}
               >

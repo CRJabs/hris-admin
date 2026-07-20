@@ -92,8 +92,8 @@ export default function Approvals() {
   }, [activeTab]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-slate-50">
-      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-0 max-w-[1440px] mx-auto w-full shrink-0">
+    <div className="flex flex-col h-full w-full overflow-hidden bg-slate-50/50 p-4 gap-4">
+      <div className="w-full shrink-0">
         <ApprovalsTabs 
           counts={counts}
           searchQuery={searchQuery}
@@ -102,7 +102,7 @@ export default function Approvals() {
           setStatusFilter={setStatusFilter}
         />
       </div>
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="flex-1 overflow-y-auto min-h-0 w-full">
         <Outlet context={{ counts, searchQuery, statusFilter }} />
       </div>
     </div>

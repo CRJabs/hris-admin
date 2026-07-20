@@ -8,6 +8,10 @@
   --font-inter: var(--font-inter);
   --font-sans: var(--font-inter); /* Sets Inter as your default font */
 
+  /* Standardized Typography Scale Extensions */
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
+
   /* Border Radius */
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -145,9 +149,15 @@
     overflow-x: hidden;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground text-sm;
     font-family: var(--font-inter);
   }
+  h1 { @apply text-3xl font-extrabold tracking-tight; }
+  h2 { @apply text-2xl font-bold tracking-tight; }
+  h3 { @apply text-xl font-bold tracking-tight; }
+  h4 { @apply text-lg font-semibold tracking-tight; }
+  h5 { @apply text-base font-semibold; }
+  h6 { @apply text-sm font-semibold; }
 }
 
 /* Mobile bottom-nav safe-area spacing */
@@ -157,5 +167,12 @@
   }
   .mb-nav {
     margin-bottom: 5.5rem; /* clears the floating bottom nav */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

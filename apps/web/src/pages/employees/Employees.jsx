@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Search, X, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import EmployeeFilters from "@/components/employees/EmployeeFilters";
 import EmployeeTable from "@/components/employees/EmployeeTable";
@@ -101,14 +102,13 @@ export default function Employees() {
       if (emp) {
         setSelectedEmployee(emp);
         setModalOpen(true);
-        // Clear state so it doesn't reopen on refresh
         navigate(location.pathname, { replace: true });
       }
     }
   }, [location.state, employees, navigate]);
 
-  const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+  const handleFilterChange = (filterType, value) => {
+    setFilters((prev) => ({ ...prev, [filterType]: value }));
   };
 
   const clearFilters = () => {
@@ -124,45 +124,80 @@ export default function Employees() {
     setGlobalSearch("");
   };
 
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
   const filteredEmployees = useMemo(() => {
-    let result = employees.filter((emp) => {
-      const search = (globalSearch || "").toLowerCase();
-      const matchesSearch = !search ||
-        `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(search) ||
-        (emp.employee_id && emp.employee_id.toLowerCase().includes(search)) ||
-        (emp.department && emp.department.toLowerCase().includes(search)) ||
-        (emp.position && emp.position.toLowerCase().includes(search)) ||
-        (emp.email && emp.email.toLowerCase().includes(search));
+    return employees
+      .filter((emp) => {
+        if (filters.departments.length > 0 && !filters.departments.includes(emp.department)) {
+          return false;
+        }
+        if (filters.statuses.length > 0 && !filters.statuses.includes(emp.employment_status || "Fulltime")) {
+          return false;
+        }
+        if (filters.classifications.length > 0 && !filters.classifications.includes(emp.employment_classification)) {
+          return false;
+        }
+        if (filters.classificationsII.length > 0 && !filters.classificationsII.includes(emp.classification_ii)) {
+          return false;
+        }
+        if (filters.classificationsIII.length > 0 && !filters.classificationsIII.includes(emp.classification_iii)) {
+          return false;
+        }
+        if (filters.tenures.length > 0 && !filters.tenures.includes(emp.employment_tenure || "Probationary")) {
+          return false;
+        }
+        if (filters.active !== "All") {
+          const isActive = filters.active === "Active";
+          if (emp.is_active !== isActive) return false;
+        }
 
-      const matchesDept = !filters.departments?.length || filters.departments.includes(emp.department);
-      const matchesStatus = !filters.statuses?.length || filters.statuses.includes(emp.employment_status);
-      const matchesTenure = !filters.tenures?.length || filters.tenures.includes(emp.employment_tenure);
-      const matchesClassification = !filters.classifications?.length || filters.classifications.includes(emp.employment_classification);
-      const matchesClassificationII = !filters.classificationsII?.length || filters.classificationsII.includes(emp.classification_ii);
-      const matchesClassificationIII = !filters.classificationsIII?.length || filters.classificationsIII.includes(emp.classification_iii);
-      const matchesActive = filters.active === "All" ||
-        (filters.active === "Active" && emp.is_active) ||
-        (filters.active === "Inactive" && !emp.is_active);
+        if (globalSearch) {
+          const search = globalSearch.toLowerCase();
+          const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+          const empId = (emp.employee_id || "").toLowerCase();
+          const dept = (emp.department || "").toLowerCase();
+          const pos = (emp.position || "").toLowerCase();
+          const email = (emp.email || "").toLowerCase();
 
-      return matchesSearch && matchesDept && matchesStatus && matchesTenure && matchesClassification && matchesClassificationII && matchesClassificationIII && matchesActive;
-    }).map(emp => {
-       const empPendingRequests = pendingRequests.filter(req => req.employee_id === emp.id);
-       return { ...emp, pendingRequests: empPendingRequests };
-    });
+          return (
+            fullName.includes(search) ||
+            empId.includes(search) ||
+            dept.includes(search) ||
+            pos.includes(search) ||
+            email.includes(search)
+          );
+        }
 
-    // Sorting
-    if (sortConfig.key) {
-      result.sort((a, b) => {
-        const aVal = a[sortConfig.key] || "";
-        const bVal = b[sortConfig.key] || "";
+        return true;
+      })
+      .map(emp => {
+         const empPendingRequests = pendingRequests.filter(req => req.employee_id === emp.id);
+         return { ...emp, pendingRequests: empPendingRequests };
+      })
+      .sort((a, b) => {
+        if (!sortConfig.key) return 0;
         
+        let aVal = a[sortConfig.key] || '';
+        let bVal = b[sortConfig.key] || '';
+
+        if (sortConfig.key === 'last_name') {
+          aVal = `${a.last_name || ''} ${a.first_name || ''}`;
+          bVal = `${b.last_name || ''} ${b.first_name || ''}`;
+        }
+
+        if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+        if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+
         if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
-    }
-
-    return result;
   }, [employees, filters, globalSearch, pendingRequests, sortConfig]);
 
   const handleViewE201 = (emp) => {
@@ -172,19 +207,11 @@ export default function Employees() {
     setModalOpen(true);
   };
 
-  const handleSort = (key) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
-    }));
-  };
-
   const handleDeleteEmployee = async (emp) => {
     try {
       const empName = `${emp.first_name || ''} ${emp.last_name || ''}`;
       const label = `${empName.trim() || 'Unknown Employee'} - Employee Record`;
 
-      // 1. Snapshot employee to bin
       const { error: binError } = await supabase
         .from('bin')
         .insert({
@@ -196,7 +223,6 @@ export default function Employees() {
 
       if (binError) throw binError;
 
-      // 2. Delete employee from database
       const { error } = await supabase
         .from('employees')
         .delete()
@@ -229,7 +255,6 @@ export default function Employees() {
           setSelectedEmployee((prev) => prev ? { ...prev, is_active: false } : null);
         }
 
-        // Log to admin activity
         await supabase.from('admin_activity_log').insert({
           actor_type: 'admin',
           actor_name: 'Administrator',
@@ -256,27 +281,31 @@ export default function Employees() {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0 p-4 md:p-6 gap-5 max-w-[1440px] mx-auto w-full">
-      <div className="flex items-center gap-3 w-full flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search employees, departments..."
-            value={globalSearch}
-            onChange={(e) => setGlobalSearch(e.target.value)}
-            className="pl-10 w-full bg-background border-input focus-visible:ring-1 focus-visible:ring-primary"
-          />
-          {globalSearch && (
-            <button onClick={() => setGlobalSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
-          )}
+    <div className="p-4 w-full h-full flex flex-col gap-4">
+      <Card className="shadow-none border border-slate-200 bg-white rounded-xl p-2.5 px-4 shrink-0">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="relative flex-1 min-w-[240px] max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Search employees, departments..."
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+              className="pl-9 h-9 text-xs border-slate-200 rounded-full focus-visible:ring-1 focus-visible:ring-[#0C005F]"
+            />
+            {globalSearch && (
+              <button onClick={() => setGlobalSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+                <X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <EmployeeFilters filters={filters} onFilterChange={handleFilterChange} onClear={clearFilters} departments={liveDepartments} />
+            <div className="text-xs font-semibold text-slate-500 shrink-0">
+              {filteredEmployees.length} employee{filteredEmployees.length !== 1 ? "s" : ""} found
+            </div>
+          </div>
         </div>
-        <EmployeeFilters filters={filters} onFilterChange={handleFilterChange} onClear={clearFilters} departments={liveDepartments} />
-        <div className="text-sm text-muted-foreground shrink-0 px-2 font-medium">
-          {filteredEmployees.length} employee{filteredEmployees.length !== 1 ? "s" : ""} found
-        </div>
-      </div>
+      </Card>
 
       <EmployeeTable
         employees={filteredEmployees}

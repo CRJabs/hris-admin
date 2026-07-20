@@ -300,8 +300,7 @@ export default function LeaveTab({ employee, isReadOnly = false, onChange, reque
         <div className="lg:col-span-8">
           <Card className="shadow-sm border-slate-300 flex flex-col" style={{ height: "600px" }}>
             <CardHeader className="p-4 border-b bg-slate-50/50 flex flex-row items-center justify-between space-y-0 shrink-0">
-              <CardTitle className="text-base font-bold flex items-center gap-2">
-                <Activity className="w-5 h-5 text-primary" />
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
                 Recent Leave Activity
               </CardTitle>
               {/* Centralized filing button is now in the header actions bar */}

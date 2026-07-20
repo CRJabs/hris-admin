@@ -137,8 +137,8 @@ export default function HomeTab({ employee, onViewProfile, notifications = [], l
         <div className="space-y-8">
           <Card className="shadow-sm border-slate-300 hover:shadow-md transition-shadow">
             <CardHeader className="p-5 pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-[#0C005F]" /> Employment
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
+                Employment
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5 pt-0">
@@ -162,8 +162,8 @@ export default function HomeTab({ employee, onViewProfile, notifications = [], l
 
           <Card className="shadow-sm border-slate-300 hover:shadow-md transition-shadow">
             <CardHeader className="p-5 pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-[#0C005F]" /> Verification
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
+                Verification
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5 pt-0">
@@ -185,8 +185,8 @@ export default function HomeTab({ employee, onViewProfile, notifications = [], l
         {/* Center Column: Leave Credits */}
         <Card className="shadow-sm border-slate-300 flex flex-col h-[340px]">
           <CardHeader className="p-5 pb-2 border-b shrink-0">
-            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <Heart className="w-4 h-4 text-rose-500" /> Leave Credits
+            <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
+              Leave Credits
             </CardTitle>
           </CardHeader>
           <CardContent className="p-5 flex-1 overflow-hidden">
@@ -219,8 +219,8 @@ export default function HomeTab({ employee, onViewProfile, notifications = [], l
         <div className="space-y-4">
           <Card className="shadow-sm border-slate-300 bg-slate-50/50 flex flex-col h-[276px]">
             <CardHeader className="p-5 pb-2 border-b shrink-0">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-primary" /> System Announcements
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
+                System Announcements
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5 flex-1 overflow-hidden">

@@ -28,7 +28,10 @@ function Badge({
   variant,
   ...props
 }) {
-  return (<div className={cn(badgeVariants({ variant }), className)} {...props} />);
+  const hasCustomBg = className && (className.includes("bg-") || className.includes("text-"));
+  const effectiveVariant = variant || (hasCustomBg ? "outline" : "default");
+
+  return (<div className={cn(badgeVariants({ variant: effectiveVariant }), className)} {...props} />);
 }
 
 export { Badge, badgeVariants }
