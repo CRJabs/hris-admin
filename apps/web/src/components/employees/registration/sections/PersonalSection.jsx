@@ -12,9 +12,9 @@ export const PersonalSection = ({ formData, handleChange, handleSelect, handleGr
         <h2 className="text-xl font-bold mb-6 text-slate-800 border-b pb-2">Personal Information</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="space-y-1 md:col-span-1"><Label>Given Name *</Label><Input name="first_name" value={formData.first_name} onChange={handleChange} /></div>
+          <div className="space-y-1 md:col-span-1"><Label>Given Name <span className="text-red-500">*</span></Label><Input name="first_name" value={formData.first_name} onChange={handleChange} /></div>
           <div className="space-y-1 md:col-span-1"><Label>Middle Name</Label><Input name="middle_name" value={formData.middle_name} onChange={handleChange} /></div>
-          <div className="space-y-1 md:col-span-1"><Label>Family Name / Surname *</Label><Input name="last_name" value={formData.last_name} onChange={handleChange} /></div>
+          <div className="space-y-1 md:col-span-1"><Label>Family Name / Surname <span className="text-red-500">*</span></Label><Input name="last_name" value={formData.last_name} onChange={handleChange} /></div>
           <div className="space-y-1 md:col-span-1"><Label>Titles / Post-Nominals</Label><Input name="titles" value={formData.titles} onChange={handleChange} placeholder="e.g. PhD, LPT" /></div>
         </div>
 
@@ -36,7 +36,7 @@ export const PersonalSection = ({ formData, handleChange, handleSelect, handleGr
             </Select>
           </div>
 
-          <div className="space-y-1"><Label>Birth Date *</Label><Input type="date" name="birthdate" value={formData.birthdate} onChange={handleChange} /></div>
+          <div className="space-y-1"><Label>Birth Date <span className="text-red-500">*</span></Label><Input type="date" name="birthdate" value={formData.birthdate} onChange={handleChange} /></div>
           <div className="space-y-1"><Label>Place of Birth</Label><Input name="place_of_birth" value={formData.place_of_birth} onChange={handleChange} /></div>
           <div className="space-y-1"><Label>Age</Label><Input type="number" name="age" value={formData.age} onChange={handleChange} /></div>
           <div className="space-y-1"><Label>Nationality</Label><Input name="nationality" value={formData.nationality} onChange={handleChange} /></div>

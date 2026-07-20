@@ -13,7 +13,7 @@ export const FamilySection = ({ formData, handleChange, handleGrid, emergencyCol
       <div className="bg-white p-6 rounded-xl border shadow-sm">
         <h2 className="text-xl font-bold mb-6 text-slate-800 border-b pb-2">Contact Information</h2>
         <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="space-y-1"><Label>Mobile No. *</Label><Input name="contact_phone" value={formData.contact_phone} onChange={handleChange} /></div>
+          <div className="space-y-1"><Label>Mobile No. <span className="text-red-500">*</span></Label><Input name="contact_phone" value={formData.contact_phone} onChange={handleChange} /></div>
           <div className="space-y-1"><Label>Email Address</Label><Input type="email" name="contact_email" value={formData.contact_email} onChange={handleChange} /></div>
           <div className="space-y-1 col-span-2"><Label>Complete Permanent Address</Label><Input name="address_street" value={formData.address_street} onChange={handleChange} placeholder="House No., Street, Subdivision" /></div>
           <div className="space-y-1"><Label>City/Municipality</Label><Input name="address_city" value={formData.address_city} onChange={handleChange} /></div>

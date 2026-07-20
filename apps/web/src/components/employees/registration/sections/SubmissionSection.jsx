@@ -42,11 +42,11 @@ export const SubmissionSection = ({
           </div>
 
           <div className="space-y-4 max-w-sm mx-auto w-full">
-            <Label className="text-center block">Signature (Type Full Government Name) *</Label>
+            <Label className="text-center block">Signature (Type Full Government Name) <span className="text-red-500">*</span></Label>
             <Input value={signatureName} onChange={e => setSignatureName(e.target.value)} placeholder="Type identifying name" className="text-center font-semibold tracking-wider text-slate-800 h-10" />
 
             <div className="pt-2">
-              <Label className="text-center block mb-2">E-Signature Attachment (PNG/JPG) *</Label>
+              <Label className="text-center block mb-2">E-Signature Attachment (PNG/JPG) <span className="text-red-500">*</span></Label>
               {displaySignatureUrl ? (
                 <div className="border rounded-md overflow-hidden bg-slate-50 relative group">
                   <img src={displaySignatureUrl} alt="E-signature" className="h-24 w-full object-contain mix-blend-multiply" />
