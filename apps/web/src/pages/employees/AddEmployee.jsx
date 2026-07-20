@@ -2,9 +2,8 @@ import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { 
-  User, GraduationCap, Award, Briefcase, CalendarDays, 
-  ShieldCheck, Save, Check, X, Loader2, Mail, Lock, UserPlus,
-  ArrowLeft, Eye, EyeOff
+  User, GraduationCap, Award, Briefcase, 
+  Save, Loader2, Mail, Lock, Eye, EyeOff
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -52,14 +51,14 @@ const defaultEmployee = {
 
 export default function AddEmployee() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: Info, 2: Account
+  const [step, setStep] = useState(1); // 1: Account Creation, 2: Personnel Details
   const [employeeData, setEmployeeData] = useState(defaultEmployee);
   const [isSaving, setIsSaving] = useState(false);
   const [createdEmployee, setCreatedEmployee] = useState(null);
   const [errors, setErrors] = useState({});
   
   // Account State
-  const [accountData, setAccountData] = useState({ email: "", password: "" });
+  const [accountData, setAccountData] = useState({ first_name: "", middle_name: "", last_name: "", titles: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
@@ -117,6 +116,79 @@ export default function AddEmployee() {
     return newErrors;
   };
 
+  const handleCreateAccount = async () => {
+    if (!accountData.first_name?.trim() || !accountData.last_name?.trim() || !accountData.email?.trim() || !accountData.password) {
+      toast.error("First name, last name, email, and password are required.");
+      return;
+    }
+
+    setIsCreatingAccount(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const year = new Date().getFullYear();
+      const generatedId = employeeData.employee_id || `${year} - 001`;
+
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({
+          email: accountData.email.trim(),
+          password: accountData.password,
+          employeeId: generatedId,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Account creation failed');
+      }
+
+      // Create initial employee record linked to the user account (do not pass middle_name or titles here)
+      const { data: empRecord, error: empError } = await supabase
+        .from('employees')
+        .insert([{ 
+          first_name: accountData.first_name.trim(),
+          last_name: accountData.last_name.trim(),
+          employee_id: generatedId,
+          user_id: result.user.id,
+          contact_email: accountData.email.trim(),
+          department: employeeData.department,
+          position: employeeData.position,
+          employment_status: employeeData.employment_status,
+          employment_tenure: employeeData.employment_tenure,
+          employment_classification: employeeData.employment_classification,
+          classification_ii: employeeData.classification_ii,
+          classification_iii: employeeData.classification_iii,
+          is_active: true
+        }])
+        .select()
+        .single();
+
+      if (empError) throw empError;
+
+      setCreatedEmployee(empRecord);
+      setEmployeeData(prev => ({
+        ...prev,
+        first_name: accountData.first_name.trim(),
+        middle_name: accountData.middle_name.trim(),
+        last_name: accountData.last_name.trim(),
+        titles: accountData.titles.trim(),
+        employee_id: generatedId,
+        contact_email: accountData.email.trim()
+      }));
+
+      toast.success("Account created successfully. Now enter personnel information.");
+      setStep(2);
+    } catch (err) {
+      toast.error(err.message || "Failed to create account.");
+    } finally {
+      setIsCreatingAccount(false);
+    }
+  };
+
   const handleSaveEmployee = async () => {
     const validationErrors = validateForm();
     const errorCount = Object.keys(validationErrors).length;
@@ -128,11 +200,13 @@ export default function AddEmployee() {
       return;
     }
 
+    if (!createdEmployee?.id) {
+      toast.error("Employee record error. Please recreate account first.");
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const year = new Date().getFullYear();
-      const generatedId = employeeData.employee_id || `${year} - 001`;
-
       const sanitizedData = Object.fromEntries(
         Object.entries(employeeData)
           .filter(([key]) => !['photo_file', 'signature_file', 'photo_url', 'signature_url'].includes(key))
@@ -144,15 +218,14 @@ export default function AddEmployee() {
 
       const { data, error } = await supabase
         .from('employees')
-        .insert([{ 
-          ...sanitizedData, 
-          employee_id: generatedId,
-          user_id: null 
-        }])
+        .update(sanitizedData)
+        .eq('id', createdEmployee.id)
         .select()
         .single();
 
-       // --- Handle File Uploads (Photo & Signature) ---
+      if (error) throw error;
+
+      // --- Handle File Uploads (Photo & Signature) ---
       let photoUrl = null;
       let signatureUrl = null;
 
@@ -181,14 +254,7 @@ export default function AddEmployee() {
           ...(photoUrl && { photo_url: photoUrl }),
           ...(signatureUrl && { signature_url: signatureUrl })
         }).eq('id', data.id);
-        
-        // Refresh local createdEmployee state with URLs
-        data.photo_url = photoUrl || data.photo_url;
-        data.signature_url = signatureUrl || data.signature_url;
       }
-
-      setCreatedEmployee(data);
-      setAccountData(prev => ({ ...prev, email: data.contact_email || "" }));
 
       // Log to admin activity
       await supabase.from('admin_activity_log').insert({
@@ -214,8 +280,8 @@ export default function AddEmployee() {
         console.warn('Initial benefits calculation failed:', e);
       }
 
-      toast.success("Employee record created successfully. Proceed to account assignment.");
-      setStep(2);
+      toast.success("Employee profile saved successfully.");
+      navigate("/employees");
     } catch (err) {
       console.error("Critical Save error:", err);
       toast.error("Critical Error", {
@@ -226,73 +292,127 @@ export default function AddEmployee() {
     }
   };
 
-   const handleCreateAccount = async () => {
-    if (!accountData.email || !accountData.password) {
-      toast.error("Email and password are required.");
-      return;
-    }
-
-    setIsCreatingAccount(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token ?? ''}`,
-        },
-        body: JSON.stringify({
-          email: accountData.email,
-          password: accountData.password,
-          employeeId: createdEmployee.employee_id,
-        }),
-      });
-
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Account creation failed');
-      }
-
-      const { error: linkError } = await supabase
-        .from('employees')
-        .update({ user_id: result.user.id })
-        .eq('id', createdEmployee.id);
-
-      if (linkError) throw linkError;
-
-      toast.success("Account created and linked successfully.");
-      navigate("/employees");
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setIsCreatingAccount(false);
-    }
-  };
-
   return (
     <div className="p-6 max-w-[1440px] mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/employees")} className="rounded-full">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <UserPlus className="w-6 h-6 text-primary" />
-              {step === 1 ? "Onboard new Employee" : "Assign Employee Account"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {step === 1 
-                ? "Fill in the employee's personal and professional details." 
-                : `Create login credentials for ${createdEmployee?.first_name} ${createdEmployee?.last_name}.`}
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {step === 1 ? (
+          <div className="p-16 flex flex-col items-center justify-center max-w-lg mx-auto space-y-8 animate-in fade-in duration-300">
+            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
+               <Mail className="w-12 h-12 text-primary" />
+            </div>
+            
+            <div className="text-center space-y-2">
+               <h3 className="text-2xl font-bold">Create Employee Credentials</h3>
+               <p className="text-muted-foreground">Set up the login details before entering employee personnel details.</p>
+            </div>
+
+            <div className="w-full space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="first_name" className="text-sm font-semibold">First Name</Label>
+                  <Input 
+                    id="first_name" 
+                    placeholder="First Name" 
+                    className="h-11 text-sm"
+                    value={accountData.first_name}
+                    onChange={(e) => setAccountData(prev => ({ ...prev, first_name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="middle_name" className="text-sm font-semibold">Middle Name</Label>
+                  <Input 
+                    id="middle_name" 
+                    placeholder="Middle Name" 
+                    className="h-11 text-sm"
+                    value={accountData.middle_name}
+                    onChange={(e) => setAccountData(prev => ({ ...prev, middle_name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="last_name" className="text-sm font-semibold">Last Name</Label>
+                  <Input 
+                    id="last_name" 
+                    placeholder="Last Name" 
+                    className="h-11 text-sm"
+                    value={accountData.last_name}
+                    onChange={(e) => setAccountData(prev => ({ ...prev, last_name: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="titles" className="text-sm font-semibold">Titles / Honorifics</Label>
+                <Input 
+                  id="titles" 
+                  placeholder="Titles (e.g. PhD, LPT)" 
+                  className="h-11 text-sm"
+                  value={accountData.titles}
+                  onChange={(e) => setAccountData(prev => ({ ...prev, titles: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-semibold">Login Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="name@university.edu.ph" 
+                    className="pl-10 h-11"
+                    value={accountData.email}
+                    onChange={(e) => setAccountData(prev => ({ ...prev, email: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" title="Temporary Password" className="text-sm font-semibold">Temporary Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input 
+                    id="password" 
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••" 
+                    className="pl-10 pr-10 h-11"
+                    value={accountData.password}
+                    onChange={(e) => setAccountData(prev => ({ ...prev, password: e.target.value }))}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted-foreground italic bg-slate-50 p-2 rounded border border-slate-100">
+                  Tip: Employees will be prompted to change this password upon their first login.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col w-full gap-4 pt-6">
+               <Button 
+                 onClick={handleCreateAccount} 
+                 disabled={isCreatingAccount}
+                 className="w-full bg-[#0C005F] hover:bg-[#0C005F]/90 h-12 text-base font-bold shadow-lg"
+               >
+                 {isCreatingAccount ? (
+                   <>
+                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                     Creating Account...
+                   </>
+                 ) : (
+                   "Create Account & Proceed to Details"
+                 )}
+               </Button>
+               <Button variant="outline" onClick={() => navigate("/employees")} disabled={isCreatingAccount}>
+                 Cancel
+               </Button>
+            </div>
+          </div>
+        ) : (
           <div className="flex flex-col">
             <Tabs defaultValue="profiling" className="w-full">
               <div className="px-6 border-b bg-slate-50/50">
@@ -352,77 +472,7 @@ export default function AddEmployee() {
                <Button variant="outline" onClick={() => navigate("/employees")} disabled={isSaving}>Cancel</Button>
                <Button onClick={handleSaveEmployee} disabled={isSaving} className="gap-2 bg-[#0C005F] hover:bg-[#0C005F]/90 px-8">
                   {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Save & Next: Account
-               </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="p-16 flex flex-col items-center justify-center max-w-lg mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
-               <Mail className="w-12 h-12 text-primary" />
-            </div>
-            
-            <div className="text-center space-y-2">
-               <h3 className="text-2xl font-bold">Profile Account Credentials</h3>
-               <p className="text-muted-foreground">Set up the login details for this employee.</p>
-            </div>
-
-            <div className="w-full space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold">Login Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="name@university.edu.ph" 
-                    className="pl-10 h-11"
-                    value={accountData.email}
-                    onChange={(e) => setAccountData(prev => ({ ...prev, email: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" title="Temporary Password" className="text-sm font-semibold">Temporary Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input 
-                    id="password" 
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••" 
-                    className="pl-10 pr-10 h-11"
-                    value={accountData.password}
-                    onChange={(e) => setAccountData(prev => ({ ...prev, password: e.target.value }))}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <p className="text-[11px] text-muted-foreground italic bg-slate-50 p-2 rounded border border-slate-100">
-                  Tip: Employees are advised to change this upon first login for security.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col w-full gap-4 pt-6">
-               <Button 
-                 onClick={handleCreateAccount} 
-                 disabled={isCreatingAccount}
-                 className="w-full bg-[#0C005F] hover:bg-[#0C005F]/90 h-12 text-lg font-bold shadow-lg"
-               >
-                 {isCreatingAccount ? (
-                   <>
-                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                     Creating Account...
-                   </>
-                 ) : (
-                   "Complete & Assign Account"
-                 )}
+                  Save Employee Profile
                </Button>
             </div>
           </div>

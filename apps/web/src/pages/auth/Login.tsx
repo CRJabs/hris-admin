@@ -3,9 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Mail, Lock } from "lucide-react";
 
-// shadcn/ui components (adjust imports if your paths differ)
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +27,6 @@ export default function Login() {
     setInlineHint("");
 
     try {
-      // 1. Authenticate with Supabase
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -36,7 +34,6 @@ export default function Login() {
 
       if (authError) throw authError;
 
-      // 2. Fetch the user's role from the user_profiles table
       const { error: profileError } = await supabase
         .from("user_profiles")
         .select("role")
@@ -45,15 +42,12 @@ export default function Login() {
 
       if (profileError) {
         console.warn("Could not fetch user profile:", profileError);
-        // If they don't have a profile yet, you might want to handle that specific case
       }
 
+      // Navigation is handled by the useEffect watching `user` from AuthContext.
+      // AuthContext will re-fetch user_profiles after auth state changes and set
+      // user.temp_password, which determines whether to force a password change.
       toast.success("Successfully logged in!");
-
-      // We do not navigate manually here.
-      // We will let the useEffect listen for the AuthContext 'user' to populate, 
-      // which will happen after the root auth listener fetches the profile from Supabase.
-
     } catch (error: unknown) {
       const err = error as { code?: string; message?: string };
       const code = err?.code;
@@ -84,65 +78,74 @@ export default function Login() {
     }
   };
 
-  // Listen for the user object to fully populate before routing
-  // This prevents the race condition where App.jsx forces us back to /login because user is null
   useEffect(() => {
     if (user) {
-      navigate("/");
+      if (user.temp_password) {
+        navigate("/force-password-change");
+      } else {
+        navigate("/");
+      }
     }
   }, [user, navigate]);
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#0C005F] to-[#1900C5]"
+      className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4 md:p-8"
       style={{ fontFamily: '"Figtree", sans-serif' }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl md:h-[700px] flex flex-col md:flex-row overflow-hidden">
-
+      <div className="w-full max-w-6xl xl:max-w-7xl flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
+        
         {/* Left Side - Login Form */}
-        <div className="flex-1 flex flex-col justify-between p-8 md:p-12 relative">
-
-          {/* Top Logo Container Placeholder */}
-          <div className="flex justify-center mb-6 md:mb-8">
-            {/* The user will place 'ub-hris-logo.png' in the public/assets/ folder */}
+        <div className="w-full md:w-1/2 lg:w-5/12 flex flex-col justify-between py-6 px-2 md:px-6 space-y-8">
+          
+          {/* Logo */}
+          <div>
             <img
               src="/assets/ub-hris-logo.png"
               alt="University of Bohol HRIS Logo"
-              className="h-10 sm:h-14 md:h-16 object-contain"
+              className="h-12 md:h-16 object-contain"
               onError={(e) => {
-                e.currentTarget.src = "https://via.placeholder.com/300x80?text=UB+HRIS+Logo+Placeholder";
+                e.currentTarget.src = "https://via.placeholder.com/300x80?text=UB+HRIS+Logo";
               }}
             />
           </div>
 
-          {/* Form Area */}
-          <div className="w-full max-w-sm mx-auto space-y-6">
-            {/* <h2 className="text-2xl font-bold text-center text-slate-800">Login</h2> */}
+          {/* Form Content */}
+          <div className="w-full max-w-md space-y-6">
+            <h1 className="text-3xl md:text-4xl font-extrabold text-[#333] tracking-tight">Sign In</h1>
 
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs font-semibold text-slate-700">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="example@gmail.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (inlineError) {
-                      setInlineError("");
-                      setInlineHint("");
-                    }
-                  }}
-                  required
-                  disabled={isLoading}
-                  className="rounded-md border-slate-300 focus-visible:ring-[#0C005F]"
-                />
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-xs font-semibold text-[#333]">
+                  Email Address
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="example@universityofbohol.edu.ph"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (inlineError) {
+                        setInlineError("");
+                        setInlineHint("");
+                      }
+                    }}
+                    required
+                    disabled={isLoading}
+                    className="pl-10 h-11 rounded-lg border-slate-300 text-[#333] focus-visible:ring-[#0C005F] focus-visible:border-[#0C005F]"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1.5 relative">
-                <Label htmlFor="password" className="text-xs font-semibold text-slate-700">Password</Label>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-xs font-semibold text-[#333]">
+                  Password
+                </Label>
                 <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -157,86 +160,69 @@ export default function Login() {
                     }}
                     required
                     disabled={isLoading}
-                    className="rounded-md border-slate-300 focus-visible:ring-[#0C005F] pr-10"
+                    className="pl-10 pr-10 h-11 rounded-lg border-slate-300 text-[#333] focus-visible:ring-[#0C005F] focus-visible:border-[#0C005F]"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     tabIndex={-1}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0C005F] transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#333] transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
 
-              <div className="pt-2">
-                <Button
-                  className="w-full bg-gradient-to-r from-[#0C005F] to-[#1900C5] text-white hover:opacity-90 transition-opacity rounded-md py-6 text-sm font-semibold"
-                  type="submit"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Authenticating...
-                    </>
-                  ) : (
-                    "Login"
-                  )}
-                </Button>
+              <div className="flex items-center justify-end pt-1">
+                <Link to="/forgot-password" className="text-xs text-[#0C005F] font-semibold hover:underline">
+                  Forgot Password?
+                </Link>
               </div>
 
               {inlineError && (
-                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-left">
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-left">
                   <p className="text-xs font-semibold text-red-700">{inlineError}</p>
                   {inlineHint && <p className="mt-0.5 text-xs text-red-600">{inlineHint}</p>}
                 </div>
               )}
 
-              <div className="text-center pt-2 flex flex-col gap-2">
-                <Link to="/forgot-password" title="forgot password?" className="text-sm text-[#0C005F] hover:underline opacity-80">
-                  forgot password?
+              <Button
+                className="w-full bg-gradient-to-r from-[#0C005F] to-[#1900C5] text-white hover:opacity-95 transition-opacity rounded-lg h-11 text-sm font-semibold shadow-md"
+                type="submit"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
+              </Button>
+
+              <div className="text-center pt-2 text-xs text-slate-600">
+                Don't have an account?{" "}
+                <Link to="/register" className="text-[#0C005F] font-bold hover:underline">
+                  Register here!
                 </Link>
-                <div className="text-sm text-slate-500">
-                  Don't have an account?{" "}
-                  <Link to="/register" className="text-[#0C005F] font-bold hover:underline">
-                    Register here!
-                  </Link>
-                </div>
               </div>
             </form>
           </div>
-
-          {/* Bottom Logo Container Placeholder */}
-          <div className="flex justify-center mt-12">
-            {/* The user will place 'ub-footer-logo.png' in the public/assets/ folder */}
-            <img
-              src="/assets/ub-footer-logo.png"
-              alt="UB Scholarship Character Service"
-              className="h-8 object-contain"
-              onError={(e) => {
-                e.currentTarget.src = "https://via.placeholder.com/250x40?text=Secondary+Logo+Placeholder";
-              }}
-            />
-          </div>
         </div>
 
-        {/* Right Side - Image Showcase */}
-        <div className="hidden md:block md:w-1/2 bg-slate-100 relative p-4">
-          <div className="w-full h-full rounded-xl overflow-hidden relative">
-            {/* The user will place 'login-building-bg.jpg' in the public/assets/ folder */}
-            <img
-              src="/assets/login-building-bg.jpg"
-              alt="UB Campus Building"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1470&auto=format&fit=crop";
-              }}
-            />
-            {/* A subtle blue overlay to mimic the image's tint, if the raw image doesn't have it */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#0C005F]/35 to-[#1900C5]/55"></div>
-          </div>
+        {/* Right Side - Picture Block without text or blue border */}
+        <div className="hidden md:flex w-full md:w-1/2 lg:w-7/12 h-[680px] lg:h-[720px] rounded-3xl overflow-hidden relative shadow-2xl">
+          <img
+            src="/assets/login-building-bg.jpg"
+            alt="UB Campus Building"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1470&auto=format&fit=crop";
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-tr from-[#0C005F]/85 via-[#0C005F]/55 to-[#1900C5]/45 mix-blend-multiply"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0C005F]/70 via-transparent to-transparent"></div>
         </div>
 
       </div>

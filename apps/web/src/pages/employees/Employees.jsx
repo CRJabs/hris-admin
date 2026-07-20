@@ -276,10 +276,6 @@ export default function Employees() {
         <div className="text-sm text-muted-foreground shrink-0 px-2 font-medium">
           {filteredEmployees.length} employee{filteredEmployees.length !== 1 ? "s" : ""} found
         </div>
-        <Button onClick={() => navigate("/employees/add")} className="gap-2 text-xs bg-[#0C005F] hover:bg-[#0C005F]/90 shrink-0">
-          <UserPlus className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Add Employee</span>
-        </Button>
       </div>
 
       <EmployeeTable

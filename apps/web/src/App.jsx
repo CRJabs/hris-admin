@@ -27,6 +27,7 @@ const ResetPassword = lazy(() => import('@/pages/auth/ResetPassword'));
 const EmployeeRegistration = lazy(() => import('@/pages/employees/EmployeeRegistration'));
 const Register = lazy(() => import('@/pages/auth/Register'));
 const VerifyEmail = lazy(() => import('@/pages/auth/VerifyEmail'));
+const ForcePasswordChange = lazy(() => import('@/pages/auth/ForcePasswordChange'));
 const AddEmployee = lazy(() => import('@/pages/employees/AddEmployee'));
 const ProfileUpdates = lazy(() => import('@/pages/approvals/ProfileUpdates'));
 const NewRegistrations = lazy(() => import('@/pages/approvals/NewRegistrations'));
@@ -122,6 +123,7 @@ const AuthenticatedApp = () => {
   // Employee Routes
   return (
     <Routes>
+      <Route path="/registration" element={<EmployeeRegistration />} />
       <Route element={<EmployeeLayout />}>
         <Route path="/" element={<Navigate to="/my-profile" replace />} />
         <Route path="/my-profile" element={<EmployeeProfile />} />
@@ -141,6 +143,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/force-password-change" element={<ForcePasswordChange />} />
               <Route path="/registration" element={<EmployeeRegistration />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
