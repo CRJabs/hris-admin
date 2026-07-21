@@ -200,7 +200,9 @@ export default function EmployeeRegistration() {
   });
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    const sanitized = sanitizeByFieldName(name, value);
+    setFormData({ ...formData, [name]: sanitized });
   };
   const handleSelect = (name, value) => {
     setFormData({ ...formData, [name]: value });
@@ -280,7 +282,7 @@ export default function EmployeeRegistration() {
   const isSectionIncomplete = (id) => {
     switch (id) {
       case "personal": return !formData.first_name || !formData.last_name || !formData.birthdate;
-      case "family": return !formData.contact_phone;
+      case "family": return !formData.contact_phone || (formData.contact_email && !validateUniversityEmail(formData.contact_email));
       case "certify": return !certified || !signatureName || !signatureUrl;
       default: return false;
     }
@@ -290,6 +292,9 @@ export default function EmployeeRegistration() {
     const missing = [];
     if (!formData.first_name || !formData.last_name || !formData.birthdate) missing.push("Personal Data");
     if (!formData.contact_phone) missing.push("Contact Phone");
+    if (formData.contact_email && !validateUniversityEmail(formData.contact_email)) {
+      missing.push("Valid Email (@universityofbohol.edu.ph)");
+    }
     if (!certified) missing.push("Electronic Waiver Agreement");
     if (!signatureName) missing.push("Typed Signature Name");
     if (!signatureUrl) missing.push("E-Signature Image Upload");

@@ -28,7 +28,17 @@ import {
 
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 
+import { sanitizeByFieldName } from "@/utils/inputValidation";
+
 function InfoRow({ label, value, name, onChange, isReadOnly, type = "text", isUpdated = false, isError = false, children }) {
+  const handleChange = (e) => {
+    const sanitized = sanitizeByFieldName(name, e.target.value);
+    onChange(name, sanitized);
+  };
+
+  const inputMode = (name === 'employee_id' || name === 'phone') ? 'numeric' :
+                    (name === 'salary' || name === 'monthly_salary') ? 'decimal' : undefined;
+
   return (
     <div className={`flex items-center justify-between py-2 px-2 rounded-md transition-colors ${isUpdated ? 'bg-amber-50 border border-amber-200/50 shadow-sm' : 'border-b last:border-0'}`}>
       <div className="w-full pr-4">
@@ -46,7 +56,8 @@ function InfoRow({ label, value, name, onChange, isReadOnly, type = "text", isUp
               type={type}
               name={name}
               value={value || ""} 
-              onChange={(e) => onChange(name, e.target.value)}
+              inputMode={inputMode}
+              onChange={handleChange}
               className={`h-8 text-sm mt-1 w-full max-w-sm ${isError ? 'border-red-500 focus-visible:ring-red-500 bg-red-50/50' : ''}`}
             />
           )

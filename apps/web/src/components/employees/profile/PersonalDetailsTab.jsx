@@ -37,10 +37,21 @@ function SectionBlock({ title, icon: Icon, children, action }) {
 }
 
 
+import { sanitizeByFieldName } from "@/utils/inputValidation";
+
 const UB_LOGO_URL = supabase.storage.from('department-logos').getPublicUrl('ub.png').data.publicUrl;
 
 
 function InfoRow({ label, value, name, onChange, isEditing, type = "text", className = "", isUpdated = false, isError = false, children }) {
+  const handleChange = (e) => {
+    const sanitized = sanitizeByFieldName(name, e.target.value);
+    onChange(name, sanitized);
+  };
+
+  const inputMode = (name === 'age' || name === 'address_zip') ? 'numeric' :
+                    (name === 'height' || name === 'weight') ? 'decimal' :
+                    (name === 'contact_phone' || name === 'mobile' || name === 'phone') ? 'tel' : undefined;
+
   return (
     <div className={`py-1.5 px-2 rounded-md transition-colors ${isUpdated ? 'bg-amber-50 border border-amber-200/50 shadow-sm' : ''} ${className}`}>
       <div className="flex items-center justify-between">
@@ -57,7 +68,8 @@ function InfoRow({ label, value, name, onChange, isEditing, type = "text", class
             type={type}
             name={name}
             value={value || ""} 
-            onChange={(e) => onChange(name, e.target.value)}
+            inputMode={inputMode}
+            onChange={handleChange}
             className={`h-8 text-sm mt-1 ${isError ? 'border-red-500 focus-visible:ring-red-500 bg-red-50/50' : ''}`}
           />
         )
