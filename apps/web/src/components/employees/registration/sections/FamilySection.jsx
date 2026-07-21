@@ -33,12 +33,11 @@ export const FamilySection = ({ formData, handleChange, handleGrid, emergencyCol
           {!showSpouse ? (
             <Button 
               type="button" 
-              variant="outline" 
               size="sm" 
               onClick={() => setShowSpouse(true)}
-              className="gap-2 text-[#0C005F] border-[#0C005F]/20 hover:bg-[#0C005F]/5"
+              className="gap-1 h-8 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs rounded-[6px] shadow-none px-3 border-none flex items-center justify-center cursor-pointer"
             >
-              <Plus className="w-4 h-4" /> Add Spouse
+              <Plus className="w-3.5 h-3.5" /> Add Spouse
             </Button>
           ) : (
             <Button 

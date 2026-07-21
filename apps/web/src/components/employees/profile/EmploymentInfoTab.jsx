@@ -334,9 +334,8 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
                     ))}
                     <Button
                       type="button"
-                      variant="outline"
                       size="sm"
-                      className="h-8 border-dashed border-2 border-slate-200 hover:border-primary text-slate-500 hover:text-primary gap-1 px-3 mt-1"
+                      className="gap-1 h-8 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs rounded-[6px] shadow-none px-3 border-none flex items-center justify-center cursor-pointer mt-1"
                       onClick={handleAddPositionField}
                     >
                       <Plus className="w-3.5 h-3.5" />

@@ -311,7 +311,7 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] h-[85vh] xl:max-w-7xl p-0 rounded-2xl border border-slate-200 shadow-none overflow-hidden flex flex-col bg-white">
+      <DialogContent hideClose className="max-w-[95vw] h-[85vh] xl:max-w-7xl p-0 rounded-2xl border border-slate-200 shadow-none overflow-hidden flex flex-col bg-white">
         {pendingRequests.length > 0 && (
           <div className="bg-amber-50 border-b border-amber-200 p-4 px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 z-50">
             <div>

@@ -518,12 +518,11 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
             action={isEditing && !showSpouse && (
               <Button 
                 type="button" 
-                variant="outline" 
                 size="sm" 
                 onClick={() => setShowSpouse(true)}
-                className="h-7 gap-1 text-2xs text-primary border-primary/20 hover:bg-primary/5 px-2"
+                className="gap-1 h-8 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs rounded-[6px] shadow-none px-3 border-none flex items-center justify-center cursor-pointer"
               >
-                <Plus className="w-3 h-3" /> Add Spouse
+                <Plus className="w-3.5 h-3.5" /> Add Spouse
               </Button>
             )}
           >

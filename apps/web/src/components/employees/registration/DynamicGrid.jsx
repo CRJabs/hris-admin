@@ -45,7 +45,7 @@ export default function DynamicGrid({ title, columns, data, onChange, emptyState
     <div className="space-y-3">
       <div className="flex justify-between items-center bg-muted/30 p-3 rounded-md shadow-sm border border-muted">
         <Label className="text-xs font-black uppercase tracking-widest text-slate-700">{title}</Label>
-        <Button type="button" variant="default" size="sm" onClick={addRow} className="gap-1 h-8">
+        <Button type="button" size="sm" onClick={addRow} className="gap-1 h-8 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs rounded-[6px] shadow-none px-3 border-none flex items-center justify-center cursor-pointer">
           <Plus className="w-3.5 h-3.5" /> Add Row
         </Button>
       </div>

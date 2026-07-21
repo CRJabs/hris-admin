@@ -28,6 +28,7 @@ import { HistorySection } from "@/components/employees/registration/sections/His
 import { EducationSection } from "@/components/employees/registration/sections/EducationSection";
 import { SubmissionSection } from "@/components/employees/registration/sections/SubmissionSection";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
+import { sanitizeByFieldName, validateUniversityEmail } from "@/utils/inputValidation";
 
 // Grid Span Distributions
 const emergencyCols = [
@@ -37,32 +38,32 @@ const emergencyCols = [
   { key: 'address', label: 'Contact Address', span: 6 }, { key: 'office', label: 'Office No.', span: 3 }, { key: 'home', label: 'Home No.', span: 3 }
 ];
 const childrenCols = [
-  { key: 'name', label: "Child's Name", span: 8 }, { key: 'birthdate', label: 'Date of Birth', type: 'date', span: 4 },
-  { key: 'age', label: 'Age', span: 2 }, { key: 'gender', label: 'Gender', span: 3 },
-  { key: 'enrolled', label: 'Enrolled At', span: 4 }, { key: 'course', label: 'Course & YR', span: 3 }
+  { key: 'name', label: "Child's Name", span: 8, sanityType: 'alpha' }, { key: 'birthdate', label: 'Date of Birth', type: 'date', span: 4 },
+  { key: 'age', label: 'Age', span: 2, sanityType: 'numeric' }, { key: 'gender', label: 'Gender', span: 3, sanityType: 'alpha' },
+  { key: 'enrolled', label: 'Enrolled At', span: 4, sanityType: 'alpha' }, { key: 'course', label: 'Course & YR', span: 3, sanityType: 'alpha' }
 ];
 const awardsCols = [
-  { key: 'type', label: 'Reward Type', span: 4 }, { key: 'name', label: 'Reward Name', span: 8 },
-  { key: 'agency', label: 'Granting Agency/Org', span: 4 }, { key: 'date', label: 'Date Given', type: 'date', span: 3 },
-  { key: 'place', label: 'Place Given', span: 3 }, { key: 'remarks', label: 'Remarks', span: 2 }
+  { key: 'type', label: 'Reward Type', span: 4 }, { key: 'name', label: 'Reward Name', span: 8, sanityType: 'alpha' },
+  { key: 'agency', label: 'Granting Agency/Org', span: 4, sanityType: 'alpha' }, { key: 'date', label: 'Date Given', type: 'date', span: 3 },
+  { key: 'place', label: 'Place Given', span: 3, sanityType: 'alpha' }, { key: 'remarks', label: 'Remarks', span: 2 }
 ];
 const scholarCols = [
-  { key: 'type', label: 'Work Type', span: 4 }, { key: 'spec', label: 'Specification', span: 4, placeholder: 'Study/Travel/Thesis' }, { key: 'title', label: 'Complete Title', span: 4 },
-  { key: 'status', label: 'Work Status', span: 2 }, { key: 'agency', label: 'Granting Agency', span: 3 }, { key: 'date', label: 'Date Given', type: 'date', span: 2 },
-  { key: 'place', label: 'Place Given', span: 2 }, { key: 'remarks', label: 'Remarks', span: 3 }
+  { key: 'type', label: 'Work Type', span: 4 }, { key: 'spec', label: 'Specification', span: 4, placeholder: 'Study/Travel/Thesis' }, { key: 'title', label: 'Complete Title', span: 4, sanityType: 'alpha' },
+  { key: 'status', label: 'Work Status', span: 2 }, { key: 'agency', label: 'Granting Agency', span: 3, sanityType: 'alpha' }, { key: 'date', label: 'Date Given', type: 'date', span: 2 },
+  { key: 'place', label: 'Place Given', span: 2, sanityType: 'alpha' }, { key: 'remarks', label: 'Remarks', span: 3 }
 ];
 const licenseCols = [
-  { key: 'name', label: 'License Name', span: 3 }, { key: 'number', label: 'License No.', span: 2 },
+  { key: 'name', label: 'License Name', span: 3, sanityType: 'alpha' }, { key: 'number', label: 'License No.', span: 2, sanityType: 'id' },
   { key: 'issued', label: 'Issued Date', type: 'date', span: 2 }, { key: 'expiry', label: 'Expiry Date', type: 'date', span: 2 },
-  { key: 'place', label: 'Place Issued', span: 2 }, { key: 'remarks', label: 'Remarks', span: 1 }
+  { key: 'place', label: 'Place Issued', span: 2, sanityType: 'alpha' }, { key: 'remarks', label: 'Remarks', span: 1 }
 ];
 const examsCols = [
-  { key: 'title', label: 'Exam Title', span: 3 }, { key: 'date', label: 'Date Taken', type: 'date', span: 2 },
-  { key: 'place', label: 'Place Taken', span: 2 }, { key: 'rank', label: 'Rank (If Applicable)', span: 2 },
-  { key: 'rating', label: 'Rating (%, GPA)', span: 2 }, { key: 'remarks', label: 'Remarks', span: 1 }
+  { key: 'title', label: 'Exam Title', span: 3, sanityType: 'alpha' }, { key: 'date', label: 'Date Taken', type: 'date', span: 2 },
+  { key: 'place', label: 'Place Taken', span: 2, sanityType: 'alpha' }, { key: 'rank', label: 'Rank (If Applicable)', span: 2 },
+  { key: 'rating', label: 'Rating (%, GPA)', span: 2, sanityType: 'decimal' }, { key: 'remarks', label: 'Remarks', span: 1 }
 ];
 const skillsCols = [
-  { key: 'skill', label: 'Skill', span: 6 }, { key: 'years', label: 'Years of Use', span: 2 },
+  { key: 'skill', label: 'Skill', span: 6, sanityType: 'alpha' }, { key: 'years', label: 'Years of Use', span: 2, sanityType: 'numeric' },
   { 
     key: 'level', 
     label: 'Level of Expertise', 
@@ -73,7 +74,7 @@ const skillsCols = [
   }
 ];
 const langCols = [
-  { key: 'language', label: 'Language', span: 4 }, 
+  { key: 'language', label: 'Language', span: 4, sanityType: 'alpha' }, 
   { 
     key: 'literacy', 
     label: 'Literacy', 
@@ -92,31 +93,31 @@ const langCols = [
   }
 ];
 const affiliationCols = [
-  { key: 'org', label: 'Organization', span: 6 }, { key: 'place', label: 'Place/Station', span: 6 },
-  { key: 'position', label: 'Position', span: 6 }, 
+  { key: 'org', label: 'Organization', span: 6, sanityType: 'alpha' }, { key: 'place', label: 'Place/Station', span: 6, sanityType: 'alpha' },
+  { key: 'position', label: 'Position', span: 6, sanityType: 'alpha' }, 
   { key: 'start_date', label: 'Start Date', type: 'date', span: 3 }, { key: 'end_date', label: 'End Date', type: 'date', span: 3 }
 ];
 const extraCols = [
-  { key: 'type', label: 'Service/Activity Type', span: 4 }, { key: 'nature_act', label: 'Nature of Activity/Project', span: 8 },
-  { key: 'nature_part', label: 'Nature of Participation', span: 5 }, { key: 'date', label: 'Date', type: 'date', span: 3 },
+  { key: 'type', label: 'Service/Activity Type', span: 4 }, { key: 'nature_act', label: 'Nature of Activity/Project', span: 8, sanityType: 'alpha' },
+  { key: 'nature_part', label: 'Nature of Participation', span: 5, sanityType: 'alpha' }, { key: 'date', label: 'Date', type: 'date', span: 3 },
   { key: 'remarks', label: 'Remarks', span: 4 }
 ];
 const prevEmpCols = [
-  { key: 'company', label: 'Company Name', span: 4 }, { key: 'address', label: 'Address', span: 4 }, 
-  { key: 'position', label: 'Position', span: 4 },
-  { key: 'status', label: 'Emp Status', span: 3 }, { key: 'phone', label: 'Phone No.', span: 3 },
-  { key: 'dept', label: 'Office/Dept', span: 3 }, { key: 'salary', label: 'Salary', span: 3 }, 
+  { key: 'company', label: 'Company Name', span: 4, sanityType: 'alpha' }, { key: 'address', label: 'Address', span: 4, sanityType: 'alpha' }, 
+  { key: 'position', label: 'Position', span: 4, sanityType: 'alpha' },
+  { key: 'status', label: 'Emp Status', span: 3, sanityType: 'alpha' }, { key: 'phone', label: 'Phone No.', span: 3, sanityType: 'phone' },
+  { key: 'dept', label: 'Office/Dept', span: 3, sanityType: 'alpha' }, { key: 'salary', label: 'Salary', span: 3, sanityType: 'decimal' }, 
   { key: 'start', label: 'Date of Emp', type: 'date', span: 2 },
   { key: 'end', label: 'Date Resigned', type: 'date', span: 2 }, 
-  { key: 'awards', label: 'Achievements/Awards', span: 3 },
-  { key: 'resp', label: 'Responsibility', span: 3 }, { key: 'reason', label: 'Reason for Leaving', span: 2 }
+  { key: 'awards', label: 'Achievements/Awards', span: 3, sanityType: 'alpha' },
+  { key: 'resp', label: 'Responsibility', span: 3, sanityType: 'alpha' }, { key: 'reason', label: 'Reason for Leaving', span: 2, sanityType: 'alpha' }
 ];
 const eduCols = [
-  { key: 'level', label: 'Level', span: 3 }, { key: 'school', label: 'Name of School', span: 5 }, { key: 'address', label: 'School Address', span: 4 },
-  { key: 'degree', label: 'Degree Earned', span: 4 }, { key: 'gradYear', label: 'Grad Date', type: 'date', span: 2 }, { key: 'units', label: 'Units Completed', span: 2 },
-  { key: 'gwa', label: 'GWA', span: 1 }, { key: 'inclusive', label: 'Inclusive Date of Attendance', span: 3 },
-  { key: 'thesis', label: 'Thesis/Dissertation', span: 4 }, { key: 'honors', label: 'Graduation Honors', span: 3 }, 
-  { key: 'awards', label: 'Awards', span: 3 }, { key: 'remarks', label: 'Remarks', span: 2 }
+  { key: 'level', label: 'Level', span: 3, sanityType: 'alpha' }, { key: 'school', label: 'Name of School', span: 5, sanityType: 'alpha' }, { key: 'address', label: 'School Address', span: 4, sanityType: 'alpha' },
+  { key: 'degree', label: 'Degree Earned', span: 4, sanityType: 'alpha' }, { key: 'gradYear', label: 'Grad Date', type: 'date', span: 2 }, { key: 'units', label: 'Units Completed', span: 2, sanityType: 'numeric' },
+  { key: 'gwa', label: 'GWA', span: 1, sanityType: 'decimal' }, { key: 'inclusive', label: 'Inclusive Date of Attendance', span: 3 },
+  { key: 'thesis', label: 'Thesis/Dissertation', span: 4, sanityType: 'alpha' }, { key: 'honors', label: 'Graduation Honors', span: 3, sanityType: 'alpha' }, 
+  { key: 'awards', label: 'Awards', span: 3, sanityType: 'alpha' }, { key: 'remarks', label: 'Remarks', span: 2 }
 ];
 const trainCols = [
   { key: 'name', label: 'Seminar/Training Name', span: 4 }, { key: 'type', label: 'Type', span: 2 }, { key: 'budget', label: 'Approved Budget', span: 2 },

@@ -29,10 +29,10 @@ export function sanitizePhone(val) {
   return val.replace(/[^0-9\s\-\(\)\+]/g, '');
 }
 
-// 5. Formatted IDs (SSS, TIN, PhilHealth, PAG-IBIG, PERAA, License No.): Digits, hyphens, spaces, letters
+// 5. Formatted IDs (SSS, TIN, PhilHealth, PAG-IBIG, PERAA, License No.): Digits, hyphens, spaces only
 export function sanitizeFormattedId(val) {
   if (typeof val !== 'string') return '';
-  return val.replace(/[^a-zA-Z0-9\s\-]/g, '');
+  return val.replace(/[^0-9\s\-]/g, '');
 }
 
 // 6. Strict Email Validation with @universityofbohol.edu.ph requirement
@@ -53,6 +53,8 @@ export const FIELD_SANITY_MAP = {
   place_of_birth: 'alpha',
   nationality: 'alpha',
   religion: 'alpha',
+  gender: 'alpha',
+  spouse_gender: 'alpha',
   father_name: 'alpha',
   father_occupation: 'alpha',
   mother_maiden_name: 'alpha',
@@ -61,11 +63,16 @@ export const FIELD_SANITY_MAP = {
   spouse_employer: 'alpha',
   spouse_position: 'alpha',
   spouse_employment_status: 'alpha',
-  spouse_gender: 'alpha',
   address_city: 'alpha',
   address_province: 'alpha',
   address_country: 'alpha',
   distinguishing_marks: 'alpha',
+  degree: 'alpha',
+  school: 'alpha',
+  honors: 'alpha',
+  thesis: 'alpha',
+  course: 'alpha',
+  enrolled: 'alpha',
   
   // Integers / Counts
   age: 'numeric',
@@ -90,12 +97,13 @@ export const FIELD_SANITY_MAP = {
   office: 'phone',
   home: 'phone',
 
-  // Formatted IDs
+  // Formatted IDs (Digits, hyphens, spaces only)
   sss: 'id',
   tin: 'id',
   philhealth: 'id',
   pag_ibig: 'id',
   peraa: 'id',
+  number: 'id',
   license_number: 'id',
 };
 

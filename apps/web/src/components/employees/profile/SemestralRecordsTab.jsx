@@ -108,8 +108,7 @@ export default function SemestralRecordsTab({
           <Button
             type="button"
             size="sm"
-            variant="outline"
-            className="h-8.5 text-xs gap-1.5 border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 font-semibold"
+            className="gap-1 h-8 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs rounded-[6px] shadow-none px-3 border-none flex items-center justify-center cursor-pointer"
             onClick={handleAddRow}
           >
             <Plus className="w-3.5 h-3.5" /> Add Semester
