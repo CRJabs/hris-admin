@@ -83,10 +83,10 @@ export const SubmissionSection = ({
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting 201 Form...
+                  Submitting...
                 </>
               ) : (
-                "Submit 201 Form"
+                "Submit"
               )}
             </Button>
             <p className="text-[10px] text-slate-400 mt-2 italic">
