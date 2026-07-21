@@ -1010,8 +1010,13 @@ export default function UniversityChart() {
                         placeholder="Enter office name..."
                       />
                     ) : (
-                      <div className="space-y-1">
+                      <div className="flex items-center gap-3.5 flex-wrap">
                         <h2 className="text-3xl font-black text-slate-900 tracking-tight">{selectedNode.name}</h2>
+                        {isInstitutional && (
+                          <div className="bg-slate-100/90 px-3 py-1 rounded-lg border border-slate-200 text-2xs font-bold text-[#0C005F] uppercase tracking-wider shrink-0">
+                            {orgUnits.filter(u => u.parent_id === selectedNode.id).length} Active Units
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1040,19 +1045,7 @@ export default function UniversityChart() {
               </div>
 
               {isInstitutional ? (
-                <div className="space-y-8 animate-in fade-in duration-500">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                    <div className="space-y-0.5">
-                      <h3 className="text-xs font-black text-[#0C005F] uppercase tracking-widest">Institutional Sub-Offices</h3>
-                      <p className="text-xs text-slate-400 italic">Select an office to view or manage its specific assignments.</p>
-                    </div>
-                    <div className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                      <span className="text-2xs font-bold text-[#0C005F] uppercase tracking-wider">
-                        {orgUnits.filter(u => u.parent_id === selectedNode.id).length} Active Units
-                      </span>
-                    </div>
-                  </div>
-                  
+                <div className="animate-in fade-in duration-500">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {orgUnits
                       .filter(u => u.parent_id === selectedNode.id)
@@ -1066,32 +1059,28 @@ export default function UniversityChart() {
                             onClick={() => setSelectedNode(unit)}
                             className="group cursor-pointer hover:border-[#0C005F] transition-all duration-300 border-slate-200 overflow-hidden bg-white shadow-none rounded-xl relative"
                           >
-                            <CardContent className="p-6 space-y-5">
-                              <div className="space-y-1">
-                                <h4 className="text-lg font-black text-slate-900 group-hover:text-[#0C005F] transition-colors line-clamp-2 leading-tight tracking-tight">
-                                  {unit.name}
-                                </h4>
-                              </div>
-                              
-                              <div className="flex items-center gap-3.5 p-3.5 bg-slate-50 rounded-xl border border-slate-200 group-hover:bg-blue-50/50 transition-colors">
-                                <Avatar className="h-10 w-10 border border-white shadow-none">
+                            <CardContent className="p-6 flex flex-col justify-between space-y-6 h-full">
+                              <div className="flex items-start gap-4">
+                                <Avatar className="h-12 w-12 border border-slate-100 shadow-sm shrink-0">
                                   <AvatarImage src={isAcademicBranch(selectedNode.id) ? unit.logo_url : head?.photo_url} />
-                                  <AvatarFallback className="bg-white">
-                                    {isAcademicBranch(selectedNode.id) ? <Building2 className="w-4 h-4 text-slate-300" /> : <Users className="w-4 h-4 text-slate-300" />}
+                                  <AvatarFallback className="bg-slate-50">
+                                    {isAcademicBranch(selectedNode.id) ? <Building2 className="w-5 h-5 text-slate-300" /> : <Users className="w-5 h-5 text-slate-300" />}
                                   </AvatarFallback>
                                 </Avatar>
-                                <div className="min-w-0">
-                                  <p className="text-2xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                                    {isAcademicBranch(selectedNode.id) ? "Department" : "Head of Office"}
-                                  </p>
-                                  <p className="text-xs font-bold text-slate-900 truncate">
-                                    {isAcademicBranch(selectedNode.id) ? unit.name : (head ? getFullName(head) : "Pending")}
-                                  </p>
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="text-base font-black text-slate-900 group-hover:text-[#0C005F] transition-colors leading-tight tracking-tight">
+                                    {unit.name}
+                                  </h4>
+                                  {!isAcademicBranch(selectedNode.id) && (
+                                    <p className="text-2xs font-bold text-slate-400 uppercase tracking-wider mt-1 truncate">
+                                      Head: {head ? getFullName(head) : "Pending"}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
 
-                              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                                <div className="flex items-center gap-2 text-2xs font-bold uppercase tracking-wider text-slate-400">
+                              <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-auto">
+                                <div className="flex items-center gap-2 text-2xs font-bold uppercase tracking-wider text-slate-500">
                                   <Users className="w-3.5 h-3.5 text-[#0C005F]" />
                                   {unitStaffCount} Personnel
                                 </div>

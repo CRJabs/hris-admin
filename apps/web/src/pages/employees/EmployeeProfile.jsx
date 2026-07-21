@@ -214,10 +214,12 @@ export default function EmployeeProfile() {
   // Fetch notifications from DB and subscribe to realtime updates
   const fetchNotifications = async (employeeId) => {
     if (!employeeId) return;
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
       .eq('employee_id', employeeId)
+      .gte('created_at', sevenDaysAgo)
       .order('created_at', { ascending: false });
     if (!error && data) {
       setNotifications(data.map(n => ({

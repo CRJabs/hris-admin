@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, Users, DollarSign, BarChart3, LogOut, 
   CheckSquare, ChevronLeft, ChevronRight, UserPlus, List, FileText, CalendarDays, Zap, Building2, Bell,
-  History, Trash2, Shield, RefreshCw, Award, PieChart, TrendingUp
+  History, Trash2, Shield, RefreshCw, Award, PieChart, TrendingUp, SendHorizontal
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/AuthContext";
@@ -33,6 +33,7 @@ const ACTION_NAV = {
   dept_head_approved_leave: '/approvals/leaves',
   dept_head_rejected_leave: '/approvals/leaves',
   employee_filed_leave: '/approvals/leaves',
+  published_announcement: '/publish',
 };
 
 // Map action types to title text colors & badge styles
@@ -50,6 +51,7 @@ const ACTION_TITLE_COLORS = {
   dept_head_approved_leave: 'text-emerald-600 bg-emerald-50 border-emerald-200',
   dept_head_rejected_leave: 'text-rose-600 bg-rose-50 border-rose-200',
   employee_filed_leave: 'text-blue-600 bg-blue-50 border-blue-200',
+  published_announcement: 'text-indigo-600 bg-indigo-50 border-indigo-200',
 };
 
 // Helper to make action keys human-readable
@@ -68,6 +70,7 @@ function formatActionTitle(action) {
     dept_head_approved_leave: "Leave Approved by Dept Head",
     dept_head_rejected_leave: "Leave Rejected by Dept Head",
     employee_filed_leave: "New Leave Application",
+    published_announcement: "System Announcement Published",
   };
   return titles[action] || action;
 }
@@ -106,6 +109,7 @@ const navItems = [
       { label: "Manage Leave Credits", icon: List, path: "/leaves/assign" },
     ]
   },
+  { label: "Publish", icon: SendHorizontal, path: "/publish" },
   {
     label: "Activity History",
     icon: History,
