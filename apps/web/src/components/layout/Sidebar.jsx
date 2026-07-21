@@ -74,7 +74,7 @@ function formatActionTitle(action) {
 
 const navItems = [
   { label: "Home", icon: Zap, path: "/" },
-  { label: "Analytics", icon: TrendingUp, path: "/analytics" },
+  // { label: "Analytics", icon: TrendingUp, path: "/analytics" },
   { label: "Reports", icon: BarChart3, path: "/reports" },
   { label: "University Chart", icon: Building2, path: "/company" },
   { 
@@ -309,13 +309,17 @@ export default function Sidebar({ collapsed, setCollapsed }) {
 
   const totalPendingApprovals = Object.values(pendingCounts).reduce((a, b) => a + b, 0);
 
-  const handlePopoverOpen = async (open) => {
-    if (open && unreadCount > 0) {
-      setUnreadCount(0);
-      await supabase
+  const handleMarkAllRead = async () => {
+    setUnreadCount(0);
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    try {
+      const { error } = await supabase
         .from('admin_activity_log')
         .update({ is_read: true })
         .eq('is_read', false);
+      if (error) console.error("Error marking activity log read:", error);
+    } catch (err) {
+      console.error("Failed to update notification read status", err);
     }
   };
 
@@ -442,7 +446,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
 
       <div className="p-3 border-t border-white/10 mt-auto space-y-1">
         {/* Notifications Button & Popover (Moved above Sign out) */}
-        <Popover onOpenChange={handlePopoverOpen}>
+        <Popover onOpenChange={(open) => open && handleMarkAllRead()}>
           <PopoverTrigger asChild>
             <button
               className={cn(
@@ -494,7 +498,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
               <div className="flex items-center gap-3">
                 {unreadCount > 0 && (
                   <button
-                    onClick={handlePopoverOpen}
+                    onClick={handleMarkAllRead}
                     className="text-xs font-bold text-amber-300 hover:text-amber-200 transition-colors uppercase tracking-wider"
                   >
                     Mark all as read

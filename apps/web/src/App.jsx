@@ -112,7 +112,7 @@ const AuthenticatedApp = () => {
           <Route path="/employees/add" element={<ProtectedRoute path="/employees/add" element={<AddEmployee />} />} />
           <Route path="/leaves/assign" element={<ProtectedRoute path="/leaves/assign" element={<AssignLeaveCredits />} />} />
           <Route path="/company" element={<ProtectedRoute path="/company" element={<Company />} />} />
-          <Route path="/analytics" element={<ProtectedRoute path="/analytics" element={<Analytics />} />} />
+          {/* <Route path="/analytics" element={<ProtectedRoute path="/analytics" element={<Analytics />} />} /> */}
           <Route path="/reports" element={<ProtectedRoute path="/reports" element={<Reports />} />} />
           <Route path="/activity" element={<ProtectedRoute path="/activity" element={<ActivityHistory />} />} />
           <Route path="/activity/bin" element={<ProtectedRoute path="/activity/bin" element={<BinPage />} />} />

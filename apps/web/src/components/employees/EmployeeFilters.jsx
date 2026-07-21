@@ -29,6 +29,7 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
     (filters.classificationsII?.length || 0) +
     (filters.classificationsIII?.length || 0) +
     (filters.tenures?.length || 0) +
+    (filters.missingInfo ? 1 : 0) +
     (filters.active !== "All" ? 1 : 0);
 
   const toggleArrayItem = (array, item) => {
@@ -248,9 +249,9 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
                   </div>
                </div>
 
-               {/* Active Status */}
+               {/* Active Status & Data Completeness */}
                <div className="space-y-4">
-                  <h4 className="font-bold text-xs uppercase text-slate-400 tracking-widest">Account Status</h4>
+                  <h4 className="font-bold text-xs uppercase text-slate-400 tracking-widest">Account & Data Completeness</h4>
                   <div className="space-y-3">
                     {activeStatuses.map((status) => (
                       <div key={status} className="flex items-center space-x-2">
@@ -264,6 +265,16 @@ export default function EmployeeFilters({ filters, onFilterChange, onClear, depa
                         </label>
                       </div>
                     ))}
+                    <div className="pt-1 flex items-center space-x-2">
+                      <Checkbox 
+                        id="missing-info" 
+                        checked={filters.missingInfo || false}
+                        onCheckedChange={(checked) => onFilterChange("missingInfo", !!checked)}
+                      />
+                      <label htmlFor="missing-info" className="text-xs font-bold text-amber-700 leading-none cursor-pointer hover:text-amber-800 transition-colors">
+                        Incomplete Employment Info Only
+                      </label>
+                    </div>
                   </div>
                </div>
             </div>

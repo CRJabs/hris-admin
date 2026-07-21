@@ -12,6 +12,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { UserPlus } from "lucide-react";
 import { useOrgDepartments } from "@/hooks/useOrgDepartments";
 
+export const hasMissingInfo = (emp) => {
+  if (!emp) return false;
+  return !emp.date_hired || !emp.department || !emp.position || !emp.employment_classification || !emp.classification_ii;
+};
+
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -25,6 +30,7 @@ export default function Employees() {
     classifications: [], 
     classificationsII: [], 
     classificationsIII: [], 
+    missingInfo: false,
     active: "All" 
   });
   
@@ -119,6 +125,7 @@ export default function Employees() {
       classifications: [], 
       classificationsII: [], 
       classificationsIII: [], 
+      missingInfo: false,
       active: "All" 
     });
     setGlobalSearch("");
@@ -150,6 +157,9 @@ export default function Employees() {
           return false;
         }
         if (filters.tenures.length > 0 && !filters.tenures.includes(emp.employment_tenure || "Probationary")) {
+          return false;
+        }
+        if (filters.missingInfo && !hasMissingInfo(emp)) {
           return false;
         }
         if (filters.active !== "All") {

@@ -116,9 +116,12 @@ export default function AddEmployee() {
     return newErrors;
   };
 
+  const [inlineAccountError, setInlineAccountError] = useState("");
+
   const handleCreateAccount = async () => {
+    setInlineAccountError("");
     if (!accountData.first_name?.trim() || !accountData.last_name?.trim() || !accountData.email?.trim() || !accountData.password) {
-      toast.error("First name, last name, email, and password are required.");
+      setInlineAccountError("First name, last name, email, and password are required.");
       return;
     }
 
@@ -384,6 +387,13 @@ export default function AddEmployee() {
                 </div>
               </div>
             </div>
+
+            {inlineAccountError && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50/90 p-3.5 flex items-start gap-3 text-left animate-in fade-in duration-200">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <p className="text-xs font-bold text-rose-700">{inlineAccountError}</p>
+              </div>
+            )}
 
             <p className="text-2xs text-slate-500 italic bg-slate-50 p-2.5 rounded-lg border border-slate-200">
               Tip: Personnel will be prompted to change this password upon their first login.

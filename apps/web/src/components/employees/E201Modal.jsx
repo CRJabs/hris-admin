@@ -293,6 +293,7 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
       toast.success("Employee changes saved successfully.");
       if (onSave) onSave();
       setIsEditMode(false);
+      onOpenChange(false);
     } catch (err) {
       toast.error(`Failed to save changes: ${err.message}`);
     } finally {

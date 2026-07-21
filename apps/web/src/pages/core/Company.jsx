@@ -432,6 +432,9 @@ export default function UniversityChart() {
           } else if (isMember) {
             updatePayload.classification_ii = isAcademic ? "Academic Official" : "Administrative Official";
             updatePayload.department = editName;
+          } else {
+            updatePayload.department = null;
+            updatePayload.org_unit_id = null;
           }
 
           const { error: empUpdateError } = await supabase
@@ -507,6 +510,9 @@ export default function UniversityChart() {
           } else if (isMember) {
             updatedEmp.classification_ii = isAcademic ? "Academic Official" : "Administrative Official";
             updatedEmp.department = editName;
+          } else {
+            updatedEmp.department = null;
+            updatedEmp.org_unit_id = null;
           }
           return updatedEmp;
         }

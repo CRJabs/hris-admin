@@ -176,6 +176,11 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
                             Retired
                           </Badge>
                         )}
+                        {(!emp.date_hired || !emp.department || !emp.position || !emp.employment_classification || !emp.classification_ii) && (
+                          <Badge className="h-4 text-2xs px-1.5 bg-amber-50 text-amber-700 border border-amber-200 font-bold uppercase tracking-wider">
+                            Incomplete Info
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-slate-500 font-medium">{emp.email}</p>
                     </div>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, Lock, ArrowLeft } from "lucide-react";
+import { Loader2, Eye, EyeOff, Lock, ArrowLeft, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,11 +15,14 @@ export default function ResetPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg("");
+
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+      setErrorMsg("Passwords do not match.");
       return;
     }
     
@@ -40,7 +43,7 @@ export default function ResetPassword() {
       
     } catch (error: unknown) {
       const err = error as Error;
-      toast.error(err.message || "Failed to update password.");
+      setErrorMsg(err.message || "Failed to update password.");
     } finally {
       setIsLoading(false);
     }
@@ -123,6 +126,13 @@ export default function ResetPassword() {
                   </button>
                 </div>
               </div>
+
+              {errorMsg && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50/90 p-3.5 flex items-start gap-3 text-left animate-in fade-in duration-200">
+                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                  <p className="text-xs font-bold text-rose-700">{errorMsg}</p>
+                </div>
+              )}
 
               <div className="pt-2">
                 <Button 
