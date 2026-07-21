@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { 
-  SendHorizontal, Users, Search, CheckCircle2, AlertCircle, 
+  SendHorizontal, Users, Search, AlertCircle, 
   Trash2, RefreshCw, FileText
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import { useOrgDepartments } from "@/hooks/useOrgDepartments";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 const ANNOUNCEMENT_TYPES = [
   { id: "info", label: "General Information", badgeClass: "bg-blue-50 text-blue-700 border-blue-200" },
@@ -67,7 +68,6 @@ export default function Publish() {
   // UI States
   const [empSearch, setEmpSearch] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
-  const [publishSuccess, setPublishSuccess] = useState(null);
   const [inlineError, setInlineError] = useState("");
   const [publishedHistory, setPublishedHistory] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -118,7 +118,7 @@ export default function Publish() {
       const { data, error } = await supabase
         .from("admin_activity_log")
         .select("*")
-        .eq("action_type", "published_announcement")
+        .eq("action", "published_announcement")
         .gte("created_at", sevenDaysAgo)
         .order("created_at", { ascending: false });
 
@@ -136,23 +136,23 @@ export default function Publish() {
   const handleDeleteAnnouncement = async (logItem) => {
     setDeletingId(logItem.id);
     try {
-      // Remove matching notifications by title and created_at proximity
-      if (logItem.target_name) {
+      if (logItem.description) {
         await supabase
           .from("notifications")
           .delete()
-          .eq("title", logItem.target_name);
+          .eq("title", logItem.description);
       }
 
-      // Delete activity log row
       await supabase
         .from("admin_activity_log")
         .delete()
         .eq("id", logItem.id);
 
       setPublishedHistory(prev => prev.filter(item => item.id !== logItem.id));
+      toast.success("Announcement removed successfully.");
     } catch (err) {
       console.error("Error deleting announcement", err);
+      toast.error("Failed to remove announcement.");
     } finally {
       setDeletingId(null);
     }
@@ -230,7 +230,6 @@ export default function Publish() {
   // Publish Handler
   const handlePublish = async () => {
     setInlineError("");
-    setPublishSuccess(null);
 
     if (!title.trim()) {
       setInlineError("Please enter an announcement title.");
@@ -271,26 +270,26 @@ export default function Publish() {
 
       // Log in admin_activity_log
       await supabase.from("admin_activity_log").insert({
-        admin_id: user?.id || null,
-        admin_name: user?.email || "Admin",
-        action_type: "published_announcement",
-        target_name: title.trim(),
-        details: {
+        actor_type: "admin",
+        actor_name: user?.email || "Admin",
+        action: "published_announcement",
+        description: title.trim(),
+        metadata: {
           recipient_count: targetedEmployees.length,
           category,
           target_mode: targetMode,
-          message_excerpt: message.trim().substring(0, 100)
+          message_excerpt: message.trim().substring(0, 150)
         },
         created_at: timestamp
       });
 
-      setPublishSuccess({
-        title: title.trim(),
-        recipientCount: targetedEmployees.length,
-        time: format(new Date(), "PPpp")
+      // Trigger 30-second Toast Notification
+      toast.success("ANNOUNCEMENT PUBLISHED SUCCESSFULLY!", {
+        description: `"${title.trim()}" was delivered to ${targetedEmployees.length} employee profile system announcements.`,
+        duration: 30000,
       });
 
-      // Clear Form
+      // Clear Form & Refresh History
       setTitle("");
       setMessage("");
       fetchPublishedHistory();
@@ -304,29 +303,6 @@ export default function Publish() {
 
   return (
     <div className="p-4 space-y-6 animate-in fade-in duration-500 pb-12">
-      {/* Top Banner Alert / Success Banner */}
-      {publishSuccess && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-4 text-emerald-800 animate-in slide-in-from-top-4 duration-300">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider">Announcement Published Successfully!</p>
-              <p className="text-xs font-medium text-emerald-700 mt-0.5">
-                "{publishSuccess.title}" was delivered to {publishSuccess.recipientCount} employee profile system announcements.
-              </p>
-            </div>
-          </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setPublishSuccess(null)}
-            className="text-xs font-bold text-emerald-700 hover:bg-emerald-100/50"
-          >
-            Dismiss
-          </Button>
-        </div>
-      )}
-
       {inlineError && (
         <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-800 animate-in slide-in-from-top-4 duration-300">
           <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
@@ -670,41 +646,50 @@ export default function Publish() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {publishedHistory.map(item => (
-                      <div key={item.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2 group transition-colors hover:border-slate-300">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-0.5 min-w-0 flex-1">
-                            <p className="text-xs font-black text-slate-900 truncate">{item.target_name}</p>
-                            <p className="text-[10px] text-slate-400 font-medium">
-                              Published {item.created_at ? format(new Date(item.created_at), "MMM d, yyyy h:mm a") : ""}
-                            </p>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-[9px] px-2 py-0.5 border">
-                              {item.details?.recipient_count || 1} Recipients
-                            </Badge>
+                    {publishedHistory.map(item => {
+                      const catType = item.metadata?.category || "info";
+                      const catItem = ANNOUNCEMENT_TYPES.find(c => c.id === catType) || ANNOUNCEMENT_TYPES[0];
+
+                      return (
+                        <div key={item.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2 group transition-colors hover:border-slate-300">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge className={`${catItem.badgeClass} text-[9px] px-2 py-0.5 border`}>
+                                  {catItem.label}
+                                </Badge>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">
+                                  {item.metadata?.recipient_count || 1} Recipients
+                                </span>
+                              </div>
+                              <p className="text-xs font-black text-slate-900 truncate">{item.description}</p>
+                            </div>
                             
                             <Button
                               variant="ghost"
                               size="icon"
                               disabled={deletingId === item.id}
                               onClick={() => handleDeleteAnnouncement(item)}
-                              className="h-7 w-7 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
+                              className="h-7 w-7 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors shrink-0"
                               title="Remove Announcement"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           </div>
-                        </div>
 
-                        {item.details?.message_excerpt && (
-                          <p className="text-2xs text-slate-600 line-clamp-3 leading-relaxed bg-white p-2.5 rounded-md border border-slate-200/80">
-                            "{item.details.message_excerpt}"
-                          </p>
-                        )}
-                      </div>
-                    ))}
+                          {item.metadata?.message_excerpt && (
+                            <p className="text-2xs text-slate-600 line-clamp-3 leading-relaxed bg-white p-2.5 rounded-md border border-slate-200/80">
+                              "{item.metadata.message_excerpt}"
+                            </p>
+                          )}
+
+                          <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400 font-medium">
+                            <span>By: {item.actor_name?.split('@')[0]}</span>
+                            <span>{item.created_at ? format(new Date(item.created_at), "MMM d, yyyy h:mm a") : ""}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </ScrollArea>
