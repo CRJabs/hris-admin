@@ -38,14 +38,14 @@ export const PersonalSection = ({ formData, handleChange, handleSelect, handleGr
 
           <div className="space-y-1"><Label>Birth Date <span className="text-red-500">*</span></Label><Input type="date" name="birthdate" value={formData.birthdate} onChange={handleChange} /></div>
           <div className="space-y-1"><Label>Place of Birth</Label><Input name="place_of_birth" value={formData.place_of_birth} onChange={handleChange} /></div>
-          <div className="space-y-1"><Label>Age</Label><Input type="number" name="age" value={formData.age} onChange={handleChange} /></div>
+          <div className="space-y-1"><Label>Age</Label><Input type="text" inputMode="numeric" name="age" value={formData.age} onChange={handleChange} /></div>
           <div className="space-y-1"><Label>Nationality</Label><Input name="nationality" value={formData.nationality} onChange={handleChange} /></div>
           <div className="space-y-1"><Label>Religion</Label><Input name="religion" value={formData.religion} onChange={handleChange} /></div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
-          <div className="space-y-1"><Label>Height (cms)</Label><Input name="height" value={formData.height} onChange={handleChange} /></div>
-          <div className="space-y-1"><Label>Weight (lbs)</Label><Input name="weight" value={formData.weight} onChange={handleChange} /></div>
+          <div className="space-y-1"><Label>Height (cms)</Label><Input name="height" inputMode="decimal" value={formData.height} onChange={handleChange} /></div>
+          <div className="space-y-1"><Label>Weight (lbs)</Label><Input name="weight" inputMode="decimal" value={formData.weight} onChange={handleChange} /></div>
           <div className="space-y-1"><Label>Blood Type</Label><Input name="blood_type" value={formData.blood_type} onChange={handleChange} /></div>
           <div className="space-y-1"><Label>Distinguishing Marks</Label><Input name="distinguishing_marks" value={formData.distinguishing_marks} onChange={handleChange} /></div>
         </div>
@@ -110,11 +110,11 @@ export const PersonalSection = ({ formData, handleChange, handleSelect, handleGr
       <div className="bg-white p-6 rounded-xl border shadow-sm">
         <h2 className="text-xl font-bold mb-6 text-slate-800 border-b pb-2">Government ID's</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="space-y-1"><Label>SSS No.</Label><Input name="sss" value={formData.sss} onChange={handleChange} /></div>
-          <div className="space-y-1"><Label>TIN No.</Label><Input name="tin" value={formData.tin} onChange={handleChange} /></div>
-          <div className="space-y-1"><Label>Philhealth No.</Label><Input name="philhealth" value={formData.philhealth} onChange={handleChange} /></div>
-          <div className="space-y-1"><Label>PAG-IBIG No.</Label><Input name="pag_ibig" value={formData.pag_ibig} onChange={handleChange} /></div>
-          <div className="space-y-1"><Label>PERAA (Teaching Staff)</Label><Input name="peraa" value={formData.peraa} onChange={handleChange} /></div>
+          <div className="space-y-1"><Label>SSS No.</Label><Input name="sss" inputMode="numeric" value={formData.sss} onChange={handleChange} /></div>
+          <div className="space-y-1"><Label>TIN No.</Label><Input name="tin" inputMode="numeric" value={formData.tin} onChange={handleChange} /></div>
+          <div className="space-y-1"><Label>Philhealth No.</Label><Input name="philhealth" inputMode="numeric" value={formData.philhealth} onChange={handleChange} /></div>
+          <div className="space-y-1"><Label>PAG-IBIG No.</Label><Input name="pag_ibig" inputMode="numeric" value={formData.pag_ibig} onChange={handleChange} /></div>
+          <div className="space-y-1"><Label>PERAA (Teaching Staff)</Label><Input name="peraa" inputMode="numeric" value={formData.peraa} onChange={handleChange} /></div>
           <div className="space-y-1">
             <Label>Tax Status</Label>
             <Select value={formData.tax_status} onValueChange={(val) => handleSelect("tax_status", val)}>

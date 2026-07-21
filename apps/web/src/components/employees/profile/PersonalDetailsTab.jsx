@@ -37,10 +37,21 @@ function SectionBlock({ title, icon: Icon, children, action }) {
 }
 
 
+import { sanitizeByFieldName } from "@/utils/inputValidation";
+
 const UB_LOGO_URL = supabase.storage.from('department-logos').getPublicUrl('ub.png').data.publicUrl;
 
 
 function InfoRow({ label, value, name, onChange, isEditing, type = "text", className = "", isUpdated = false, isError = false, children }) {
+  const handleChange = (e) => {
+    const sanitized = sanitizeByFieldName(name, e.target.value);
+    onChange(name, sanitized);
+  };
+
+  const inputMode = (name === 'age' || name === 'address_zip') ? 'numeric' :
+                    (name === 'height' || name === 'weight') ? 'decimal' :
+                    (name === 'contact_phone' || name === 'mobile' || name === 'phone') ? 'tel' : undefined;
+
   return (
     <div className={`py-1.5 px-2 rounded-md transition-colors ${isUpdated ? 'bg-amber-50 border border-amber-200/50 shadow-sm' : ''} ${className}`}>
       <div className="flex items-center justify-between">
@@ -57,7 +68,8 @@ function InfoRow({ label, value, name, onChange, isEditing, type = "text", class
             type={type}
             name={name}
             value={value || ""} 
-            onChange={(e) => onChange(name, e.target.value)}
+            inputMode={inputMode}
+            onChange={handleChange}
             className={`h-8 text-sm mt-1 ${isError ? 'border-red-500 focus-visible:ring-red-500 bg-red-50/50' : ''}`}
           />
         )
@@ -506,12 +518,11 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
             action={isEditing && !showSpouse && (
               <Button 
                 type="button" 
-                variant="outline" 
                 size="sm" 
                 onClick={() => setShowSpouse(true)}
-                className="h-7 gap-1 text-2xs text-primary border-primary/20 hover:bg-primary/5 px-2"
+                className="gap-1 h-8 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs rounded-[6px] shadow-none px-3 border-none flex items-center justify-center cursor-pointer"
               >
-                <Plus className="w-3 h-3" /> Add Spouse
+                <Plus className="w-3.5 h-3.5" /> Add Spouse
               </Button>
             )}
           >
