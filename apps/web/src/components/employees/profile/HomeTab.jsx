@@ -14,24 +14,50 @@ import { supabase } from "@/lib/supabase";
 
 const UB_LOGO_URL = supabase.storage.from('department-logos').getPublicUrl('ub.png').data.publicUrl;
 
+const getAnnouncementCategory = (type) => {
+  switch (type?.toLowerCase()) {
+    case 'info':
+      return { label: 'General Information', color: 'bg-blue-50 text-blue-700 border-blue-200' };
+    case 'important':
+      return { label: 'Important Advisory', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
+    case 'urgent':
+      return { label: 'Urgent Notice', color: 'bg-rose-50 text-rose-700 border-rose-200' };
+    case 'event':
+      return { label: 'Event / Activity', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+    case 'policy':
+      return { label: 'Policy Update', color: 'bg-purple-50 text-purple-700 border-purple-200' };
+    case 'approved':
+      return { label: 'Approval Status', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+    case 'rejected':
+      return { label: 'Status Update', color: 'bg-rose-50 text-rose-700 border-rose-200' };
+    default:
+      return { label: 'General Notice', color: 'bg-slate-50 text-slate-700 border-slate-200' };
+  }
+};
+
 export default function HomeTab({ employee, onViewProfile, notifications = [], leaveCredits = [], leaveApplications = [], headOfUnit = null }) {
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
   const [deptLogoUrl, setDeptLogoUrl] = useState(null);
 
   useEffect(() => {
-    async function fetchDeptLogo() {
-      if (!employee?.department) { setDeptLogoUrl(UB_LOGO_URL); return; }
-      const { data, error } = await supabase
-        .from('org_units')
-        .select('logo_url')
-        .ilike('name', employee.department)
-        .limit(1)
-        .maybeSingle();
-      if (error) console.warn('fetchDeptLogo error:', error);
-      setDeptLogoUrl(data?.logo_url || UB_LOGO_URL);
+    async function loadDeptLogo() {
+      if (employee?.department) {
+        try {
+          const { data: deptData } = await supabase
+            .from("departments")
+            .select("logo_url")
+            .ilike("name", employee.department.trim())
+            .maybeSingle();
+          if (deptData?.logo_url) {
+            setDeptLogoUrl(deptData.logo_url);
+          }
+        } catch (err) {
+          console.error("Error fetching dept logo", err);
+        }
+      }
     }
-    fetchDeptLogo();
+    loadDeptLogo();
   }, [employee?.department]);
 
 
@@ -137,8 +163,8 @@ export default function HomeTab({ employee, onViewProfile, notifications = [], l
         <div className="space-y-8">
           <Card className="shadow-sm border-slate-300 hover:shadow-md transition-shadow">
             <CardHeader className="p-5 pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-[#0C005F]" /> Employment
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
+                Employment
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5 pt-0">
@@ -162,8 +188,8 @@ export default function HomeTab({ employee, onViewProfile, notifications = [], l
 
           <Card className="shadow-sm border-slate-300 hover:shadow-md transition-shadow">
             <CardHeader className="p-5 pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-[#0C005F]" /> Verification
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
+                Verification
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5 pt-0">
@@ -185,8 +211,8 @@ export default function HomeTab({ employee, onViewProfile, notifications = [], l
         {/* Center Column: Leave Credits */}
         <Card className="shadow-sm border-slate-300 flex flex-col h-[340px]">
           <CardHeader className="p-5 pb-2 border-b shrink-0">
-            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <Heart className="w-4 h-4 text-rose-500" /> Leave Credits
+            <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
+              Leave Credits
             </CardTitle>
           </CardHeader>
           <CardContent className="p-5 flex-1 overflow-hidden">
@@ -219,31 +245,34 @@ export default function HomeTab({ employee, onViewProfile, notifications = [], l
         <div className="space-y-4">
           <Card className="shadow-sm border-slate-300 bg-slate-50/50 flex flex-col h-[276px]">
             <CardHeader className="p-5 pb-2 border-b shrink-0">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-primary" /> System Announcements
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
+                System Announcements
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5 flex-1 overflow-hidden">
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-4">
                   {notifications.length > 0 ? (
-                    notifications.map((notif) => (
-                      <div key={notif.id} className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
-                        <p className={`text-[10px] font-bold uppercase ${
-                          notif.type === 'approved' ? 'text-green-600' :
-                          notif.type === 'rejected' ? 'text-red-600' :
-                          notif.type === 'expired' ? 'text-red-600' :
-                          notif.type === 'expiring' ? 'text-amber-600' :
-                          notif.type === 'info' ? 'text-blue-600' : 'text-primary'
-                        }`}>
-                          {notif.title}
-                        </p>
-                        <p className="text-xs font-semibold">{notif.description}</p>
-                        <p className="text-[9px] text-muted-foreground">
-                          {notif.date && !isNaN(notif.date) ? format(notif.date, "MMMM d, yyyy") : ""}
-                        </p>
-                      </div>
-                    ))
+                    notifications.map((notif) => {
+                      const cat = getAnnouncementCategory(notif.type);
+                      return (
+                        <div key={notif.id} className="p-3 bg-white border border-slate-200 rounded-xl space-y-1.5">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <Badge variant="outline" className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 border ${cat.color}`}>
+                              {cat.label}
+                            </Badge>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                              from HR
+                            </span>
+                          </div>
+                          <p className="text-xs font-bold text-slate-900 leading-snug">{notif.title}</p>
+                          <p className="text-xs text-slate-600 font-medium leading-relaxed">{notif.description}</p>
+                          <p className="text-[9px] font-medium text-slate-400">
+                            {notif.date && !isNaN(notif.date) ? format(notif.date, "MMMM d, yyyy") : ""}
+                          </p>
+                        </div>
+                      );
+                    })
                   ) : (
                     <div className="py-12 text-center text-muted-foreground">
                       <p className="text-xs italic">No new announcements at this time.</p>

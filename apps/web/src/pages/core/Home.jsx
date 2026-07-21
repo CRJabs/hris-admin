@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, Cake, AlertTriangle } from "lucide-react";
 
 const ACTION_CONFIG = {
   employee_submitted_update: { icon: RefreshCw, color: "bg-amber-50 text-amber-600", label: "Profile Update Request" },
@@ -99,7 +99,10 @@ export default function Home() {
       });
 
       const { data: activityData } = await supabase
-        .from('admin_activity_log').select('*').order('created_at', { ascending: false }).limit(6);
+        .from('admin_activity_log')
+        .select('*, employees(photo_url, first_name, last_name)')
+        .order('created_at', { ascending: false })
+        .limit(6);
       setRecentActivities(activityData || []);
 
       const [updateReqRes, regReqRes, leaveReqRes] = await Promise.all([
@@ -134,6 +137,13 @@ export default function Home() {
       }))];
       combined.sort((a, b) => b.date - a.date);
       setPendingRequests(combined.slice(0, 10));
+      setStats(prev => ({
+        ...prev,
+        pendingRegistrations: regReqRes.data?.length || 0,
+        pendingUpdates: updateReqRes.data?.length || 0,
+        pendingLeaves: leaveReqRes.data?.length || 0,
+        totalPendingRequests: combined.length
+      }));
 
       const todayStr = new Date().toISOString().split('T')[0];
       const { data: activeLeaves } = await supabase
@@ -173,295 +183,170 @@ export default function Home() {
     { label: "Force Leave", value: leaveStats['Force'] || 0, icon: Sun },
   ];
 
-  // Shared pending table JSX
+  // Shared pending table / list card JSX
   const PendingTable = () => (
-    <Card className="border-none shadow-sm bg-white overflow-hidden">
-      <div className="p-4 md:p-6 border-b border-slate-50 flex items-center justify-between">
-        <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center gap-2">
-          <CheckSquare className="w-5 h-5 text-[#0C005F]" />
-          Pending Requests
-        </h2>
-        <Button asChild variant="outline" size="sm" className="border-[#0C005F]/20 text-[#0C005F] font-black uppercase tracking-widest text-[10px] px-4 hover:bg-[#0C005F] hover:text-white transition-all shadow-sm">
+    <Card className="border border-slate-200 shadow-none bg-white overflow-hidden flex flex-col h-full rounded-[8px]">
+      <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between shrink-0">
+        <div>
+          <h2 className="text-xs font-black uppercase tracking-widest text-slate-700">Pending Requests</h2>
+        </div>
+        <Button asChild variant="outline" size="sm" className="border-[#0C005F]/20 text-[#0C005F] font-black uppercase tracking-widest text-xs px-3 h-8 hover:bg-[#0C005F] hover:text-white transition-all shadow-sm">
           <Link to="/approvals">View all</Link>
         </Button>
       </div>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[560px]">
-            <thead className="bg-slate-50/50 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-50">
-              <tr>
-                <th className="px-4 md:px-6 py-4">Name</th>
-                <th className="px-4 md:px-6 py-4 hidden sm:table-cell">Position</th>
-                <th className="px-4 md:px-6 py-4">Type</th>
-                <th className="px-4 md:px-6 py-4">Status</th>
-                <th className="px-4 md:px-6 py-4 hidden sm:table-cell">Date</th>
-                <th className="px-4 md:px-6 py-4 hidden md:table-cell">Notes</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {pendingRequests.map((req) => (
-                <tr key={req.id} className="group hover:bg-slate-50/50 transition-colors cursor-pointer"
-                  onClick={() => navigate(req.requestType === 'update' ? '/approvals/updates' : req.requestType === 'leave' ? '/approvals/leaves' : '/approvals/registrations')}>
-                  <td className="px-4 md:px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      {req.photoUrl
-                        ? <img key={req.photoUrl} src={req.photoUrl} alt={req.name} className="w-8 h-8 rounded-full object-cover shrink-0" />
-                        : <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0">{req.name.split(' ').map(n => n[0]).join('')}</div>
-                      }
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-slate-800">{req.name}</span>
-                        <span className="text-[10px] text-slate-400 font-medium">{req.employeeId}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 md:px-6 py-4 hidden sm:table-cell"><span className="text-xs font-medium text-slate-600">{req.position}</span></td>
-                  <td className="px-4 md:px-6 py-4">
-                    <Badge variant="secondary" className={cn("text-[10px] font-black uppercase px-2 py-0.5",
-                      req.requestType === 'registration' ? "bg-blue-50 text-blue-600" :
-                      req.requestType === 'leave' ? "bg-purple-50 text-purple-600" : "bg-amber-50 text-amber-600")}>
-                      {req.type}
-                    </Badge>
-                  </td>
-                  <td className="px-4 md:px-6 py-4">
-                    <Badge variant="outline" className="text-[10px] font-bold border-amber-200 text-amber-600 bg-amber-50/30">
-                      {req.status?.toUpperCase() || 'PENDING'}
-                    </Badge>
-                  </td>
-                  <td className="px-4 md:px-6 py-4 hidden sm:table-cell text-xs font-medium text-slate-500">
-                    {req.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </td>
-                  <td className="px-4 md:px-6 py-4 hidden md:table-cell"><p className="text-xs text-slate-500">{req.notes}</p></td>
-                </tr>
-              ))}
-              {pendingRequests.length === 0 && (
-                <tr><td colSpan="6" className="px-6 py-12 text-center"><p className="text-slate-400 text-sm font-medium">No pending requests at the moment.</p></td></tr>
-              )}
-            </tbody>
-          </table>
+      <CardContent className="p-0 flex-1 overflow-y-auto min-h-0">
+        <div className="divide-y divide-slate-50">
+          {pendingRequests.map((req) => (
+            <div
+              key={req.id}
+              className="p-4 hover:bg-slate-50/50 transition-colors cursor-pointer flex items-center justify-between gap-3"
+              onClick={() => navigate(req.requestType === 'update' ? '/approvals/updates' : req.requestType === 'leave' ? '/approvals/leaves' : '/approvals/registrations')}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                {req.photoUrl
+                  ? <img key={req.photoUrl} src={req.photoUrl} alt={req.name} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                  : <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">{req.name.split(' ').map(n => n[0]).join('')}</div>
+                }
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-bold text-slate-800 truncate">{req.name}</span>
+                  <span className="text-xs text-slate-400 font-medium truncate">{req.position || req.employeeId}</span>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <Badge variant="secondary" className={cn("text-2xs font-black uppercase px-2 py-0.5",
+                  req.requestType === 'registration' ? "bg-blue-50 text-blue-600" :
+                  req.requestType === 'leave' ? "bg-purple-50 text-purple-600" : "bg-amber-50 text-amber-600")}>
+                  {req.type}
+                </Badge>
+                <span className="text-xs font-medium text-slate-400">
+                  {req.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </span>
+              </div>
+            </div>
+          ))}
+          {pendingRequests.length === 0 && (
+            <div className="p-12 text-center"><p className="text-slate-400 text-sm font-medium">No pending requests at the moment.</p></div>
+          )}
         </div>
       </CardContent>
     </Card>
   );
 
   return (
-    <div className="p-4 md:p-8 max-w-[1440px] mx-auto animate-in fade-in duration-700 flex flex-col gap-6 md:gap-8">
+    <div className="p-4 w-full animate-in fade-in duration-700 flex flex-col gap-4 min-h-full">
 
-      {/* ① Hero + Recent Activity side by side */}
-      <section className="order-1 flex flex-col lg:flex-row gap-6">
-        {/* Hero Banner */}
-        <div className="flex-1 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0C005F] to-[#1a0b8c] p-6 md:p-10 text-white shadow-2xl shadow-[#0C005F]/20 min-h-[180px] md:min-h-[260px] flex flex-col justify-center">
-          <div className="relative z-10 space-y-4 max-w-xl">
-            <Badge className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md px-4 py-1 text-xs font-bold uppercase tracking-widest">
-              Administrator Portal
-            </Badge>
-            <div className="space-y-2">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight">
-                Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-200">{user?.first_name || "Admin"}</span>!
-              </h1>
-              <p className="text-blue-100/70 text-base md:text-lg font-medium">
-                You have <span className="text-white font-bold">{stats.pendingRegistrations + stats.pendingUpdates} pending tasks</span> that require your immediate attention.
-              </p>
-            </div>
-          </div>
-          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-blue-400/20 rounded-full blur-[100px]" />
-          <div className="absolute bottom-0 left-1/2 -ml-20 -mb-20 w-60 h-60 bg-purple-500/20 rounded-full blur-[80px]" />
-          <ShieldCheck className="absolute bottom-6 right-6 w-48 h-48 text-white/5 -rotate-12" />
+      {/* ① Full-width Welcome Card (Hero Banner) - rounded 8px, title font size +8px */}
+      <div className="w-full relative overflow-hidden rounded-[8px] bg-gradient-to-br from-[#0C005F] to-[#1a0b8c] p-6 md:p-8 text-white shadow-2xl shadow-[#0C005F]/20 h-[170px] shrink-0 flex flex-col justify-center">
+        <div className="relative z-10 space-y-2 max-w-3xl">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
+            Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-200">{user?.first_name || "Admin"}</span>!
+          </h1>
+          <p className="text-blue-100/70 text-sm md:text-base font-medium">
+            You have <span className="text-white font-bold">{stats.totalPendingRequests ?? (stats.pendingRegistrations + stats.pendingUpdates)} pending {stats.totalPendingRequests === 1 ? 'task' : 'tasks'}</span> that require your immediate attention.
+          </p>
         </div>
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-blue-400/20 rounded-full blur-[100px]" />
+        <div className="absolute bottom-0 left-1/2 -ml-20 -mb-20 w-60 h-60 bg-purple-500/20 rounded-full blur-[80px]" />
+        <ShieldCheck className="absolute bottom-4 right-6 w-36 h-36 text-white/5 -rotate-12" />
+      </div>
 
-        {/* Recent Activity Feed */}
-        <Card className="lg:w-[340px] shrink-0 border-none shadow-sm bg-white overflow-hidden flex flex-col">
-          <div className="px-6 py-4 border-b border-slate-50 shrink-0 flex items-center gap-2">
-            <Activity className="w-4 h-4 text-[#0C005F]" />
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">Recent Activity</h2>
-          </div>
-          <CardContent className="p-0 flex-1 overflow-y-auto max-h-[280px]">
-            <div className="divide-y divide-slate-50">
-              {recentActivities.length === 0 ? (
-                <div className="p-12 text-center"><p className="text-slate-400 text-sm font-medium">No recent activities found.</p></div>
-              ) : (
-                recentActivities.map((activity) => {
-                  const config = ACTION_CONFIG[activity.action] || { icon: Zap, color: "bg-slate-50 text-slate-600", label: activity.action };
-                  const IconComponent = config.icon;
-                  const [bgClass, textClass] = config.color.split(' ');
-                  return (
-                    <div key={activity.id} className="flex items-start gap-3 p-4 hover:bg-slate-50/50 transition-colors">
-                      <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm", bgClass, textClass)}>
-                        <IconComponent className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-bold text-slate-800 truncate">{activity.actor_name}</p>
-                          <span className={cn("text-[10px] font-black uppercase tracking-wider shrink-0", textClass)}>{config.label}</span>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{activity.description}</p>
-                        <p className="text-[10px] font-medium text-slate-400 mt-1">
-                          {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+      {/* ② Lower Section: Left (Activity Calendar + Recent Activity) & Right (Pending Requests) */}
+      <div className="flex flex-col lg:flex-row gap-4">
+        
+        {/* Left Column: Activity Calendar + Recent Activity stacked (512px height each) */}
+        <div className="flex-1 flex flex-col gap-4 min-w-0">
+          
+          {/* Top: Activity Calendar Card (Fixed 512px height) */}
+          <Card className="h-[512px] shrink-0 border border-slate-200 shadow-none bg-white overflow-hidden flex flex-col rounded-[8px]">
+            <CardContent className="p-0 flex-1 flex flex-col h-full overflow-hidden">
+              <MonthGridCalendar />
+            </CardContent>
+          </Card>
+
+          {/* Bottom: Recent Activity Card (Fixed 512px height) */}
+          <Card className="h-[512px] shrink-0 border border-slate-200 shadow-none bg-white overflow-hidden flex flex-col rounded-[8px]">
+            <div className="px-6 py-4 border-b border-slate-50 shrink-0">
+              <h2 className="text-xs font-black uppercase tracking-widest text-slate-700">Recent Activity</h2>
             </div>
-          </CardContent>
-          {recentActivities.length > 0 && (
-            <div className="p-4 border-t border-slate-50 shrink-0">
-              <Button asChild variant="ghost" className="w-full text-slate-400 hover:text-[#0C005F] text-xs font-bold uppercase tracking-widest h-9">
-                <Link to="/approvals">View All Requests</Link>
+            <CardContent className="p-0 flex-1 overflow-y-auto min-h-0">
+              <div className="divide-y divide-slate-50">
+                {recentActivities.length === 0 ? (
+                  <div className="p-8 text-center"><p className="text-slate-400 text-sm font-medium">No recent activities found.</p></div>
+                ) : (
+                  recentActivities.map((activity) => {
+                    const config = ACTION_CONFIG[activity.action] || { color: "bg-slate-50 text-slate-600", label: activity.action };
+                    const [, textClass] = config.color.split(' ');
+                    const isAdmin = activity.actor_type === 'admin' || activity.actor_name?.toLowerCase().includes('admin') || activity.actor_name?.includes('@');
+                    const displayName = isAdmin ? 'Administrator' : (activity.actor_name || 'System');
+                    const empPhoto = Array.isArray(activity.employees) ? activity.employees[0]?.photo_url : activity.employees?.photo_url;
+                    const photoUrl = isAdmin ? '/assets/ub.png' : (empPhoto || null);
+                    const initials = displayName
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase();
+                    return (
+                      <div key={activity.id} className="flex items-start gap-3 p-4 hover:bg-slate-50/50 transition-colors">
+                        {/* Avatar: ub.png for admin, employee photo or grey initials fallback */}
+                        {photoUrl ? (
+                          <img
+                            src={photoUrl}
+                            alt={displayName}
+                            className={cn(
+                              "w-8 h-8 rounded-full object-cover shrink-0",
+                              isAdmin ? "border border-[#0C005F]/20 bg-white p-0.5" : "border border-slate-100"
+                            )}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-2xs font-bold text-slate-500 shrink-0">
+                            {initials}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-bold text-slate-800 truncate">{displayName}</p>
+                            <span className={cn("text-2xs font-black uppercase tracking-wider shrink-0", textClass)}>{config.label}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{activity.description}</p>
+                          <p className="text-xs font-medium text-slate-400 mt-1">
+                            {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </CardContent>
+            <div className="px-4 py-3 border-t border-slate-50 shrink-0">
+              <Button asChild variant="ghost" className="w-full text-slate-400 hover:text-[#0C005F] text-xs font-bold uppercase tracking-widest h-8">
+                <Link to="/activity">View Recent Activity</Link>
               </Button>
             </div>
-          )}
-        </Card>
-      </section>
+          </Card>
 
-      {/* ② Pending Requests */}
-      <div className="order-2 lg:order-3">
-        <PendingTable />
+        </div>
+
+        {/* Right Column: Pending Requests Card (Height adjusted to 1040px to match 512px + 512px + 16px gap) */}
+        <div className="lg:w-[420px] shrink-0 h-[1040px]">
+          <PendingTable />
+        </div>
+
       </div>
 
-      {/* ③ Analytics Stats + Calendar grid — 40/60 split */}
-      <div className="order-3 lg:order-2 grid grid-cols-1 lg:grid-cols-5 gap-6 md:gap-8">
-
-        {/* Analytics Stats Table */}
-        <Card className="lg:col-span-2 border-none shadow-sm bg-white overflow-hidden flex flex-col">
-          {/* Header row — Total Employees */}
-          <div className="bg-[#0C005F] px-6 h-[79px] flex items-center justify-between text-white shrink-0">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Total Employees</span>
-              <p className="text-xs font-medium text-blue-200/60 italic">Active workforce count</p>
-            </div>
-            <span className="text-4xl font-black">{stats.totalEmployees}</span>
+      {/* Hidden for now - Total Employees / Analytics Stats Card (kept for relocation/reuse) */}
+      {/* 
+      <Card className="hidden lg:col-span-2 border-none shadow-sm bg-white overflow-hidden flex-col rounded-[32px]">
+        <div className="bg-[#0C005F] px-6 h-[79px] flex items-center justify-between text-white shrink-0">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Total Employees</span>
+            <p className="text-xs font-medium text-blue-200/60 italic">Active workforce count</p>
           </div>
-          {/* Tab Selection Bar */}
-          <div className="bg-slate-50 border-b border-slate-100 flex p-1.5 gap-1 shrink-0">
-            {[
-              { id: "leaves", label: "Leaves" },
-              { id: "tenure", label: "Tenure" },
-              { id: "classification", label: "Class" },
-              { id: "workload", label: "Workload" }
-            ].map(t => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setActiveAnalyticsTab(t.id)}
-                className={cn(
-                  "flex-1 text-[10px] font-bold py-1.5 rounded-md uppercase tracking-wider transition-all",
-                  activeAnalyticsTab === t.id
-                    ? "bg-white text-[#0C005F] shadow-sm"
-                    : "text-slate-400 hover:text-slate-600"
-                )}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-          {/* Stats Grid body */}
-          <div className="flex-1 flex flex-col min-h-[300px]">
-            {activeAnalyticsTab === "leaves" && (
-              <div className="grid grid-cols-2 divide-x divide-y divide-slate-50 flex-1">
-                {analyticsRows.map((row, i) => (
-                  <div key={i} className="px-5 py-5 flex flex-col justify-between hover:bg-slate-50/50 transition-colors h-full">
-                    <div className="flex flex-row items-center gap-2">
-                      <div className="w-7 h-7 rounded-md flex items-center justify-center border border-slate-100 shadow-sm bg-white">
-                        <row.icon className="w-3.5 h-3.5 text-[#0C005F]" />
-                      </div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">{row.label}</p>
-                    </div>
-                    <div className="mt-4 flex justify-end">
-                      <span className="text-4xl font-black text-slate-900 tracking-tight leading-none">{row.value}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {activeAnalyticsTab === "tenure" && (
-              <div className="p-5 flex-1 flex flex-col justify-center space-y-4">
-                {[
-                  { label: "Regular", count: workforceStats.tenure.Regular, color: "bg-emerald-500", text: "text-emerald-600" },
-                  { label: "Probationary", count: workforceStats.tenure.Probationary, color: "bg-amber-500", text: "text-amber-600" },
-                  { label: "Contractual", count: workforceStats.tenure.Contractual, color: "bg-blue-500", text: "text-blue-600" }
-                ].map((t) => {
-                  const total = workforceStats.tenure.Regular + workforceStats.tenure.Probationary + workforceStats.tenure.Contractual || 1;
-                  const pct = Math.round((t.count / total) * 100);
-                  return (
-                    <div key={t.label} className="space-y-1.5">
-                      <div className="flex justify-between items-center text-xs font-bold text-slate-700">
-                        <span>{t.label}</span>
-                        <span className={t.text}>{t.count} ({pct}%)</span>
-                      </div>
-                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div className={cn("h-full rounded-full transition-all duration-500", t.color)} style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {activeAnalyticsTab === "classification" && (
-              <div className="p-5 flex-1 flex flex-col justify-between space-y-4 overflow-hidden">
-                {/* Classification I Row */}
-                <div className="grid grid-cols-2 gap-4 shrink-0">
-                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Teaching</p>
-                    <p className="text-2xl font-black text-[#0C005F] mt-1">{workforceStats.classification.Teaching}</p>
-                  </div>
-                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Non-Teaching</p>
-                    <p className="text-2xl font-black text-slate-700 mt-1">{workforceStats.classification['Non-Teaching']}</p>
-                  </div>
-                </div>
-
-                {/* Classification II Division list */}
-                <div className="flex-1 overflow-y-auto space-y-2 max-h-[160px] pr-1 custom-scrollbar">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Divisions (Classification II)</p>
-                  {Object.keys(workforceStats.classificationII).length === 0 ? (
-                    <p className="text-xs text-slate-400 italic">No divisions recorded.</p>
-                  ) : (
-                    Object.entries(workforceStats.classificationII).map(([div, count]) => (
-                      <div key={div} className="flex justify-between items-center py-1.5 px-2 bg-slate-50/50 hover:bg-slate-50 border border-slate-100/50 rounded-lg text-xs font-semibold text-slate-700">
-                        <span>{div}</span>
-                        <Badge className="bg-[#0C005F]/10 text-[#0C005F] hover:bg-[#0C005F]/20 border-none font-bold text-[10px]">{count}</Badge>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            {activeAnalyticsTab === "workload" && (
-              <div className="p-5 flex-1 flex flex-col justify-center space-y-5">
-                {[
-                  { label: "Full-Time", count: workforceStats.workload['Full-Time'], color: "bg-indigo-600", text: "text-indigo-600" },
-                  { label: "Part-Time", count: workforceStats.workload['Part-Time'], color: "bg-pink-500", text: "text-pink-500" }
-                ].map((w) => {
-                  const total = workforceStats.workload['Full-Time'] + workforceStats.workload['Part-Time'] || 1;
-                  const pct = Math.round((w.count / total) * 100);
-                  return (
-                    <div key={w.label} className="space-y-1.5">
-                      <div className="flex justify-between items-center text-xs font-bold text-slate-700">
-                        <span>{w.label}</span>
-                        <span className={w.text}>{w.count} ({pct}%)</span>
-                      </div>
-                      <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className={cn("h-full rounded-full transition-all duration-500", w.color)} style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </Card>
-
-        {/* Calendar Panel — 60% width (3 of 5 cols) */}
-        <Card className="lg:col-span-3 border-none shadow-sm bg-white overflow-visible flex flex-col rounded-xl">
-          <CardContent className="p-0 flex-1 flex flex-col">
-            <MonthGridCalendar />
-          </CardContent>
-        </Card>
-      </div>
+          <span className="text-4xl font-black">{stats.totalEmployees}</span>
+        </div>
+      </Card>
+      */}
 
     </div>
   );
@@ -487,6 +372,8 @@ function MonthGridCalendar() {
   const [eventName, setEventName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [overflowDay, setOverflowDay] = useState(null); // dateStr of open overflow popover
+  const [legendCollapsed, setLegendCollapsed] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null); // event detail modal
 
   const currentYear = new Date().getFullYear();
 
@@ -526,9 +413,15 @@ function MonthGridCalendar() {
 
         // Leave events — start date only
         (leavesRes.data || []).forEach(leave => {
+          const empName = `${leave.employees?.first_name || ''} ${leave.employees?.last_name || ''}`.trim() || 'Employee';
           addEvent(leave.start_date, {
             type:  leave.status === 'pending' ? 'pending_leave' : 'approved_leave',
             label: `${leave.employees?.first_name || '?'} – ${leave.leave_type} Leave`,
+            title: `${leave.leave_type} Leave Application`,
+            employeeName: empName,
+            leaveType: leave.leave_type,
+            status: leave.status,
+            date: format(new Date(leave.start_date + 'T00:00:00'), 'MMMM d, yyyy'),
           });
         });
 
@@ -539,9 +432,14 @@ function MonthGridCalendar() {
             const bdate = new Date(emp.birthdate + 'T00:00:00');
             const thisYearBirthday = new Date(viewedYear, bdate.getMonth(), bdate.getDate());
             if (isSameMonth(thisYearBirthday, currentMonth)) {
-              addEvent(format(thisYearBirthday, 'yyyy-MM-dd'), {
+              const dateStr = format(thisYearBirthday, 'yyyy-MM-dd');
+              const empName = `${emp.first_name} ${emp.last_name}`;
+              addEvent(dateStr, {
                 type:  'birthday',
-                label: `${emp.first_name} ${emp.last_name}'s Birthday`,
+                label: `${empName}'s Birthday`,
+                title: 'Birthday Celebration',
+                employeeName: empName,
+                date: format(thisYearBirthday, 'MMMM d'),
               });
             }
           } catch (_e) { /* skip invalid date */ }
@@ -557,9 +455,15 @@ function MonthGridCalendar() {
               if (isNaN(expiryDate.getTime())) return;
               if (expiryDate.getFullYear() !== currentYear) return;
               if (!isSameMonth(expiryDate, currentMonth)) return;
-              addEvent(format(expiryDate, 'yyyy-MM-dd'), {
+              const dateStr = format(expiryDate, 'yyyy-MM-dd');
+              const empName = `${emp.first_name} ${emp.last_name}`;
+              addEvent(dateStr, {
                 type:  'expiring_license',
                 label: `${emp.first_name} – ${lic.name || 'License'} Expires`,
+                title: 'License Expiry Warning',
+                employeeName: empName,
+                licenseName: lic.name || 'Professional License',
+                date: format(expiryDate, 'MMMM d, yyyy'),
               });
             } catch (_e) { /* skip invalid date */ }
           });
@@ -570,6 +474,8 @@ function MonthGridCalendar() {
           addEvent(evt.event_date, {
             type:  'custom',
             label: evt.title,
+            title: evt.title,
+            date: format(new Date(evt.event_date + 'T00:00:00'), 'MMMM d, yyyy'),
           });
         });
 
@@ -582,7 +488,7 @@ function MonthGridCalendar() {
     fetchCalendarData();
   }, [currentMonth, currentYear, refreshKey]);
 
-  // ── Close context menu on outside mousedown ───────────────────────────────
+  // ── Close context menu & overflow popover on outside mousedown ───────────
   useEffect(() => {
     if (!contextMenu) return;
     const close = () => setContextMenu(null);
@@ -590,13 +496,23 @@ function MonthGridCalendar() {
     return () => document.removeEventListener('mousedown', close);
   }, [contextMenu]);
 
-  // ── Close overflow popover on outside mousedown ───────────────────────────
   useEffect(() => {
     if (!overflowDay) return;
     const close = () => setOverflowDay(null);
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, [overflowDay]);
+
+  // ── Close context menu & overflow popover on scroll ───────────────────────
+  useEffect(() => {
+    if (!contextMenu && !overflowDay) return;
+    const closeOnScroll = () => {
+      setContextMenu(null);
+      setOverflowDay(null);
+    };
+    window.addEventListener('scroll', closeOnScroll, { capture: true, passive: true });
+    return () => window.removeEventListener('scroll', closeOnScroll, { capture: true });
+  }, [contextMenu, overflowDay]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleContextMenu = (e, day) => {
@@ -662,26 +578,27 @@ function MonthGridCalendar() {
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Header */}
-      <div className="bg-[#0C005F] px-6 h-[79px] flex items-center justify-between text-white shrink-0 rounded-tl-xl rounded-tr-xl">
-        <div className="flex items-center gap-2">
-          <CalendarDays className="w-4 h-4" />
-          <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Activity Calendar</h2>
+      {/* Header - Reverted to white background consistent with all other cards */}
+      <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between shrink-0 bg-white">
+        <div>
+          <h2 className="text-xs font-black uppercase tracking-widest text-slate-700">Activity Calendar</h2>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs font-bold uppercase tracking-widest text-white/90">
+          <span className="text-xs font-bold uppercase tracking-widest text-slate-700">
             {format(currentMonth, "MMMM yyyy")}
           </span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}
-              className="w-6 h-6 flex items-center justify-center rounded-md border border-white/20 text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+              className="w-6 h-6 flex items-center justify-center rounded border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+              title="Previous Month"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}
-              className="w-6 h-6 flex items-center justify-center rounded-md border border-white/20 text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+              className="w-6 h-6 flex items-center justify-center rounded border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+              title="Next Month"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
@@ -689,114 +606,163 @@ function MonthGridCalendar() {
         </div>
       </div>
 
-      {/* Day name headers */}
-      <div className="grid grid-cols-7 border-b border-slate-100 shrink-0">
-        {DAY_NAMES.map(day => (
-          <div
-            key={day}
-            className="py-2 text-center text-[9px] font-black uppercase tracking-widest text-slate-400 border-r border-slate-100 last:border-r-0"
-          >
-            {day.slice(0, 3)}
-          </div>
-        ))}
-      </div>
-
-      {/* Day cells grid */}
-      <div className="flex flex-col flex-1">
-        {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 flex-1" style={{ minHeight: '64px' }}>
-            {week.map((day, di) => {
-              const inMonth     = isSameMonth(day, currentMonth);
-              const todayFlag   = isToday(day);
-              const dateStr     = format(day, 'yyyy-MM-dd');
-              const dayEvents   = eventMap[dateStr] || [];
-              const visibleEvts = dayEvents.slice(0, 2);
-              const overflow    = dayEvents.length - 2;
-              const isOvOpen    = overflowDay === dateStr;
-
-              return (
-                <div
-                  key={di}
-                  className={cn(
-                    'border-r border-b border-slate-100 last:border-r-0 p-1 relative flex flex-col gap-0.5 hover:bg-slate-50/80 transition-colors cursor-default',
-                    !inMonth && 'bg-slate-50/50',
-                    todayFlag  && 'bg-blue-50/40'
-                  )}
-                  onContextMenu={(e) => handleContextMenu(e, day)}
-                >
-                  {/* Day number */}
+      {/* Main Body: Left Legend Sidebar + Calendar Grid */}
+      <div className="flex flex-1 min-h-0">
+        {/* Legend Sidebar on Left (Collapsible) */}
+        <div className={cn(
+          "shrink-0 border-r border-slate-100 bg-slate-50/40 transition-all duration-300 flex flex-col justify-start overflow-hidden",
+          legendCollapsed ? "w-10 p-2 items-center" : "w-36 p-3 space-y-2"
+        )}>
+          {legendCollapsed ? (
+            <>
+              <button
+                onClick={() => setLegendCollapsed(false)}
+                className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 transition-colors mb-2"
+                title="Expand Legend"
+              >
+                <PanelLeftOpen className="w-4 h-4" />
+              </button>
+              <div className="flex flex-col items-center gap-2.5 pt-1">
+                {Object.entries(EVENT_STYLES).map(([key, style]) => (
                   <span
-                    className={cn(
-                      'text-[11px] font-bold leading-none self-start mb-0.5',
-                      todayFlag
-                        ? 'w-5 h-5 flex items-center justify-center rounded-full bg-[#0C005F] text-white'
-                        : inMonth ? 'text-slate-700' : 'text-slate-300'
-                    )}
-                  >
-                    {format(day, 'd')}
-                  </span>
+                    key={key}
+                    title={style.label}
+                    className={cn('w-2.5 h-2.5 rounded-full shrink-0 cursor-help', style.dot)}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                <p className="text-2xs font-black text-slate-400 uppercase tracking-widest">Legend</p>
+                <button
+                  onClick={() => setLegendCollapsed(true)}
+                  className="w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 transition-colors"
+                  title="Collapse Legend"
+                >
+                  <PanelLeftClose className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="space-y-2 pt-0.5">
+                {Object.entries(EVENT_STYLES).map(([key, style]) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className={cn('w-2 h-2 rounded-full shrink-0', style.dot)} />
+                    <span className="text-xs font-bold text-slate-600 truncate">{style.label}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
 
-                  {/* Visible event pills (max 2) */}
-                  {visibleEvts.map((evt, ei) => {
-                    const s = EVENT_STYLES[evt.type] || EVENT_STYLES.custom;
-                    return (
-                      <div
-                        key={ei}
-                        title={evt.label}
-                        className={cn('text-[9px] font-bold px-1 py-0.5 rounded truncate leading-tight', s.bg)}
-                      >
-                        {evt.label}
-                      </div>
-                    );
-                  })}
+        {/* Calendar Grid */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Day name headers */}
+          <div className="grid grid-cols-7 border-b border-slate-100 shrink-0">
+            {DAY_NAMES.map(day => (
+              <div
+                key={day}
+                className="py-1.5 text-center text-2xs font-black uppercase tracking-widest text-slate-400 border-r border-slate-100 last:border-r-0"
+              >
+                {day.slice(0, 3)}
+              </div>
+            ))}
+          </div>
 
-                  {/* Overflow "+N more" button */}
-                  {overflow > 0 && (
-                    <button
-                      className="text-[9px] font-bold text-slate-400 hover:text-[#0C005F] text-left transition-colors"
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => { e.stopPropagation(); setOverflowDay(isOvOpen ? null : dateStr); }}
-                    >
-                      +{overflow} more
-                    </button>
-                  )}
+          {/* Day cells grid */}
+          <div className="flex flex-col flex-1 min-h-0">
+            {weeks.map((week, wi) => (
+              <div key={wi} className="grid grid-cols-7 flex-1 min-h-[64px]">
+                {week.map((day, di) => {
+                  const inMonth     = isSameMonth(day, currentMonth);
+                  const todayFlag   = isToday(day);
+                  const dateStr     = format(day, 'yyyy-MM-dd');
+                  const dayEvents   = eventMap[dateStr] || [];
+                  const visibleEvts = dayEvents.slice(0, 2);
+                  const overflow    = dayEvents.length - 2;
+                  const isOvOpen    = overflowDay === dateStr;
 
-                  {/* Overflow popover */}
-                  {isOvOpen && (
+                  return (
                     <div
-                      className="absolute top-full left-0 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl p-2.5 min-w-[200px] space-y-1 animate-in fade-in zoom-in-95 duration-150"
-                      onMouseDown={(e) => e.stopPropagation()}
+                      key={di}
+                      className={cn(
+                        'border-r border-b border-slate-100 last:border-r-0 p-1 relative flex flex-col gap-0.5 hover:bg-slate-50/80 transition-colors cursor-default',
+                        !inMonth && 'bg-slate-50/50',
+                        todayFlag  && 'bg-blue-50/40'
+                      )}
+                      onContextMenu={(e) => handleContextMenu(e, day)}
                     >
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest pb-1.5 border-b border-slate-100">
-                        {format(day, 'MMMM d')} · All Events
-                      </p>
-                      <div className="space-y-1 pt-0.5">
-                        {dayEvents.map((evt, ei) => {
-                          const s = EVENT_STYLES[evt.type] || EVENT_STYLES.custom;
-                          return (
-                            <div key={ei} className={cn('text-[10px] font-bold px-2 py-1 rounded-md truncate', s.bg)}>
-                              {evt.label}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </div>
+                      {/* Day number */}
+                      <span
+                        className={cn(
+                          'text-xs font-bold leading-none self-start mb-0.5',
+                          todayFlag
+                            ? 'w-4 h-4 flex items-center justify-center rounded-full bg-[#0C005F] text-white text-2xs'
+                            : inMonth ? 'text-slate-700' : 'text-slate-300'
+                        )}
+                      >
+                        {format(day, 'd')}
+                      </span>
 
-      {/* Legend */}
-      <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/40 flex flex-wrap gap-x-4 gap-y-1 shrink-0 rounded-bl-xl rounded-br-xl">
-        {Object.entries(EVENT_STYLES).map(([key, style]) => (
-          <div key={key} className="flex items-center gap-1.5">
-            <span className={cn('w-2 h-2 rounded-full shrink-0', style.dot)} />
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{style.label}</span>
+                      {/* Visible event pills (max 2) */}
+                      {visibleEvts.map((evt, ei) => {
+                        const s = EVENT_STYLES[evt.type] || EVENT_STYLES.custom;
+                        return (
+                          <div
+                            key={ei}
+                            title={evt.label}
+                            onClick={(e) => { e.stopPropagation(); setSelectedEvent(evt); }}
+                            className={cn('text-2xs font-bold px-1 py-0.5 rounded truncate leading-tight cursor-pointer hover:opacity-85 transition-opacity', s.bg)}
+                          >
+                            {evt.label}
+                          </div>
+                        );
+                      })}
+
+                      {/* Overflow "+N more" button */}
+                      {overflow > 0 && (
+                        <button
+                          className="text-2xs font-bold text-slate-400 hover:text-[#0C005F] text-left transition-colors"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); setOverflowDay(isOvOpen ? null : dateStr); }}
+                        >
+                          +{overflow} more
+                        </button>
+                      )}
+
+                      {/* Overflow popover */}
+                      {isOvOpen && (
+                        <div
+                          className="absolute top-full left-0 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl p-2.5 min-w-[200px] space-y-1 animate-in fade-in zoom-in-95 duration-150"
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <p className="text-2xs font-black text-slate-400 uppercase tracking-widest pb-1.5 border-b border-slate-100">
+                            {format(day, 'MMMM d')} · All Events
+                          </p>
+                          <div className="space-y-1 pt-0.5">
+                            {dayEvents.map((evt, ei) => {
+                              const s = EVENT_STYLES[evt.type] || EVENT_STYLES.custom;
+                              return (
+                                <div
+                                  key={ei}
+                                  onClick={(e) => { e.stopPropagation(); setOverflowDay(null); setSelectedEvent(evt); }}
+                                  className={cn('text-xs font-bold px-2 py-1 rounded-md truncate cursor-pointer hover:opacity-85 transition-opacity', s.bg)}
+                                >
+                                  {evt.label}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
 
       {/* Right-click context menu (fixed position to avoid clipping) */}
@@ -823,7 +789,11 @@ function MonthGridCalendar() {
                 {dayEvents.map((evt, ei) => {
                   const s = EVENT_STYLES[evt.type] || EVENT_STYLES.custom;
                   return (
-                    <div key={ei} className={cn('text-[10px] font-bold px-2 py-1 rounded-md truncate', s.bg)}>
+                    <div
+                      key={ei}
+                      onClick={(e) => { e.stopPropagation(); setContextMenu(null); setSelectedEvent(evt); }}
+                      className={cn('text-[10px] font-bold px-2 py-1 rounded-md truncate cursor-pointer hover:opacity-85 transition-opacity', s.bg)}
+                    >
                       {evt.label}
                     </div>
                   );
@@ -848,72 +818,152 @@ function MonthGridCalendar() {
         </div>
       )}
 
-
-      {/* Add Event Modal */}
-      {addEventOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      {/* Event Detail Modal (Displays info when any event/announcement is clicked) */}
+      {selectedEvent && (
+        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-in zoom-in-95 duration-200"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200"
             onMouseDown={(e) => e.stopPropagation()}
           >
             {/* Modal header */}
-            <div className="bg-[#0C005F] px-6 py-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-black text-white tracking-tight">Add Event</h2>
-                <p className="text-[10px] text-white/50 mt-0.5 font-medium">
-                  {selectedDate ? format(selectedDate, 'EEEE, MMMM d, yyyy') : ''}
-                </p>
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+              <div className="flex items-center gap-2">
+                <span className={cn('w-3 h-3 rounded-full shrink-0', EVENT_STYLES[selectedEvent.type]?.dot)} />
+                <span className="text-xs font-black uppercase tracking-widest text-slate-700">
+                  {EVENT_STYLES[selectedEvent.type]?.label || 'Event Details'}
+                </span>
               </div>
               <button
-                onClick={() => setAddEventOpen(false)}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                onClick={() => setSelectedEvent(null)}
+                className="w-7 h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 transition-colors"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal body */}
             <div className="p-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</label>
-                <div className="h-9 px-3 flex items-center bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-600">
+              <div>
+                <h3 className="text-base font-black text-slate-800 tracking-tight">{selectedEvent.label}</h3>
+                {selectedEvent.date && (
+                  <p className="text-xs font-semibold text-slate-400 mt-1">{selectedEvent.date}</p>
+                )}
+              </div>
+
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-2.5 text-xs text-slate-600">
+                {selectedEvent.employeeName && (
+                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                    <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Employee</span>
+                    <span className="font-extrabold text-slate-800">{selectedEvent.employeeName}</span>
+                  </div>
+                )}
+                {selectedEvent.leaveType && (
+                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                    <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Leave Type</span>
+                    <span className="font-extrabold text-slate-800">{selectedEvent.leaveType}</span>
+                  </div>
+                )}
+                {selectedEvent.status && (
+                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                    <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Status</span>
+                    <Badge variant="secondary" className={cn("text-2xs font-extrabold uppercase px-2 py-0.5",
+                      selectedEvent.status === 'approved' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200")}>
+                      {selectedEvent.status}
+                    </Badge>
+                  </div>
+                )}
+                {selectedEvent.licenseName && (
+                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                    <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">License Name</span>
+                    <span className="font-extrabold text-slate-800">{selectedEvent.licenseName}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Category</span>
+                  <span className="font-extrabold text-slate-800">{EVENT_STYLES[selectedEvent.type]?.label}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal footer */}
+            <div className="px-6 pb-6 flex justify-end">
+              <Button
+                onClick={() => setSelectedEvent(null)}
+                variant="outline"
+                className="text-xs font-bold uppercase tracking-wider border-slate-200 text-slate-600 hover:bg-slate-50"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Event Modal (Scaled up by 2.5x to max-w-2xl with larger padding and text) */}
+      {addEventOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="bg-[#0C005F] px-8 py-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black text-white tracking-tight">Add Calendar Event</h2>
+                <p className="text-xs text-white/70 mt-1 font-medium">
+                  {selectedDate ? format(selectedDate, 'EEEE, MMMM d, yyyy') : ''}
+                </p>
+              </div>
+              <button
+                onClick={() => setAddEventOpen(false)}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div className="p-8 space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Date</label>
+                <div className="h-11 px-4 flex items-center bg-slate-50 border border-slate-200 rounded-xl text-base font-semibold text-slate-700">
                   {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : ''}
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Event Name *</label>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Event Name *</label>
                 <input
                   autoFocus
                   type="text"
                   value={eventName}
                   onChange={(e) => setEventName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && eventName.trim()) handleSaveEvent(); }}
-                  placeholder="e.g. Company Outing, Team Meeting..."
-                  className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F]/40 transition-all placeholder:text-slate-300"
+                  placeholder="e.g. Company Outing, Team Meeting, Academic Holiday..."
+                  className="w-full h-11 px-4 bg-white border border-slate-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F]/40 transition-all placeholder:text-slate-300 font-medium"
                 />
               </div>
-              <p className="text-[10px] text-slate-500 leading-relaxed bg-blue-50/60 border border-blue-100 rounded-lg px-3 py-2">
-                💡 All active employees will receive a notification about this event.
+              <p className="text-xs text-slate-600 leading-relaxed bg-blue-50/70 border border-blue-100 rounded-xl px-4 py-3">
+                💡 All active employees will receive an in-app notification when this event is added.
               </p>
             </div>
 
             {/* Modal footer */}
-            <div className="px-6 pb-6 flex gap-2 justify-end">
+            <div className="px-8 pb-8 flex gap-3 justify-end">
               <button
                 onClick={() => setAddEventOpen(false)}
-                className="px-4 h-9 text-sm font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                className="px-6 h-11 text-sm font-bold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveEvent}
                 disabled={isSaving || !eventName.trim()}
-                className="px-5 h-9 text-sm font-bold text-white bg-[#0C005F] rounded-lg hover:bg-[#0C005F]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-[#0C005F]/20"
+                className="px-8 h-11 text-sm font-bold text-white bg-[#0C005F] rounded-xl hover:bg-[#0C005F]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-[#0C005F]/20"
               >
                 {isSaving ? (
-                  <><Loader2 className="w-3.5 h-3.5 animate-spin" />Saving...</>
+                  <><Loader2 className="w-4 h-4 animate-spin" />Saving...</>
                 ) : (
-                  <><Plus className="w-3.5 h-3.5" />Add Event</>
+                  <><Plus className="w-4 h-4" />Add Event</>
                 )}
               </button>
             </div>

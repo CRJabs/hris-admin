@@ -18,6 +18,7 @@ const ActivityHistory = lazy(() => import('@/pages/core/ActivityHistory'));
 const BinPage = lazy(() => import('@/pages/core/BinPage'));
 
 const Employees = lazy(() => import('@/pages/employees/Employees'));
+const Analytics = lazy(() => import('@/pages/core/Analytics'));
 const Reports = lazy(() => import('@/pages/core/Reports'));
 const Approvals = lazy(() => import('@/pages/approvals/index'));
 const EmployeeProfile = lazy(() => import('@/pages/employees/EmployeeProfile'));
@@ -37,6 +38,7 @@ const Commutations = lazy(() => import('@/pages/approvals/Commutations'));
 const Resignations = lazy(() => import('@/pages/approvals/Resignations'));
 const Retirements = lazy(() => import('@/pages/approvals/Retirements'));
 const Company = lazy(() => import('@/pages/core/Company'));
+const Publish = lazy(() => import('@/pages/core/Publish'));
 
 
 // Loading component
@@ -111,6 +113,8 @@ const AuthenticatedApp = () => {
           <Route path="/employees/add" element={<ProtectedRoute path="/employees/add" element={<AddEmployee />} />} />
           <Route path="/leaves/assign" element={<ProtectedRoute path="/leaves/assign" element={<AssignLeaveCredits />} />} />
           <Route path="/company" element={<ProtectedRoute path="/company" element={<Company />} />} />
+          <Route path="/publish" element={<ProtectedRoute path="/publish" element={<Publish />} />} />
+          {/* <Route path="/analytics" element={<ProtectedRoute path="/analytics" element={<Analytics />} />} /> */}
           <Route path="/reports" element={<ProtectedRoute path="/reports" element={<Reports />} />} />
           <Route path="/activity" element={<ProtectedRoute path="/activity" element={<ActivityHistory />} />} />
           <Route path="/activity/bin" element={<ProtectedRoute path="/activity/bin" element={<BinPage />} />} />

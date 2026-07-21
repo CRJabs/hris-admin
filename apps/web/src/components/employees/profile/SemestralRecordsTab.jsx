@@ -94,11 +94,10 @@ export default function SemestralRecordsTab({
   };
 
   return (
-    <Card className="shadow-sm border-slate-300 w-full">
+    <Card className="shadow-none border border-slate-200 rounded-xl bg-white w-full">
       <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between border-b bg-slate-50/50">
         <div>
-          <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-800">
-            <BookOpen className="w-5 h-5 text-indigo-600" />
+          <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
             Semester Records
           </CardTitle>
           <p className="text-xs text-slate-500 mt-1">
@@ -130,7 +129,7 @@ export default function SemestralRecordsTab({
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/20">
+                    <tr className="border-b border-slate-100 text-2xs font-bold text-slate-400 uppercase tracking-wider bg-slate-50/20">
                       <th className="py-3 px-4">Academic Year</th>
                       <th className="py-3 px-4">Semester</th>
                       {isTeaching && <th className="py-3 px-4">Load (units)</th>}
@@ -171,7 +170,7 @@ export default function SemestralRecordsTab({
                             {isReadOnly ? (
                               <span>
                                 {row.teaching_load !== null && row.teaching_load !== undefined ? row.teaching_load : "—"} 
-                                {row.teaching_load !== null && <span className="text-[10px] text-indigo-400 font-normal ml-1">units</span>}
+                                {row.teaching_load !== null && <span className="text-2xs text-indigo-400 font-normal ml-1">units</span>}
                               </span>
                             ) : (
                               <Input
@@ -189,7 +188,7 @@ export default function SemestralRecordsTab({
                         <td className="py-2.5 px-4">
                           {isReadOnly ? (
                             <Badge
-                              className={`rounded-md font-semibold tracking-wide px-2 py-0.5 text-[9px] border shadow-none ${
+                              className={`rounded-md font-semibold tracking-wide px-2 py-0.5 text-2xs border shadow-none ${
                                 row.is_active
                                   ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                   : "bg-slate-100 text-slate-500 border-slate-200"

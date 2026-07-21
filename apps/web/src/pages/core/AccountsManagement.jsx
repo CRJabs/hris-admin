@@ -452,46 +452,46 @@ export default function AccountsManagement() {
 
   const getRoleBadgeColor = (roleStr) => {
     const r = roleStr?.toUpperCase() || "";
-    if (r === "ADMIN") return "bg-red-50 text-red-600 border-red-200";
-    if (r === "ATTENDANCE") return "bg-amber-50 text-amber-600 border-amber-200";
-    if (r === "REGISTRATION") return "bg-emerald-50 text-emerald-600 border-emerald-200";
-    if (r === "NSSG") return "bg-slate-100 text-slate-600 border-slate-200";
-    if (r === "PUBLISHING") return "bg-purple-50 text-purple-600 border-purple-200";
-    return "bg-blue-50 text-blue-600 border-blue-200";
+    if (r === "ADMIN") return "bg-red-50 text-red-600 border-red-200 hover:bg-red-100";
+    if (r === "ATTENDANCE") return "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100";
+    if (r === "REGISTRATION") return "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100";
+    if (r === "NSSG") return "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200";
+    if (r === "PUBLISHING") return "bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100";
+    return "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100";
   };
 
   const maskString = (str) => {
     return "•".repeat(12);
   };
-
   return (
-    <div className="p-6 max-w-7xl mx-auto animate-in fade-in duration-300">
-      {/* Main card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        {/* Controls header */}
-        <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 bg-slate-50/50">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder={activeSubTab === "employee" ? "Search by email address..." : "Search by email address or role..."}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 rounded-full border-slate-200 bg-white shadow-sm focus-visible:ring-[#0C005F] focus-visible:border-[#0C005F]"
-            />
-          </div>
-          {activeSubTab !== "employee" && (
-            <Button
-              onClick={() => {
-                resetForm();
-                setRole("ADMIN");
-                setAddModalOpen(true);
-              }}
-              className="bg-[#0C005F] hover:bg-[#1900C5] text-white font-semibold rounded-full px-5 py-2.5 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" /> Add Account
-            </Button>
-          )}
+    <div className="p-4 w-full animate-in fade-in duration-300 space-y-4">
+      {/* Top Island Card for Search & Add Account */}
+      <div className="bg-white rounded-xl border border-slate-200 p-2.5 px-4 shadow-none flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative flex-1 w-full max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder={activeSubTab === "employee" ? "Search by email address..." : "Search by email address or role..."}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 rounded-full border-slate-200 bg-white shadow-none focus-visible:ring-[#0C005F] focus-visible:border-[#0C005F]"
+          />
         </div>
+        {activeSubTab !== "employee" && (
+          <Button
+            onClick={() => {
+              resetForm();
+              setRole("ADMIN");
+              setAddModalOpen(true);
+            }}
+            className="bg-[#0C005F] hover:bg-[#1900C5] text-white font-black rounded-full px-5 py-2.5 transition-all shadow-none flex items-center gap-2 text-xs uppercase tracking-widest shrink-0"
+          >
+            <Plus className="w-4 h-4" /> Add Account
+          </Button>
+        )}
+      </div>
+
+      {/* Main card */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-none overflow-hidden">
 
         {/* Table representation */}
         <div className="overflow-x-auto">
@@ -511,7 +511,7 @@ export default function AccountsManagement() {
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/20">
+                <tr className="text-xs font-black text-white uppercase tracking-widest bg-[#0C005F]">
                   <th className="py-4 px-6">Email Address</th>
                   <th className="py-4 px-6">Password</th>
                   <th className="py-4 px-6">Account Type</th>
@@ -606,18 +606,18 @@ export default function AccountsManagement() {
         </div>
       </div>
 
-      {/* Add Web Account Modal */}
+      {/* Add Web Account Modal (Scaled 2.5x to max-w-2xl) */}
       <Dialog open={addModalOpen} onOpenChange={(open) => {
         setAddModalOpen(open);
         if (!open) resetForm();
       }}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-slate-800">Add Web Account</DialogTitle>
+        <DialogContent className="sm:max-w-2xl rounded-2xl p-8 border border-slate-200 shadow-none">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-2xl font-black text-slate-800">Add Web Account</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAddAccount} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="add-email" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Email Address</Label>
+          <form onSubmit={handleAddAccount} className="space-y-6 pt-2">
+            <div className="space-y-2">
+              <Label htmlFor="add-email" className="text-xs font-black text-slate-400 uppercase tracking-widest">Email Address</Label>
               <Input
                 id="add-email"
                 type="email"
@@ -626,12 +626,12 @@ export default function AccountsManagement() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isSubmitting}
-                className="rounded-md border-slate-200 focus-visible:ring-[#0C005F]"
+                className="h-11 px-4 rounded-xl border-slate-200 bg-white shadow-none text-base focus-visible:ring-[#0C005F]"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="add-password" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Password</Label>
+            <div className="space-y-2">
+              <Label htmlFor="add-password" className="text-xs font-black text-slate-400 uppercase tracking-widest">Password</Label>
               <Input
                 id="add-password"
                 type="text"
@@ -640,13 +640,13 @@ export default function AccountsManagement() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isSubmitting}
-                className="rounded-md border-slate-200 focus-visible:ring-[#0C005F]"
+                className="h-11 px-4 rounded-xl border-slate-200 bg-white shadow-none text-base focus-visible:ring-[#0C005F]"
               />
             </div>
 
             {activeSubTab !== "employee" && (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Account Type Role</Label>
+              <div className="space-y-2">
+                <Label className="text-xs font-black text-slate-400 uppercase tracking-widest">Account Type Role</Label>
 
                 {!isCreatingRole ? (
                   <div className="relative">
@@ -661,15 +661,15 @@ export default function AccountsManagement() {
                         }
                       }}
                       disabled={isSubmitting}
-                      className="w-full bg-white border border-slate-200 rounded-md p-2.5 text-sm outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F] transition-all cursor-pointer appearance-none"
+                      className="w-full h-11 bg-white border border-slate-200 shadow-none rounded-xl px-4 text-base outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F] transition-all cursor-pointer appearance-none font-medium"
                     >
                       {getDropdownRoles().map(r => (
                         <option key={r} value={r}>{r}</option>
                       ))}
                       <option value="CREATE_NEW">+ CREATE NEW CATEGORY</option>
                     </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                      <ChevronDown className="w-4 h-4" />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                      <ChevronDown className="w-5 h-5" />
                     </div>
                   </div>
                 ) : (
@@ -681,7 +681,7 @@ export default function AccountsManagement() {
                         onChange={(e) => setCustomRole(e.target.value)}
                         required
                         disabled={isSubmitting}
-                        className="rounded-md border-slate-200 focus-visible:ring-[#0C005F]"
+                        className="h-11 px-4 rounded-xl border-slate-200 bg-white shadow-none text-base focus-visible:ring-[#0C005F]"
                       />
                     </div>
                     <Button
@@ -691,7 +691,7 @@ export default function AccountsManagement() {
                         setIsCreatingRole(false);
                         setRole("ADMIN");
                       }}
-                      className="rounded-md border-slate-200"
+                      className="h-11 rounded-xl border-slate-200 shadow-none"
                     >
                       Cancel
                     </Button>
@@ -700,16 +700,16 @@ export default function AccountsManagement() {
               </div>
             )}
 
-            <DialogFooter className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
+            <DialogFooter className="pt-6 flex items-center justify-end gap-3 border-t border-slate-100">
               <DialogClose asChild>
-                <Button type="button" variant="ghost" disabled={isSubmitting} className="rounded-md">
+                <Button type="button" variant="ghost" disabled={isSubmitting} className="h-11 px-6 text-sm font-bold text-slate-600 rounded-xl">
                   Cancel
                 </Button>
               </DialogClose>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-[#0C005F] hover:bg-[#1900C5] text-white font-semibold rounded-md px-6 shadow-sm"
+                className="h-11 px-8 bg-[#0C005F] hover:bg-[#1900C5] text-white font-bold rounded-xl shadow-none"
               >
                 {isSubmitting ? (
                   <>
@@ -730,13 +730,13 @@ export default function AccountsManagement() {
         setEditModalOpen(open);
         if (!open) resetForm();
       }}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-slate-800">Edit Web Account</DialogTitle>
+        <DialogContent className="sm:max-w-2xl rounded-2xl p-8 border border-slate-200 shadow-none">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-2xl font-black text-slate-800">Edit Web Account</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleEditAccount} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-email" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Email Address</Label>
+          <form onSubmit={handleEditAccount} className="space-y-6 pt-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-email" className="text-xs font-black text-slate-400 uppercase tracking-widest">Email Address</Label>
               <Input
                 id="edit-email"
                 type="email"
@@ -745,27 +745,26 @@ export default function AccountsManagement() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isSubmitting}
-                className="rounded-md border-slate-200 focus-visible:ring-[#0C005F]"
+                className="h-11 px-4 rounded-xl border-slate-200 bg-white shadow-none text-base focus-visible:ring-[#0C005F]"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-password" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Password</Label>
+            <div className="space-y-2">
+              <Label htmlFor="edit-password" className="text-xs font-black text-slate-400 uppercase tracking-widest">Password</Label>
               <Input
                 id="edit-password"
                 type="text"
-                placeholder="Enter temporary password"
+                placeholder="Enter new password (leave blank to keep unchanged)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
                 disabled={isSubmitting}
-                className="rounded-md border-slate-200 focus-visible:ring-[#0C005F]"
+                className="h-11 px-4 rounded-xl border-slate-200 bg-white shadow-none text-base focus-visible:ring-[#0C005F]"
               />
             </div>
 
-            {selectedAccount?.role?.toLowerCase() !== "employee" && (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Account Type Role</Label>
+            {activeSubTab !== "employee" && (
+              <div className="space-y-2">
+                <Label className="text-xs font-black text-slate-400 uppercase tracking-widest">Account Type Role</Label>
 
                 {!isCreatingRole ? (
                   <div className="relative">
@@ -780,15 +779,15 @@ export default function AccountsManagement() {
                         }
                       }}
                       disabled={isSubmitting}
-                      className="w-full bg-white border border-slate-200 rounded-md p-2.5 text-sm outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F] transition-all cursor-pointer appearance-none"
+                      className="w-full h-11 bg-white border border-slate-200 shadow-none rounded-xl px-4 text-base outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F] transition-all cursor-pointer appearance-none font-medium"
                     >
                       {getDropdownRoles().map(r => (
                         <option key={r} value={r}>{r}</option>
                       ))}
                       <option value="CREATE_NEW">+ CREATE NEW CATEGORY</option>
                     </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                      <ChevronDown className="w-4 h-4" />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                      <ChevronDown className="w-5 h-5" />
                     </div>
                   </div>
                 ) : (
@@ -800,7 +799,7 @@ export default function AccountsManagement() {
                         onChange={(e) => setCustomRole(e.target.value)}
                         required
                         disabled={isSubmitting}
-                        className="rounded-md border-slate-200 focus-visible:ring-[#0C005F]"
+                        className="h-11 px-4 rounded-xl border-slate-200 bg-white shadow-none text-base focus-visible:ring-[#0C005F]"
                       />
                     </div>
                     <Button
@@ -810,7 +809,7 @@ export default function AccountsManagement() {
                         setIsCreatingRole(false);
                         setRole(selectedAccount?.role?.toUpperCase() || "ADMIN");
                       }}
-                      className="rounded-md border-slate-200"
+                      className="h-11 rounded-xl border-slate-200 shadow-none"
                     >
                       Cancel
                     </Button>
@@ -819,16 +818,16 @@ export default function AccountsManagement() {
               </div>
             )}
 
-            <DialogFooter className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
+            <DialogFooter className="pt-6 flex items-center justify-end gap-3 border-t border-slate-100">
               <DialogClose asChild>
-                <Button type="button" variant="ghost" disabled={isSubmitting} className="rounded-md">
+                <Button type="button" variant="ghost" disabled={isSubmitting} className="h-11 px-6 text-sm font-bold text-slate-600 rounded-xl">
                   Cancel
                 </Button>
               </DialogClose>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-[#0C005F] hover:bg-[#1900C5] text-white font-semibold rounded-md px-6 shadow-sm"
+                className="h-11 px-8 bg-[#0C005F] hover:bg-[#1900C5] text-white font-bold rounded-xl shadow-none"
               >
                 {isSubmitting ? (
                   <>
@@ -844,12 +843,12 @@ export default function AccountsManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Account Privileges Configuration Modal */}
+      {/* Account Privileges Configuration Modal (Increased width 2x to sm:max-w-4xl, shadow-none, border-slate-200, 8px options gap) */}
       <Dialog open={privilegesModalOpen} onOpenChange={setPrivilegesModalOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] rounded-2xl flex flex-col p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] rounded-2xl flex flex-col p-0 overflow-hidden border border-slate-200 shadow-none">
 
           {/* Header */}
-          <div className="p-6 pb-4 border-b border-slate-100">
+          <div className="p-6 pb-4 border-b border-slate-100 bg-white">
             <DialogTitle className="text-xl font-bold text-slate-800">Account Privileges Configuration</DialogTitle>
             <p className="text-xs text-slate-500 mt-1">
               Define page navigation and action authorization for:{" "}
@@ -859,7 +858,7 @@ export default function AccountsManagement() {
 
           {/* Content */}
           <ScrollArea className="flex-1 p-6 py-2 overflow-y-auto">
-            <div className="space-y-3.5 pr-2 py-2">
+            <div className="space-y-2 pr-2 py-2">
               {PRIVILEGE_PAGES.map((page) => {
                 const isChecked = checkedPrivileges.includes(page.id);
                 const hasSubpages = page.subpages && page.subpages.length > 0;
@@ -869,7 +868,7 @@ export default function AccountsManagement() {
                 return (
                   <div
                     key={page.id}
-                    className="border border-slate-100 rounded-xl overflow-hidden shadow-sm bg-white"
+                    className="border border-slate-200 rounded-xl overflow-hidden shadow-none bg-white"
                   >
                     {/* Parent Row */}
                     <div className="p-4 flex items-center justify-between hover:bg-slate-50/20 transition-colors">

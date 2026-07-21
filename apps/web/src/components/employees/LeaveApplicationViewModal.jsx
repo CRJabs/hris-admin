@@ -135,7 +135,7 @@ export default function LeaveApplicationViewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl">
+      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden border-none shadow-2xl">
         {/* Minimal Header without Title/Subtitle text */}
         <div className="bg-[#0C005F] h-12 flex items-center justify-between px-6 relative">
           <DialogTitle className="sr-only">Leave Application Review</DialogTitle>

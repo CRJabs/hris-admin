@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { History, Trash2, RotateCcw, AlertTriangle, Filter, RefreshCw, Calendar, FileText, UserPlus, User } from "lucide-react";
+import { History, Trash2, RotateCcw, AlertTriangle, Filter, RefreshCw, Calendar, FileText, UserPlus, User, Search, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { formatDistanceToNow, format, differenceInDays } from "date-fns";
 import ActivityTabs from "@/components/layout/ActivityTabs";
@@ -27,6 +28,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function BinPage() {
   const [binItems, setBinItems] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState("all");
   const [clearBinOpen, setClearBinOpen] = useState(false);
@@ -408,14 +410,20 @@ export default function BinPage() {
 
   // Filter items
   const filteredItems = binItems.filter((item) => {
-    if (typeFilter === "all") return true;
-    return item.record_type === typeFilter;
+    if (typeFilter !== "all" && item.record_type !== typeFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const label = (item.label || "").toLowerCase();
+      const type = (item.record_type || "").toLowerCase();
+      return label.includes(q) || type.includes(q);
+    }
+    return true;
   });
 
   return (
-    <div className="p-4 md:p-6 max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-500">
-      {/* Header Tabs & Actions Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 gap-4">
+    <div className="p-4 w-full h-full flex flex-col gap-4 animate-in fade-in duration-300">
+      {/* Top Island Card for Tabs & Quick Actions */}
+      <Card className="shadow-none border border-slate-200 bg-white rounded-xl p-2.5 px-4 shrink-0 flex items-center justify-between gap-4 flex-wrap">
         <ActivityTabs
           active="bin"
           binCount={binItems.length}
@@ -423,27 +431,43 @@ export default function BinPage() {
           unreadCount={unreadCount}
         />
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0 pb-2 sm:pb-0">
+        {/* Search Field */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            placeholder="Search bin records..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-1 focus-visible:ring-[#0C005F]"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+              <X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[180px] h-9 bg-white border-slate-200 shadow-sm text-xs">
+            <SelectTrigger className="w-[180px] h-8 bg-white border-slate-200 shadow-none text-xs rounded-lg font-medium">
               <div className="flex items-center gap-1.5">
                 <Filter className="w-3.5 h-3.5 text-slate-400" />
                 <SelectValue placeholder="Filter by type" />
               </div>
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types ({counts.all})</SelectItem>
-              <SelectItem value="profile_update">Profile Updates ({counts.profile_update})</SelectItem>
-              <SelectItem value="registration">New Registrations ({counts.registration})</SelectItem>
-              <SelectItem value="leave_application">Leave Applications ({counts.leave_application})</SelectItem>
-              <SelectItem value="employee">Employee Records ({counts.employee})</SelectItem>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="all" className="text-xs font-medium">All Types ({counts.all})</SelectItem>
+              <SelectItem value="profile_update" className="text-xs font-medium">Profile Updates ({counts.profile_update})</SelectItem>
+              <SelectItem value="registration" className="text-xs font-medium">New Registrations ({counts.registration})</SelectItem>
+              <SelectItem value="leave_application" className="text-xs font-medium">Leave Applications ({counts.leave_application})</SelectItem>
+              <SelectItem value="employee" className="text-xs font-medium">Employee Records ({counts.employee})</SelectItem>
             </SelectContent>
           </Select>
 
           <Button
             variant="outline"
             size="sm"
-            className="h-9 gap-1.5 border-[#0C005F]/20 text-[#0C005F] hover:bg-[#0C005F] hover:text-white transition-all disabled:opacity-50 text-xs"
+            className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 border-[#0C005F]/20 text-[#0C005F] hover:bg-[#0C005F] hover:text-white transition-all disabled:opacity-50"
             onClick={() => setRestoreAllOpen(true)}
             disabled={binItems.filter((i) => new Date(i.expires_at) > new Date()).length === 0}
           >
@@ -454,7 +478,7 @@ export default function BinPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-9 gap-1.5 border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-all text-xs"
+            className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 border-red-200 text-red-600 hover:bg-red-50 transition-all"
             onClick={() => setClearBinOpen(true)}
             disabled={binItems.length === 0}
           >
@@ -462,19 +486,19 @@ export default function BinPage() {
             Clear Bin
           </Button>
         </div>
-      </div>
+      </Card>
 
       {isLoading ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <RefreshCw className="w-10 h-10 mx-auto mb-3 opacity-20 animate-spin" />
-          <p className="text-sm font-medium">Loading bin records...</p>
-        </div>
+        <Card className="shadow-none border border-slate-200 bg-white rounded-xl p-16 text-center text-slate-400">
+          <RefreshCw className="w-10 h-10 mx-auto mb-3 opacity-20 animate-spin text-[#0C005F]" />
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Loading bin records...</p>
+        </Card>
       ) : filteredItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground border rounded-2xl border-dashed border-slate-200 bg-slate-50/30">
-          <Trash2 className="w-14 h-14 mb-4 opacity-15" />
-          <p className="font-semibold text-lg text-slate-700">Bin is empty</p>
-          <p className="text-sm mt-1">Deleted files and data will show up here.</p>
-        </div>
+        <Card className="shadow-none border border-slate-200 bg-white rounded-xl p-16 text-center flex flex-col items-center justify-center space-y-2">
+          <Trash2 className="w-12 h-12 text-slate-300 stroke-[1.5]" />
+          <p className="font-black text-sm uppercase tracking-wider text-slate-800">Bin is empty</p>
+          <p className="text-xs text-slate-500 font-medium">Deleted files and data will show up here.</p>
+        </Card>
       ) : (
         <div className="grid gap-3">
           {filteredItems.map((item) => {
@@ -487,38 +511,38 @@ export default function BinPage() {
             return (
               <div
                 key={item.id}
-                className={`relative rounded-xl border bg-white p-5 transition-all hover:shadow-md hover:border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${
+                className={`relative rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-slate-300 flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${
                   isExpired ? "opacity-60 bg-slate-50" : ""
                 }`}
               >
                 <div className="flex items-start gap-4 flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 border border-slate-200">
                     {getRecordTypeIcon(item.record_type)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <Badge
                         variant="outline"
-                        className={`text-[9px] font-bold uppercase tracking-wider ${getRecordTypeBadgeColor(
+                        className={`text-2xs font-bold uppercase tracking-wider border px-2 py-0.5 ${getRecordTypeBadgeColor(
                           item.record_type
                         )}`}
                       >
                         {getRecordTypeLabel(item.record_type)}
                       </Badge>
                       {isExpired ? (
-                        <Badge variant="destructive" className="text-[9px] font-bold uppercase tracking-wider bg-red-600 text-white">
+                        <Badge variant="destructive" className="text-2xs font-bold uppercase tracking-wider bg-red-600 text-white border-none">
                           Expired
                         </Badge>
                       ) : isExpiringSoon ? (
-                        <Badge className="text-[9px] font-bold uppercase tracking-wider bg-amber-500 hover:bg-amber-600 text-white border-none">
+                        <Badge className="text-2xs font-bold uppercase tracking-wider bg-amber-500 hover:bg-amber-600 text-white border-none">
                           Expiring Soon ({daysLeft}d left)
                         </Badge>
                       ) : null}
                     </div>
-                    <h3 className="font-black text-base text-slate-900 leading-tight">
+                    <h3 className="font-bold text-sm text-slate-900 leading-tight">
                       {item.label}
                     </h3>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500 font-medium mt-1">
                       Deleted {formatDistanceToNow(new Date(item.deleted_at), { addSuffix: true })} &bull; Expires on{" "}
                       {format(new Date(item.expires_at), "MMMM d, yyyy")}
                     </p>
@@ -529,7 +553,7 @@ export default function BinPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1.5 border-[#0C005F]/20 text-[#0C005F] hover:bg-[#0C005F] hover:text-white transition-all disabled:opacity-50"
+                    className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 border-[#0C005F]/20 text-[#0C005F] hover:bg-[#0C005F] hover:text-white transition-all disabled:opacity-50"
                     onClick={() => handleRestoreItem(item)}
                     disabled={isExpired}
                     title={isExpired ? "Cannot restore expired items" : "Restore this record"}
@@ -540,7 +564,7 @@ export default function BinPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1.5 border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-all"
+                    className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 border-red-200 text-red-600 hover:bg-red-50 transition-all"
                     onClick={() => handlePermanentDelete(item)}
                     title="Permanently delete from bin"
                   >
@@ -556,23 +580,23 @@ export default function BinPage() {
 
       {/* Clear Bin Confirm Dialog */}
       <AlertDialog open={clearBinOpen} onOpenChange={setClearBinOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600 text-base font-bold">
               <AlertTriangle className="w-5 h-5 animate-pulse" />
               Empty Trash Bin
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-xs text-slate-600">
               Are you sure you want to permanently delete all{" "}
               <strong>{binItems.length}</strong> items in the bin? This will permanently erase the data.
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="h-8 text-xs font-bold rounded-lg border-slate-200">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleClearBin}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="h-8 text-xs font-bold rounded-lg bg-red-600 hover:bg-red-700 text-white"
             >
               Clear Bin
             </AlertDialogAction>
@@ -582,21 +606,21 @@ export default function BinPage() {
 
       {/* Restore All Confirm Dialog */}
       <AlertDialog open={restoreAllOpen} onOpenChange={setRestoreAllOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-[#0C005F]">
+            <AlertDialogTitle className="flex items-center gap-2 text-[#0C005F] text-base font-bold">
               <RotateCcw className="w-5 h-5 animate-pulse" />
               Restore All Non-Expired Records
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-xs text-slate-600">
               Are you sure you want to restore all restorable records? They will be returned to their respective original sections in the portal.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="h-8 text-xs font-bold rounded-lg border-slate-200">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRestoreAll}
-              className="bg-[#0C005F] hover:bg-[#080044] text-white"
+              className="h-8 text-xs font-bold rounded-lg bg-[#0C005F] hover:bg-[#080044] text-white"
             >
               Restore All
             </AlertDialogAction>

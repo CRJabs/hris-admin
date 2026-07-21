@@ -225,23 +225,23 @@ export default function LeaveApplications() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-[1440px] mx-auto">
+    <div className="space-y-4 w-full">
       {/* Search & Filter Bar is now rendered at layout level */}
 
       {isLoading ? (
-        <div className="text-center p-8 text-muted-foreground">
+        <div className="text-center p-8 text-slate-400 text-xs font-semibold">
           Loading leave applications...
         </div>
       ) : filteredApplications.length === 0 ? (
-        <Card className="border-dashed shadow-none bg-muted/10">
-          <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
-            <CalendarDays className="w-12 h-12 mb-3 opacity-20" />
-            <p className="font-medium text-lg">
+        <Card className="border-dashed border-slate-200 shadow-none bg-slate-50/50 rounded-xl">
+          <CardContent className="flex flex-col items-center justify-center p-12 text-center text-slate-400">
+            <CalendarDays className="w-12 h-12 mb-3 opacity-20 text-[#0C005F]" />
+            <p className="font-bold text-base text-slate-600">
               {applications.length === 0
                 ? "No leave applications found"
                 : "No matching applications"}
             </p>
-            <p className="text-sm">
+            <p className="text-xs">
               {applications.length === 0
                 ? "No employees have filed for leave yet."
                 : "Try adjusting your search or filter."}
@@ -249,38 +249,31 @@ export default function LeaveApplications() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           {filteredApplications.map((app) => (
             <Card
               key={app.id}
-              className="overflow-hidden cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
+              className="overflow-hidden cursor-pointer hover:border-[#0C005F] transition-all shadow-none rounded-xl border border-slate-200 bg-white group"
               onClick={() => handleViewApplication(app)}
             >
-              <CardHeader className="bg-muted/30 group-hover:bg-primary/5 transition-colors pb-3 p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  {/* Employee Photo */}
+              <CardHeader className="bg-slate-50/50 group-hover:bg-blue-50/20 transition-colors pb-3 p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 border-b border-slate-100">
+                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
                     {app.employees?.photo_url ? (
-                      <img
-                        key={app.employees.photo_url}
-                        src={app.employees.photo_url}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={app.employees.photo_url} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-[10px] font-bold text-slate-500">
-                        {app.employees?.first_name?.[0]}
-                        {app.employees?.last_name?.[0]}
+                      <span className="text-xs font-bold text-slate-600">
+                        {app.employees?.first_name?.[0]}{app.employees?.last_name?.[0]}
                       </span>
                     )}
                   </div>
                   <div>
-                    <CardTitle className="text-base flex items-center gap-2 flex-wrap">
+                    <CardTitle className="text-sm font-black text-slate-900 flex items-center gap-2 flex-wrap">
                       {app.employees?.first_name} {app.employees?.last_name}
                       {app.status === "pending" && (
                         <Badge
                           variant="outline"
-                          className="bg-amber-50 text-amber-700 border-amber-200"
+                          className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 text-2xs font-bold uppercase tracking-wider"
                         >
                           Pending
                         </Badge>
@@ -288,7 +281,7 @@ export default function LeaveApplications() {
                       {app.status === "approved" && (
                         <Badge
                           variant="outline"
-                          className="bg-green-50 text-green-700 border-green-200"
+                          className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 text-2xs font-bold uppercase tracking-wider"
                         >
                           Approved
                         </Badge>
@@ -296,63 +289,49 @@ export default function LeaveApplications() {
                       {app.status === "rejected" && (
                         <Badge
                           variant="outline"
-                          className="bg-red-50 text-red-700 border-red-200"
+                          className="bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 text-2xs font-bold uppercase tracking-wider"
                         >
                           Rejected
                         </Badge>
                       )}
                     </CardTitle>
-                    <CardDescription className="mt-1">
-                      {app.employees?.employee_id} •{" "}
-                      {app.employees?.department}
+                    <CardDescription className="mt-0.5 text-xs text-slate-500 font-medium">
+                      {app.employees?.employee_id} • {app.employees?.department}
                     </CardDescription>
                   </div>
                 </div>
-                <div className="text-sm text-muted-foreground flex items-center gap-1.5 shrink-0">
-                  <Clock className="w-3.5 h-3.5" />
-                  Filed on{" "}
-                  {format(
-                    new Date(app.created_at),
-                    "MMM d, yyyy h:mm a"
-                  )}
+                <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5 shrink-0">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  Filed on {format(new Date(app.created_at || new Date()), "MMM d, yyyy h:mm a")}
                 </div>
               </CardHeader>
-              <CardContent className="p-4 pt-4">
-                <div className="flex flex-col md:flex-row gap-6">
-                  <div className="flex-1 space-y-3">
+              <CardContent className="p-4 pt-3.5">
+                <div className="flex flex-col md:flex-row gap-5">
+                  <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <Badge
-                        variant="secondary"
-                        className={`text-[10px] font-bold ${
-                          app.is_commutable
-                            ? "bg-amber-50 text-amber-600"
-                            : "bg-blue-50 text-blue-600"
-                        }`}
-                      >
-                        {app.leave_type} Leave (
-                        {app.is_commutable ? "Comm." : "Non-Comm."})
-                      </Badge>
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <CalendarDays className="w-3 h-3" />
-                        {format(new Date(app.start_date + "T00:00:00"), "MMM d, yyyy")} →{" "}
-                        {format(new Date(app.end_date + "T00:00:00"), "MMM d, yyyy")}
+                      <p className="text-xs font-semibold text-slate-700">
+                        Leave Application: <span className="text-[#0C005F] font-bold">{app.leave_type} Leave ({app.is_commutable ? "Commutable" : "Non-Commutable"})</span>
+                      </p>
+                      <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                        <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+                        {format(new Date(app.start_date + "T00:00:00"), "MMM d, yyyy")} → {format(new Date(app.end_date + "T00:00:00"), "MMM d, yyyy")}
                       </span>
                       {app.approved_by_dept_head === true && isInstitutionalUnit(app.employees?.org_unit_id) && (
                         <Badge
                           variant="outline"
-                          className="bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1 text-[10px] font-bold"
+                          className="bg-emerald-50 text-emerald-700 border-emerald-200 flex items-center gap-1 text-2xs font-bold"
                         >
                           <Check className="w-3.5 h-3.5 text-emerald-600" />
                           Approved by Department Head
                         </Badge>
                       )}
                     </div>
-                    <div className="p-3 border rounded-md bg-slate-50/30">
-                      <p className="text-xs text-slate-500 font-semibold mb-1 uppercase">
-                        Purpose
+                    <div className="p-3 border border-slate-200 rounded-lg bg-slate-50/50">
+                      <p className="text-2xs font-bold text-[#0C005F] uppercase tracking-wider mb-1">
+                        PURPOSE
                       </p>
-                      <p className="text-xs text-slate-700 leading-relaxed">
-                        {app.purpose}
+                      <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                        {app.purpose || "No specific purpose provided."}
                       </p>
                     </div>
                   </div>
@@ -364,25 +343,25 @@ export default function LeaveApplications() {
                       <Button
                         size="sm"
                         onClick={() => handleQuickAction(app, "approved")}
-                        className="gap-1.5 bg-green-600 hover:bg-green-700"
+                        className="h-8 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-none"
                       >
-                        <Check className="w-4 h-4" /> Approve
+                        <Check className="w-3.5 h-3.5" /> Approve
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleQuickAction(app, "rejected")}
-                        className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="h-8 text-xs gap-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-slate-200 rounded-lg font-bold shadow-none"
                       >
-                        <X className="w-4 h-4" /> Reject
+                        <X className="w-3.5 h-3.5" /> Reject
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleDelete(app)}
-                        className="gap-1.5 text-red-600 border-red-200 hover:text-white hover:bg-red-600"
+                        className="h-8 text-xs gap-1.5 text-rose-600 border-rose-200 hover:text-white hover:bg-rose-600 rounded-lg font-bold shadow-none"
                       >
-                        <Trash2 className="w-4 h-4" /> Delete
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
                       </Button>
                     </div>
                   ) : (
@@ -394,9 +373,9 @@ export default function LeaveApplications() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleDelete(app)}
-                        className="gap-1.5 text-red-600 border-red-200 hover:text-white hover:bg-red-600"
+                        className="h-8 text-xs gap-1.5 text-rose-600 border-rose-200 hover:text-white hover:bg-rose-600 rounded-lg font-bold shadow-none"
                       >
-                        <Trash2 className="w-4 h-4" /> Delete
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
                       </Button>
                     </div>
                   )}

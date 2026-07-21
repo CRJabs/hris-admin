@@ -293,6 +293,7 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
       toast.success("Employee changes saved successfully.");
       if (onSave) onSave();
       setIsEditMode(false);
+      onOpenChange(false);
     } catch (err) {
       toast.error(`Failed to save changes: ${err.message}`);
     } finally {
@@ -310,30 +311,28 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-y-auto p-0 xl:max-w-7xl">
+      <DialogContent className="max-w-[95vw] h-[85vh] xl:max-w-7xl p-0 rounded-2xl border border-slate-200 shadow-none overflow-hidden flex flex-col bg-white">
         {pendingRequests.length > 0 && (
-          <div className="bg-amber-50 border-b border-amber-200 p-4 px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky top-0 z-50">
+          <div className="bg-amber-50 border-b border-amber-200 p-4 px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 z-50">
             <div>
-              <p className="text-amber-800 font-bold text-sm flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" /> Reviewing Profile Update Request
+              <p className="text-amber-800 font-bold text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600" /> Reviewing Profile Update Request
               </p>
-              <div className="text-xs text-amber-700 mt-1 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium italic">The fields highlighted in amber have pending changes.</span>
-                  <span className="hidden md:inline">•</span>
-                  <span className="opacity-70 text-[10px]">Verify details before approving.</span>
-                </div>
+              <div className="text-xs text-amber-700 mt-0.5 flex flex-col md:flex-row md:items-center gap-2">
+                <span className="font-medium italic">The fields highlighted in amber have pending changes.</span>
+                <span className="hidden md:inline">•</span>
+                <span className="opacity-70 text-2xs">Verify details before approving.</span>
               </div>
             </div>
           </div>
         )}
 
-        <DialogHeader className="p-6 pb-0 flex flex-row items-center justify-between">
+        <DialogHeader className="px-6 pt-5 pb-2 flex flex-row items-center justify-between shrink-0 bg-white">
           <div>
-            <DialogTitle className="text-xl font-bold flex items-center gap-3">
+            <DialogTitle className="text-base font-black text-slate-900 flex items-center gap-2 flex-wrap">
               {editedEmployee.first_name} {editedEmployee.last_name}{editedEmployee.titles ? `, ${editedEmployee.titles}` : ""}
               {headOfUnit && (
-                <Badge className="bg-indigo-600 text-white border-none text-[10px] px-2 py-0.5 uppercase tracking-wider font-black">
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-2xs px-2 py-0.5 uppercase tracking-wider font-bold">
                   {headOfUnit.isPresident ? headOfUnit.name : `Head of ${headOfUnit.name}`}
                 </Badge>
               )}
@@ -346,7 +345,7 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
                 );
                 if (activeLeave) {
                   return (
-                    <Badge className="bg-amber-500 text-white border-none text-[10px] px-2 py-0.5 animate-pulse">
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-2xs px-2 py-0.5 font-bold uppercase tracking-wider">
                       On {activeLeave.leave_type} Leave
                     </Badge>
                   );
@@ -354,20 +353,20 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
                 return null;
               })()}
             </DialogTitle>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
               {editedEmployee.employee_id || "No ID"} • {editedEmployee.department || "No Dept"} • {editedEmployee.position || "No Position"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {!isEditMode ? (
-              <Button onClick={() => setIsEditMode(true)} className="gap-2 bg-[#0C005F] hover:bg-[#0C005F]/90">
-                 <Edit3 className="w-4 h-4" /> Edit Details
+              <Button onClick={() => setIsEditMode(true)} className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white px-4 border border-slate-200">
+                 <Edit3 className="w-3.5 h-3.5" /> Edit Details
               </Button>
             ) : (
               <>
-                <Button variant="outline" onClick={() => { setIsEditMode(false); setEditedEmployee(getReviewEmployee()); }}>Cancel</Button>
-                <Button onClick={handleSaveAll} disabled={isSaving} className="gap-2 bg-[#0C005F] hover:bg-[#0C005F]/90">
-                   <Save className="w-4 h-4" />
+                <Button variant="outline" onClick={() => { setIsEditMode(false); setEditedEmployee(getReviewEmployee()); }} className="h-8 text-xs font-bold rounded-lg shadow-none border-slate-200">Cancel</Button>
+                <Button onClick={handleSaveAll} disabled={isSaving} className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white px-4 border border-slate-200">
+                   <Save className="w-3.5 h-3.5" />
                    {isSaving ? "Saving..." : (baselineEmployee && !baselineEmployee.is_active ? "Reactivate & Save" : "Save Admin Changes")}
                 </Button>
               </>
@@ -375,123 +374,127 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
           </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="px-6 pb-6 mt-4">
-          <TabsList className="w-full justify-start bg-muted/50 h-auto flex-wrap gap-1 p-1">
-            <TabsTrigger value="profiling" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
-              <User className="w-3.5 h-3.5" />
-              Personal Details
-            </TabsTrigger>
-            <TabsTrigger value="education" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
-              <GraduationCap className="w-3.5 h-3.5" />
-              Educational Record
-            </TabsTrigger>
-            <TabsTrigger value="training" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
-              <Award className="w-3.5 h-3.5" />
-              Trainings and Development
-            </TabsTrigger>
-            <TabsTrigger value="employment" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
-              <Briefcase className="w-3.5 h-3.5" />
-              Employment Info
-            </TabsTrigger>
-            <TabsTrigger value="semestral" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
-              <BookOpen className="w-3.5 h-3.5" />
-              Semestral Records
-            </TabsTrigger>
-            <TabsTrigger value="leave" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
-              <CalendarDays className="w-3.5 h-3.5" />
-              Leave Credits
-            </TabsTrigger>
-            <TabsTrigger value="benefits" className="gap-1.5 text-xs data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-sm">
-              <Gift className="w-3.5 h-3.5" />
-              Benefits
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="px-6 py-2 shrink-0 bg-slate-50/50 border-b border-slate-100">
+            <TabsList className="w-full flex bg-slate-100/80 border border-slate-200 rounded-xl p-1 gap-1 h-auto shrink-0 shadow-none">
+              <TabsTrigger value="profiling" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+                <User className="w-3.5 h-3.5" />
+                Personal Details
+              </TabsTrigger>
+              <TabsTrigger value="education" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+                <GraduationCap className="w-3.5 h-3.5" />
+                Educational Record
+              </TabsTrigger>
+              <TabsTrigger value="training" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+                <Award className="w-3.5 h-3.5" />
+                Trainings and Development
+              </TabsTrigger>
+              <TabsTrigger value="employment" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+                <Briefcase className="w-3.5 h-3.5" />
+                Employment Info
+              </TabsTrigger>
+              <TabsTrigger value="semestral" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+                <BookOpen className="w-3.5 h-3.5" />
+                Semestral Records
+              </TabsTrigger>
+              <TabsTrigger value="leave" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+                <CalendarDays className="w-3.5 h-3.5" />
+                Leave Credits
+              </TabsTrigger>
+              <TabsTrigger value="benefits" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+                <Gift className="w-3.5 h-3.5" />
+                Benefits
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="profiling" className="mt-4">
-            <PersonalDetailsTab 
-              employee={editedEmployee} 
-              onChange={handleFieldChange} 
-              onToggleActive={onToggleActive} 
-              isReadOnly={!isEditMode} 
-              isEditMode={isEditMode}
-              isAdminView={true}
-              requestedChanges={requestedChanges} 
-            />
-          </TabsContent>
-          <TabsContent value="education" className="mt-4">
-            <EducationTab 
-              employee={editedEmployee} 
-              isReadOnly={!isEditMode} 
-              isEditing={isEditMode}
-              onUpdate={(newData) => handleFieldChange('educational_record', newData)}
-              requestedChanges={requestedChanges} 
-            />
-          </TabsContent>
-          <TabsContent value="training" className="mt-4">
-            <TrainingDevTab 
-              employee={editedEmployee} 
-              isReadOnly={!isEditMode} 
-              isEditing={isEditMode}
-              onUpdate={(field, newData) => handleFieldChange(field, newData)}
-              requestedChanges={requestedChanges} 
-            />
-          </TabsContent>
-          <TabsContent value="employment" className="mt-4">
-            <EmploymentInfoTab 
-              employee={editedEmployee} 
-              onChange={handleFieldChange} 
-              isReadOnly={!isEditMode} 
-              isAdminView={true}
-              requestedChanges={requestedChanges} 
-            />
-          </TabsContent>
-          <TabsContent value="semestral" className="mt-4">
-            <SemestralRecordsTab 
-              employee={editedEmployee} 
-              semesters={localSemesters}
-              onSemestersChange={setLocalSemesters}
-              isReadOnly={!isEditMode} 
-              isAdminView={true}
-            />
-          </TabsContent>
-          <TabsContent value="leave" className="mt-4">
-            <LeaveTab 
-              employee={editedEmployee} 
-              onRefresh={() => {
-                // Refetch credits after update
-                const fetchLeaveData = async () => {
-                   if (!employee?.id) return;
-                   const [creditsRes, appsRes] = await Promise.all([
-                     supabase.from('leave_credits').select('*').eq('employee_id', employee.id),
-                     supabase.from('leave_applications').select('*').eq('employee_id', employee.id).order('created_at', { ascending: false })
-                   ]);
-                   if (creditsRes.data) setLeaveCredits(creditsRes.data);
-                   if (appsRes.data) setLeaveApps(appsRes.data);
-                 };
-                 fetchLeaveData();
-              }} 
-              isReadOnly={!isEditMode} 
-              requestedChanges={requestedChanges ? baselineEmployee : null}
-              leaveCredits={leaveCredits}
-              leaveApplications={leaveApps}
-              isAdminView={true}
-            />
-          </TabsContent>
-          <TabsContent value="benefits" className="mt-4">
-            <BenefitsTab employee={editedEmployee} />
-          </TabsContent>
+          <div className="flex-1 overflow-y-auto p-6 pt-4 min-h-0">
+            <TabsContent value="profiling" className="mt-0">
+              <PersonalDetailsTab 
+                employee={editedEmployee} 
+                onChange={handleFieldChange} 
+                onToggleActive={onToggleActive} 
+                isReadOnly={!isEditMode} 
+                isEditMode={isEditMode}
+                isAdminView={true}
+                requestedChanges={requestedChanges} 
+              />
+            </TabsContent>
+            <TabsContent value="education" className="mt-0">
+              <EducationTab 
+                employee={editedEmployee} 
+                isReadOnly={!isEditMode} 
+                isEditing={isEditMode}
+                onUpdate={(newData) => handleFieldChange('educational_record', newData)}
+                requestedChanges={requestedChanges} 
+              />
+            </TabsContent>
+            <TabsContent value="training" className="mt-0">
+              <TrainingDevTab 
+                employee={editedEmployee} 
+                isReadOnly={!isEditMode} 
+                isEditing={isEditMode}
+                onUpdate={(field, newData) => handleFieldChange(field, newData)}
+                requestedChanges={requestedChanges} 
+              />
+            </TabsContent>
+            <TabsContent value="employment" className="mt-0">
+              <EmploymentInfoTab 
+                employee={editedEmployee} 
+                onChange={handleFieldChange} 
+                isReadOnly={!isEditMode} 
+                isAdminView={true}
+                requestedChanges={requestedChanges} 
+              />
+            </TabsContent>
+            <TabsContent value="semestral" className="mt-0">
+              <SemestralRecordsTab 
+                employee={editedEmployee} 
+                semesters={localSemesters}
+                onSemestersChange={setLocalSemesters}
+                isReadOnly={!isEditMode} 
+                isAdminView={true}
+              />
+            </TabsContent>
+            <TabsContent value="leave" className="mt-0">
+              <LeaveTab 
+                employee={editedEmployee} 
+                onRefresh={() => {
+                  // Refetch credits after update
+                  const fetchLeaveData = async () => {
+                     if (!employee?.id) return;
+                     const [creditsRes, appsRes] = await Promise.all([
+                       supabase.from('leave_credits').select('*').eq('employee_id', employee.id),
+                       supabase.from('leave_applications').select('*').eq('employee_id', employee.id).order('created_at', { ascending: false })
+                     ]);
+                     if (creditsRes.data) setLeaveCredits(creditsRes.data);
+                     if (appsRes.data) setLeaveApps(appsRes.data);
+                   };
+                   fetchLeaveData();
+                }} 
+                isReadOnly={!isEditMode} 
+                requestedChanges={requestedChanges ? baselineEmployee : null}
+                leaveCredits={leaveCredits}
+                leaveApplications={leaveApps}
+                isAdminView={true}
+              />
+            </TabsContent>
+            <TabsContent value="benefits" className="mt-0">
+              <BenefitsTab employee={editedEmployee} />
+            </TabsContent>
+          </div>
         </Tabs>
 
         {pendingRequests.length > 0 && activeRequest?.status === 'pending' && (
-          <div className="p-6 border-t bg-muted/20 flex items-center justify-end gap-3 sticky bottom-0 z-50 backdrop-blur-sm">
-             <div className="mr-auto text-xs text-muted-foreground">
+          <div className="p-4 px-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3 shrink-0 z-50">
+             <div className="mr-auto text-xs font-semibold text-slate-500">
                {pendingRequests.length} pending request(s) for this employee
              </div>
-             <Button variant="outline" onClick={() => handleAction(pendingRequests[0], 'rejected')} className="gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700">
-               <X className="w-4 h-4" /> Reject Request
+             <Button variant="outline" onClick={() => handleAction(pendingRequests[0], 'rejected')} className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 text-rose-600 border-slate-200 hover:bg-rose-50 hover:text-rose-700">
+               <X className="w-3.5 h-3.5" /> Reject Request
              </Button>
-             <Button onClick={() => handleAction(pendingRequests[0], 'approved')} className="gap-2 bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20 px-8">
-               <Check className="w-4 h-4" /> Approve Changes
+             <Button onClick={() => handleAction(pendingRequests[0], 'approved')} className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-6">
+               <Check className="w-3.5 h-3.5" /> Approve Changes
              </Button>
           </div>
         )}

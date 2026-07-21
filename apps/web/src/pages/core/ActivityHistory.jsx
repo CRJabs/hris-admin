@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
-import { History, CheckCheck, Trash2, Clock, AlertCircle } from "lucide-react";
+import { History, CheckCheck, Trash2, Clock, AlertCircle, Search, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import ActivityTabs from "@/components/layout/ActivityTabs";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +70,7 @@ const ACTION_NAV = {
 
 export default function ActivityHistory() {
   const [notifications, setNotifications] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [removeAllOpen, setRemoveAllOpen] = useState(false);
   const [binCount, setBinCount] = useState(0);
@@ -77,7 +81,7 @@ export default function ActivityHistory() {
     try {
       const { data, error } = await supabase
         .from("admin_activity_log")
-        .select("*")
+        .select("*, employees(photo_url, first_name, last_name)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -163,10 +167,20 @@ export default function ActivityHistory() {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
+  const filteredNotifications = notifications.filter((notif) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    const desc = (notif.description || "").toLowerCase();
+    const actor = (notif.actor_name || "").toLowerCase();
+    const action = (notif.action || "").toLowerCase();
+    const title = (ACTION_TITLES[notif.action] || "").toLowerCase();
+    return desc.includes(q) || actor.includes(q) || action.includes(q) || title.includes(q);
+  });
+
   return (
-    <div className="p-4 md:p-6 max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-500">
-      {/* Header Tabs & Actions Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 gap-4">
+    <div className="p-4 w-full h-full flex flex-col gap-4 animate-in fade-in duration-300">
+      {/* Top Island Card for Tabs & Quick Actions */}
+      <Card className="shadow-none border border-slate-200 bg-white rounded-xl p-2.5 px-4 shrink-0 flex items-center justify-between gap-4 flex-wrap">
         <ActivityTabs
           active="activity"
           binCount={binCount}
@@ -174,97 +188,133 @@ export default function ActivityHistory() {
           unreadCount={unreadCount}
         />
 
-        <div className="flex items-center gap-2 shrink-0 pb-2 sm:pb-0">
+        {/* Search Field */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            placeholder="Search activity logs..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-1 focus-visible:ring-[#0C005F]"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+              <X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 border-[#0C005F]/20 text-[#0C005F] hover:bg-[#0C005F] hover:text-white transition-all"
+            className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 border-slate-200 hover:bg-[#0C005F] hover:text-white transition-all"
             onClick={handleMarkAllRead}
             disabled={unreadCount === 0}
           >
-            <CheckCheck className="w-4 h-4" />
+            <CheckCheck className="w-3.5 h-3.5" />
             Mark All as Read
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 border-red-200 text-red-600 hover:bg-red-600 hover:text-white transition-all"
+            className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 border-red-200 text-red-600 hover:bg-red-50 transition-all"
             onClick={() => setRemoveAllOpen(true)}
             disabled={notifications.length === 0}
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3.5 h-3.5" />
             Remove All
           </Button>
         </div>
-      </div>
+      </Card>
 
       {/* Notifications List */}
       {isLoading ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <History className="w-10 h-10 mx-auto mb-3 opacity-20 animate-pulse" />
-          <p className="text-sm font-medium">Loading notifications...</p>
-        </div>
-      ) : notifications.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
-          <History className="w-14 h-14 mb-4 opacity-15" />
-          <p className="font-semibold text-lg text-slate-700">No notifications yet</p>
-          <p className="text-sm mt-1">Activity log is empty. Actions will appear here.</p>
-        </div>
+        <Card className="shadow-none border border-slate-200 bg-white rounded-xl p-16 text-center text-slate-400">
+          <History className="w-10 h-10 mx-auto mb-3 opacity-20 animate-pulse text-[#0C005F]" />
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Loading notifications...</p>
+        </Card>
+      ) : filteredNotifications.length === 0 ? (
+        <Card className="shadow-none border border-slate-200 bg-white rounded-xl p-16 text-center flex flex-col items-center justify-center space-y-2">
+          <History className="w-12 h-12 text-slate-300 stroke-[1.5]" />
+          <p className="font-black text-sm uppercase tracking-wider text-slate-800">No notifications found</p>
+          <p className="text-xs text-slate-500 font-medium">Try adjusting your search query.</p>
+        </Card>
       ) : (
         <div className="grid gap-3">
-          {notifications.map((notif) => {
+          {filteredNotifications.map((notif) => {
             const colorClass =
               ACTION_TITLE_COLORS[notif.action] ||
               "text-slate-600 bg-slate-50 border-slate-200";
             const title = ACTION_TITLES[notif.action] || notif.action;
             const navTarget = ACTION_NAV[notif.action];
 
+            const isAdmin = notif.actor_type === 'admin' || notif.actor_name?.toLowerCase().includes('admin') || notif.actor_name?.includes('@');
+            const displayName = isAdmin ? 'Administrator' : (notif.actor_name || 'System');
+            const empPhoto = Array.isArray(notif.employees) ? notif.employees[0]?.photo_url : notif.employees?.photo_url;
+            const photoUrl = isAdmin ? '/assets/ub.png' : (empPhoto || null);
+            const initials = displayName
+              .split(' ')
+              .map((n) => n[0])
+              .join('')
+              .slice(0, 2)
+              .toUpperCase();
+
             return (
               <div
                 key={notif.id}
                 onClick={() => navTarget && navigate(navTarget)}
-                className={`relative rounded-xl border bg-white p-5 transition-all hover:shadow-md hover:border-slate-200 group ${
+                className={`relative rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-slate-300 flex items-center justify-between gap-4 ${
                   navTarget ? "cursor-pointer" : ""
                 } ${!notif.is_read ? "border-l-4 border-l-[#0C005F]" : ""}`}
               >
-                {/* Unread dot */}
-                {!notif.is_read && (
-                  <span className="absolute top-4 right-4 w-2 h-2 rounded-full bg-red-500" />
-                )}
-
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] font-bold uppercase tracking-wider border ${colorClass}`}
-                        >
-                          {title}
-                        </Badge>
-                        <span className="text-[11px] font-semibold text-slate-700">
-                          {notif.actor_name || "System"}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-600 leading-relaxed mt-1">
-                        {notif.description}
-                      </p>
+                <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                  {/* Profile Avatar */}
+                  {photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt={displayName}
+                      className={cn(
+                        "w-10 h-10 rounded-full object-cover shrink-0",
+                        isAdmin ? "border border-[#0C005F]/20 bg-white p-0.5" : "border border-slate-100"
+                      )}
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">
+                      {initials}
                     </div>
-                  </div>
+                  )}
 
-                  <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground text-xs">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>
-                      {format(new Date(notif.created_at), "MMM d, yyyy")}
-                    </span>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge
+                        variant="outline"
+                        className={`text-2xs font-bold uppercase tracking-wider border px-2 py-0.5 ${colorClass}`}
+                      >
+                        {title}
+                      </Badge>
+                      <span className="text-xs font-bold text-slate-800 truncate">
+                        {displayName}
+                      </span>
+                      {!notif.is_read && (
+                        <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed mt-1">
+                      {notif.description}
+                    </p>
+                    <p className="text-2xs text-slate-400 font-medium mt-1">
+                      {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
+                    </p>
                   </div>
                 </div>
 
-                <p className="text-[10px] text-slate-400 mt-2 font-medium">
-                  {formatDistanceToNow(new Date(notif.created_at), {
-                    addSuffix: true,
-                  })}
-                </p>
+                <div className="flex items-center gap-1.5 shrink-0 text-slate-400 text-xs font-medium">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>
+                    {format(new Date(notif.created_at), "MMM d, yyyy")}
+                  </span>
+                </div>
               </div>
             );
           })}
@@ -273,23 +323,23 @@ export default function ActivityHistory() {
 
       {/* Remove All Confirm Dialog */}
       <AlertDialog open={removeAllOpen} onOpenChange={setRemoveAllOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600 text-base font-bold">
               <AlertCircle className="w-5 h-5" />
               Remove All Notifications
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-xs text-slate-600">
               This will permanently delete all{" "}
               <strong>{notifications.length}</strong> notification records from
               the activity log. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="h-8 text-xs font-bold rounded-lg border-slate-200">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRemoveAll}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="h-8 text-xs font-bold rounded-lg bg-red-600 hover:bg-red-700 text-white"
             >
               Remove All
             </AlertDialogAction>

@@ -246,7 +246,7 @@ export default function AssignLeaveCredits() {
             </div>
             <div className="flex items-center justify-between">
               <EmployeeFilters filters={filters} onFilterChange={handleFilterChange} onClear={clearFilters} departments={liveDepartments} />
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+              <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wide">
                 {filteredEmployees.length} Found
               </span>
             </div>
@@ -283,7 +283,7 @@ export default function AssignLeaveCredits() {
                         {emp.photo_url ? (
                           <img key={emp.photo_url} src={emp.photo_url} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <span className="text-[10px] font-bold text-slate-600 uppercase">
+                          <span className="text-2xs font-bold text-slate-600 uppercase">
                             {emp.first_name[0]}{emp.last_name[0]}
                           </span>
                         )}
@@ -292,7 +292,7 @@ export default function AssignLeaveCredits() {
                         <p className="text-sm font-bold truncate leading-tight">
                           {emp.last_name}, {emp.first_name}
                         </p>
-                        <p className="text-[10px] text-muted-foreground truncate uppercase tracking-wider">
+                        <p className="text-2xs text-muted-foreground truncate uppercase tracking-wider">
                           {emp.employee_id} • {emp.employment_classification}
                         </p>
                       </div>
@@ -337,14 +337,14 @@ export default function AssignLeaveCredits() {
                   <div>
                     <h2 className="text-lg font-bold">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <Badge variant="outline" className="text-[10px] h-5 bg-slate-50">{selectedEmployee.department}</Badge>
-                      <Badge variant="outline" className="text-[10px] h-5 bg-blue-50 text-blue-700 border-blue-200 font-bold uppercase">{selectedEmployee.employment_classification}</Badge>
+                      <Badge variant="outline" className="text-2xs h-5 bg-slate-50">{selectedEmployee.department}</Badge>
+                      <Badge variant="outline" className="text-2xs h-5 bg-blue-50 text-blue-700 border-blue-200 font-bold uppercase">{selectedEmployee.employment_classification}</Badge>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right mr-4">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Available Credits</p>
+                    <p className="text-2xs font-bold text-slate-400 uppercase tracking-widest">Total Available Credits</p>
                     <p className="text-xl font-black text-[#0C005F]">
                       {Math.floor(displayCredits.reduce((acc, c) => acc + (c.total_credits - c.used_credits), 0))}
                     </p>
@@ -501,22 +501,22 @@ function CreditCard({ credit, onValueChange }) {
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-sm text-slate-800">{credit.leave_type} Leave</h3>
               {credit.isDirty && (
-                <Badge className="bg-amber-100 text-amber-700 text-[9px] font-bold px-1.5 py-0 border-none animate-pulse">
+                <Badge className="bg-amber-100 text-amber-700 text-2xs font-bold px-1.5 py-0 border-none animate-pulse">
                   Unsaved
                 </Badge>
               )}
             </div>
-            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">
+            <p className="text-2xs font-black text-muted-foreground uppercase tracking-wider">
               {credit.is_commutable ? "Commutable" : "Non-Commutable"}
             </p>
           </div>
-          <Badge variant="secondary" className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 border-none">
+          <Badge variant="secondary" className="bg-slate-100 text-slate-700 text-2xs font-bold px-2 py-0.5 border-none">
             {Math.floor(localVal - credit.used_credits)} Available
           </Badge>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Allocation</label>
+            <label className="text-2xs font-black text-slate-400 uppercase tracking-widest">Total Allocation</label>
             <Input
               type="number"
               value={localVal}
@@ -529,7 +529,7 @@ function CreditCard({ credit, onValueChange }) {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Used Credits</label>
+            <label className="text-2xs font-black text-slate-400 uppercase tracking-widest">Used Credits</label>
             <div className="h-9 w-full rounded-md border border-slate-100 bg-slate-50/50 px-3 py-2 text-sm font-bold text-slate-400 flex items-center">
               {Math.floor(credit.used_credits)}
             </div>

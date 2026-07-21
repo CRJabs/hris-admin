@@ -22,10 +22,9 @@ import { Button } from "@/components/ui/button";
 
 function SectionBlock({ title, icon: Icon, children, action }) {
   return (
-    <Card className="shadow-sm border-slate-300">
+    <Card className="shadow-none border border-slate-200 rounded-xl bg-white">
       <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-sm font-bold flex items-center gap-2">
-          {Icon && <Icon className="w-4 h-4 text-primary" />}
+        <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
           {title}
         </CardTitle>
         {action && <div>{action}</div>}
@@ -45,9 +44,9 @@ function InfoRow({ label, value, name, onChange, isEditing, type = "text", class
   return (
     <div className={`py-1.5 px-2 rounded-md transition-colors ${isUpdated ? 'bg-amber-50 border border-amber-200/50 shadow-sm' : ''} ${className}`}>
       <div className="flex items-center justify-between">
-        <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{label}</p>
+        <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
         {isUpdated && (
-          <Badge variant="outline" className="h-3.5 text-[8px] px-1 bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">
+          <Badge variant="outline" className="h-3.5 text-2xs px-1 bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">
             Updated
           </Badge>
         )}
@@ -464,10 +463,10 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                     <div key={i} className="p-3 bg-muted/20 rounded-md border text-sm space-y-1">
                       <div className="flex justify-between font-bold">
                          <span>{contact.name}</span>
-                         <Badge variant="outline" className="text-[10px]">{contact.relation}</Badge>
+                         <Badge variant="outline" className="text-2xs">{contact.relation}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">{contact.address}</p>
-                      <p className="text-[11px]">Mobile: {contact.mobile} | Office: {contact.office} | Home: {contact.home}</p>
+                      <p className="text-xs">Mobile: {contact.mobile} | Office: {contact.office} | Home: {contact.home}</p>
                     </div>
                   ))
                 ) : (
@@ -486,7 +485,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                 variant="outline" 
                 size="sm" 
                 onClick={() => setShowSpouse(true)}
-                className="h-7 gap-1 text-[10px] text-primary border-primary/20 hover:bg-primary/5 px-2"
+                className="h-7 gap-1 text-2xs text-primary border-primary/20 hover:bg-primary/5 px-2"
               >
                 <Plus className="w-3 h-3" /> Add Spouse
               </Button>
@@ -513,7 +512,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                             onChange('spouse_position', "");
                             onChange('spouse_employment_status', "");
                           }}
-                          className="h-6 text-[10px] text-red-500 hover:text-red-600 hover:bg-red-50"
+                          className="h-6 text-2xs text-red-500 hover:text-red-600 hover:bg-red-50"
                         >
                           <X className="w-3 h-3 mr-1" /> Remove
                         </Button>
@@ -558,10 +557,10 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                       <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-widest flex items-center justify-between">
                         <span>Spouse Details</span>
                         {requestedChanges && requestedChanges.spouse_name === "" && (
-                          <Badge variant="destructive" className="h-4 text-[9px] uppercase font-bold animate-pulse">Deletion Requested</Badge>
+                          <Badge variant="destructive" className="h-4 text-2xs uppercase font-bold animate-pulse">Deletion Requested</Badge>
                         )}
                         {requestedChanges && requestedChanges.spouse_name && !employee.spouse_name && (
-                          <Badge variant="outline" className="h-4 text-[9px] bg-amber-100 text-amber-700 border-amber-300 uppercase font-bold animate-pulse">Addition Requested</Badge>
+                          <Badge variant="outline" className="h-4 text-2xs bg-amber-100 text-amber-700 border-amber-300 uppercase font-bold animate-pulse">Addition Requested</Badge>
                         )}
                       </h4>
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -589,11 +588,11 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                                <p className="text-sm font-bold">{child.name}</p>
                                <div className="flex items-center gap-1.5">
                                  {checkUpdated('spouse_children') && (
-                                   <Badge variant="outline" className="h-3.5 text-[8px] px-1 bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">
+                                   <Badge variant="outline" className="h-3.5 text-2xs px-1 bg-amber-100 text-amber-700 border-amber-300 animate-pulse uppercase font-bold">
                                      Updated
                                    </Badge>
                                  )}
-                                 <Badge variant="outline" className="text-[10px]">{child.gender}</Badge>
+                                 <Badge variant="outline" className="text-2xs">{child.gender}</Badge>
                                </div>
                             </div>
                             <p className="text-xs">Born: {child.birthdate} ({child.age} yrs) | Enrolled: {child.enrolled}</p>
@@ -675,7 +674,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                       <div key={i} className={`p-3 rounded-md border transition-colors ${checkUpdated('languages') ? 'bg-amber-50/50 border-amber-200' : 'bg-muted/20'}`}>
                         <div className="flex justify-between mb-1">
                           <p className="text-sm font-bold">{lang.language}</p>
-                          <Badge variant="outline" className="text-[10px]">{lang.fluency}</Badge>
+                          <Badge variant="outline" className="text-2xs">{lang.fluency}</Badge>
                         </div>
                         <p className="text-xs text-muted-foreground italic">{lang.literacy}</p>
                       </div>
@@ -691,7 +690,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
           <SectionBlock title="Attachments & E-Signatures" icon={Shield}>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                   <p className="text-[11px] text-muted-foreground uppercase tracking-widest">Certification Signature</p>
+                   <p className="text-xs text-muted-foreground uppercase tracking-widest">Certification Signature</p>
                    <div className="relative group border rounded-xl p-4 bg-white shadow-sm flex items-center justify-center min-h-[140px]">
                       {employee.signature_url ? (
                         <img key={employee.signature_url} src={employee.signature_url} alt="E-signature" className="max-h-24 w-auto object-contain mix-blend-multiply" />
@@ -710,7 +709,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                    </div>
                 </div>
                 <div className="space-y-4">
-                   <p className="text-[11px] text-muted-foreground uppercase tracking-widest">Document Status</p>
+                   <p className="text-xs text-muted-foreground uppercase tracking-widest">Document Status</p>
                    <div className="p-4 bg-[#0C005F]/5 rounded-xl border border-[#0C005F]/10">
                       <div className="flex items-center gap-3 mb-2">
                          <Shield className="w-5 h-5 text-[#0C005F]" />

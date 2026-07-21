@@ -493,11 +493,11 @@ function ReportTable({ def, data, searchQuery }) {
 
   if (filtered.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
-        <AlertCircle className="w-10 h-10 opacity-30" />
-        <p className="text-sm font-medium">No eligible employees found for this report</p>
+      <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+        <AlertCircle className="w-10 h-10 opacity-30 text-[#0C005F]" />
+        <p className="text-sm font-semibold text-slate-600">No eligible employees found for this report</p>
         {searchQuery && (
-          <p className="text-xs opacity-70">Try clearing the search filter</p>
+          <p className="text-xs text-slate-400">Try clearing the search filter</p>
         )}
       </div>
     );
@@ -507,31 +507,31 @@ function ReportTable({ def, data, searchQuery }) {
     <div className="flex flex-col min-h-0 flex-1">
       {/* Table */}
       <div className="overflow-auto flex-1">
-        <table className="w-full text-sm border-collapse">
-          <thead className="sticky top-0 z-10 shadow-sm">
-            <tr className="bg-[#0C005F] text-white">
+        <table className="w-full text-xs border-collapse">
+          <thead className="sticky top-0 z-10">
+            <tr className="bg-white text-[#0C005F]">
               {def.columns.map((col) => (
                 <th
                   key={col.key}
-                  className="px-3 py-2.5 text-center text-xs font-semibold tracking-wider uppercase whitespace-nowrap border border-[#0a0050]"
+                  className="px-3.5 py-3 text-center text-xs font-black tracking-widest uppercase whitespace-nowrap border-b border-slate-200 bg-white text-[#0C005F]"
                 >
                   {col.header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
             {paginated.map((row, ri) => (
               <tr
                 key={ri}
-                className={`transition-colors hover:bg-blue-100 ${ri % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}`}
+                className={`transition-colors hover:bg-blue-50/50 ${ri % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}`}
               >
                 {def.columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`px-3 py-2 border border-slate-200 text-xs ${
-                      col.key === '_no' ? 'text-center font-medium text-muted-foreground w-12' : ''
-                    } ${col.key === '_id' ? 'font-mono text-muted-foreground' : ''}`}
+                    className={`px-3.5 py-2.5 border-b border-slate-100 text-xs text-slate-700 font-medium ${
+                      col.key === '_no' ? 'text-center font-bold text-slate-400 w-12' : ''
+                    } ${col.key === '_id' ? 'font-mono text-slate-500' : ''}`}
                   >
                     {String(row[col.key] ?? '—')}
                   </td>
@@ -543,14 +543,14 @@ function ReportTable({ def, data, searchQuery }) {
       </div>
 
       {/* Pagination Bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50/80 rounded-b-xl mt-auto gap-2 flex-wrap">
-        <p className="text-xs text-muted-foreground">
+      <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50/60 rounded-b-xl mt-auto gap-2 flex-wrap shadow-none">
+        <p className="text-xs text-slate-500 font-medium">
           Showing{' '}
-          <span className="font-semibold text-foreground">
+          <span className="font-bold text-slate-800">
             {((page - 1) * ROWS_PER_PAGE) + 1}–{Math.min(page * ROWS_PER_PAGE, filtered.length)}
           </span>{' '}
           of{' '}
-          <span className="font-semibold text-foreground">{filtered.length}</span>{' '}
+          <span className="font-bold text-slate-800">{filtered.length}</span>{' '}
           {filtered.length !== 1 ? 'entries' : 'entry'}
         </p>
 
@@ -558,18 +558,18 @@ function ReportTable({ def, data, searchQuery }) {
           <Button
             variant="outline"
             size="icon"
-            className="h-7 w-7"
+            className="h-8 w-8 rounded-lg border-slate-200 shadow-none"
             onClick={() => goTo(page - 1)}
             disabled={page <= 1}
           >
-            <ChevronLeft className="w-3.5 h-3.5" />
+            <ChevronLeft className="w-4 h-4" />
           </Button>
 
           {/* Page number input */}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
             <span className="hidden sm:inline">Page</span>
             <Input
-              className="h-7 w-12 text-center text-xs px-1"
+              className="h-8 w-12 text-center text-xs px-1 rounded-lg border-slate-200 shadow-none font-bold"
               value={pageInput}
               onChange={(e) => setPageInput(e.target.value)}
               onKeyDown={handlePageInputKeyDown}
@@ -585,11 +585,11 @@ function ReportTable({ def, data, searchQuery }) {
           <Button
             variant="outline"
             size="icon"
-            className="h-7 w-7"
+            className="h-8 w-8 rounded-lg border-slate-200 shadow-none"
             onClick={() => goTo(page + 1)}
             disabled={page >= totalPages}
           >
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
       </div>
@@ -601,20 +601,20 @@ function ReportTable({ def, data, searchQuery }) {
 
 function FullReportView({ allReportData, searchQuery, reportMonthLabel }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {REPORT_DEFINITIONS.map((def, idx) => {
         const data = allReportData[def.key] || [];
         return (
-          <div key={def.key} className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            {/* Section header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#0C005F]/5 to-transparent border-b border-slate-100">
+          <div key={def.key} className="rounded-xl border border-slate-200 bg-white shadow-none overflow-hidden">
+            {/* Section header (blue background) */}
+            <div className="flex items-center justify-between px-4 py-3 bg-[#0C005F] text-white">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#0C005F]/50 tabular-nums">
+                <span className="text-xs font-black text-white/70 tabular-nums">
                   {String(idx + 1).padStart(2, '0')}
                 </span>
-                <h3 className="text-sm font-semibold text-foreground">{def.title}</h3>
+                <h3 className="text-xs font-black uppercase tracking-widest text-white">{def.title}</h3>
               </div>
-              <span className="text-xs text-muted-foreground">{data.length} employee{data.length !== 1 ? 's' : ''}</span>
+              <span className="text-xs font-bold text-white/80">{data.length} employee{data.length !== 1 ? 's' : ''}</span>
             </div>
             <ReportTable def={def} data={data} searchQuery={searchQuery} />
           </div>
@@ -731,7 +731,7 @@ export default function Reports() {
   }, [selectedReport]);
 
   return (
-    <div className="flex flex-col h-full min-h-0 p-4 md:p-6 gap-5 max-w-[1440px] mx-auto w-full">
+    <div className="p-4 w-full h-full min-h-0 flex flex-col gap-4 animate-in fade-in duration-300">
 
       {/* ── Top Controls & Report Buttons (single bar, 3 sections) ── */}
       <div className="flex flex-col w-full">
@@ -739,28 +739,28 @@ export default function Reports() {
         {/* Column labels row */}
         <div className="flex w-full mb-1">
           <div style={{ width: '80%', flexShrink: 0 }}>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-[#0C005F]/50 pl-1">Reports</span>
+            <span className="text-2xs font-black uppercase tracking-widest text-[#0C005F]/60 pl-1">Reports</span>
           </div>
           <div style={{ width: '20%', flexShrink: 0 }} className="flex justify-end pr-1">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-[#0C005F]/50">Exporting</span>
+            <span className="text-2xs font-black uppercase tracking-widest text-[#0C005F]/60">Exporting</span>
           </div>
         </div>
 
         {/* The bar itself */}
-        <div className="flex items-stretch w-full rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="flex items-stretch w-full rounded-xl border border-slate-200 bg-white shadow-none overflow-hidden">
 
           {/* Section 1 — Full Report (10%) */}
           <div className="flex items-center justify-center px-3 py-2 border-r border-slate-200" style={{ width: '10%', minWidth: 0, flexShrink: 0 }}>
             <button
               id="report-btn-full"
               onClick={() => setSelectedReport('full')}
-              className={`w-full px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 whitespace-nowrap flex items-center justify-center gap-1.5 ${
+              className={`w-full px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border transition-all duration-150 whitespace-nowrap flex items-center justify-center gap-1.5 shadow-none ${
                 selectedReport === 'full'
-                  ? 'bg-[#0C005F] text-white border-[#0C005F] shadow-sm'
-                  : 'bg-white text-foreground border-slate-200 hover:border-[#0C005F]/40 hover:text-[#0C005F] hover:bg-[#0C005F]/5'
+                  ? 'bg-[#0C005F] text-white border-[#0C005F]'
+                  : 'bg-white text-slate-700 border-slate-200 hover:border-[#0C005F]/40 hover:text-[#0C005F] hover:bg-[#0C005F]/5'
               }`}
             >
-              <FileText className="w-3 h-3 shrink-0" />
+              <FileText className="w-3.5 h-3.5 shrink-0" />
               Full Report
             </button>
           </div>
@@ -787,10 +787,10 @@ export default function Reports() {
                   key={def.key}
                   id={`report-btn-${def.key}`}
                   onClick={() => setSelectedReport(def.key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 whitespace-nowrap shrink-0 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border transition-all duration-150 whitespace-nowrap shrink-0 shadow-none ${
                     selectedReport === def.key
-                      ? 'bg-[#0C005F] text-white border-[#0C005F] shadow-sm'
-                      : 'bg-white text-foreground border-slate-200 hover:border-[#0C005F]/40 hover:text-[#0C005F] hover:bg-[#0C005F]/5'
+                      ? 'bg-[#0C005F] text-white border-[#0C005F]'
+                      : 'bg-white text-slate-700 border-slate-200 hover:border-[#0C005F]/40 hover:text-[#0C005F] hover:bg-[#0C005F]/5'
                   }`}
                 >
                   {def.label}
@@ -814,7 +814,7 @@ export default function Reports() {
               id="report-month-select"
               value={selectedMonth}
               onChange={e => setSelectedMonth(Number(e.target.value))}
-              className="h-8 rounded-md border border-input bg-background px-2 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-[#0C005F] cursor-pointer min-w-0 flex-1"
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-none focus:outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F] cursor-pointer min-w-0 flex-1"
             >
               {MONTH_NAMES.map((m, i) => (
                 <option key={m} value={i}>{m}</option>
@@ -824,7 +824,7 @@ export default function Reports() {
               id="report-year-select"
               value={selectedYear}
               onChange={e => setSelectedYear(Number(e.target.value))}
-              className="h-8 rounded-md border border-input bg-background px-2 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-[#0C005F] cursor-pointer w-16 shrink-0"
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-none focus:outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F] cursor-pointer w-18 shrink-0"
             >
               {YEAR_OPTIONS.map(y => (
                 <option key={y} value={y}>{y}</option>
@@ -837,7 +837,7 @@ export default function Reports() {
                 size="icon"
                 onClick={handleRecompute}
                 disabled={isLoading || isRecomputing}
-                className="h-8 w-8 shrink-0 hover:text-[#0C005F] hover:bg-[#0C005F]/5 border-slate-200"
+                className="h-8 w-8 shrink-0 hover:text-[#0C005F] hover:bg-[#0C005F]/5 border-slate-200 shadow-none rounded-lg"
                 title="Recompute eligibility records in database"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isRecomputing ? 'animate-spin text-[#0C005F]' : 'text-slate-500 hover:text-[#0C005F]'}`} />
@@ -847,7 +847,7 @@ export default function Reports() {
               id="export-pdf-btn"
               onClick={handleExport}
               disabled={isExporting || isLoading}
-              className="gap-1.5 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white h-8 text-xs font-medium shadow-sm shrink-0 px-3"
+              className="gap-1.5 bg-[#0C005F] hover:bg-[#1900C5] text-white h-8 text-xs font-bold uppercase tracking-wider shadow-none shrink-0 px-3.5 rounded-lg"
             >
               {isExporting
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -861,26 +861,26 @@ export default function Reports() {
       </div>
 
       {/* ── Active Report Card ── */}
-      <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-slate-200 bg-white shadow-none overflow-hidden">
 
         {/* Card Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white flex-wrap gap-2">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#0a0050] bg-[#0C005F] text-white flex-wrap gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-foreground">
+            <h2 className="text-xs font-black uppercase tracking-widest text-white">
               {selectedReport === 'full'
                 ? 'Full Report — All Reports'
                 : activeDefinition?.title}
             </h2>
-            <p className="text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="text-xs text-white/80 font-medium mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
               <span>{reportMonthLabel}</span>
               {selectedReport !== 'full' && (
                 <span className="inline-flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 text-slate-400" />
+                  <Users className="w-3.5 h-3.5 text-white/70" />
                   {isLoading ? '…' : `${activeData.length} employee${activeData.length !== 1 ? 's' : ''}`}
                 </span>
               )}
               {lastComputedDate && selectedReport !== 'masterlist' && (
-                <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200 font-medium">
+                <span className="text-[10px] bg-white/10 text-white px-2 py-0.5 rounded-full border border-white/20 font-semibold">
                   Last computed: {lastComputedDate}
                 </span>
               )}
@@ -889,14 +889,14 @@ export default function Reports() {
 
           {/* Search bar */}
           {!isLoading && (
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <Input
                 id="report-search-input"
                 placeholder="Search name, ID, department…"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 text-xs"
+                className="pl-9 h-9 text-xs rounded-full border-slate-200 bg-white text-slate-800 shadow-none focus-visible:ring-[#0C005F]"
               />
             </div>
           )}
@@ -905,11 +905,11 @@ export default function Reports() {
         {/* Card Body */}
         <div className={`flex-1 min-h-0 ${selectedReport === 'full' ? 'overflow-y-auto' : 'flex flex-col'}`}>
           {!isLoading && !hasDataForYear && selectedReport !== 'masterlist' && (
-            <div className="mx-4 mt-4 p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 flex items-start gap-3 shadow-sm">
+            <div className="mx-4 mt-4 p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 flex items-start gap-3 shadow-none">
               <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div className="flex-1 text-xs">
-                <p className="font-semibold text-amber-800">No Eligibility Records for {selectedYear}</p>
-                <p className="text-amber-700/95 mt-1">
+                <p className="font-bold text-amber-800">No Eligibility Records for {selectedYear}</p>
+                <p className="text-amber-700/95 mt-1 font-medium">
                   There are no eligibility records computed in the database for the year {selectedYear}. 
                   {selectedYear === CURRENT_YEAR ? (
                     <span> Please click the <strong>Recompute</strong> button in the top bar to evaluate benefit eligibility for this year.</span>
@@ -922,9 +922,9 @@ export default function Reports() {
           )}
 
           {isLoading ? (
-            <div className="flex items-center justify-center h-full py-24 gap-2 text-muted-foreground">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="text-sm">Loading employee data…</span>
+            <div className="flex items-center justify-center h-full py-24 gap-2 text-slate-400">
+              <Loader2 className="w-5 h-5 animate-spin text-[#0C005F]" />
+              <span className="text-sm font-medium">Loading employee data…</span>
             </div>
           ) : selectedReport === 'full' ? (
             <div className="p-4">

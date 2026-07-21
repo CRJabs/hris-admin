@@ -432,6 +432,9 @@ export default function UniversityChart() {
           } else if (isMember) {
             updatePayload.classification_ii = isAcademic ? "Academic Official" : "Administrative Official";
             updatePayload.department = editName;
+          } else {
+            updatePayload.department = null;
+            updatePayload.org_unit_id = null;
           }
 
           const { error: empUpdateError } = await supabase
@@ -507,6 +510,9 @@ export default function UniversityChart() {
           } else if (isMember) {
             updatedEmp.classification_ii = isAcademic ? "Academic Official" : "Administrative Official";
             updatedEmp.department = editName;
+          } else {
+            updatedEmp.department = null;
+            updatedEmp.org_unit_id = null;
           }
           return updatedEmp;
         }
@@ -688,23 +694,20 @@ export default function UniversityChart() {
     const head = employees.find(e => e.id === node.head_id);
     const levelStyles = [
       { 
-        border: "border-l-4 border-l-amber-400", 
         bg: "bg-[#0C005F]", 
         text: "text-white", 
-        subtext: "text-slate-400",
+        subtext: "text-slate-300",
         label: "Executive",
         labelColor: "text-amber-400"
       },
       { 
-        border: "border-l-4 border-l-indigo-500", 
         bg: "bg-white", 
         text: "text-slate-900", 
         subtext: "text-slate-500",
         label: "Executive Office",
-        labelColor: "text-indigo-600"
+        labelColor: "text-[#0C005F]"
       },
       { 
-        border: "border-l-4 border-l-emerald-500", 
         bg: "bg-white", 
         text: "text-slate-900", 
         subtext: "text-slate-500",
@@ -734,13 +737,11 @@ export default function UniversityChart() {
         style.text = "text-white";
         style.subtext = "text-white/60";
         style.labelColor = "text-white";
-        style.border = "border-l-4 border-l-rose-300";
       } else if (isAcademic) {
         style.bg = "bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500";
         style.text = "text-[#0C005F]";
         style.subtext = "text-[#0C005F]/60";
         style.labelColor = "text-[#0C005F]";
-        style.border = "border-l-4 border-l-[#0C005F]";
       }
     }
 
@@ -749,83 +750,82 @@ export default function UniversityChart() {
         <div className="relative group/node">
           <Card 
             className={cn(
-              "shadow-none transition-all duration-500 cursor-pointer relative z-10 overflow-hidden",
+              "shadow-none transition-all duration-300 cursor-pointer relative z-10 overflow-hidden rounded-xl border border-slate-200",
               style.bg,
-              isSelected ? "border-transparent" : style.border,
-              isSelected ? "ring-2 ring-indigo-500 ring-offset-2 scale-[1.02]" : "border-slate-200"
+              isSelected ? "ring-2 ring-[#0C005F] ring-offset-2 scale-[1.01]" : "border-slate-200"
             )}
             onClick={() => setSelectedNode(node)}
           >
-            <CardContent className="p-5">
-              <div className="flex justify-between items-start mb-3">
-                <span className={cn("text-[10px] font-black uppercase tracking-[0.2em]", style.labelColor)}>
+            <CardContent className="p-4">
+              <div className="flex justify-between items-start mb-2.5">
+                <span className={cn("text-xs font-black uppercase tracking-widest", style.labelColor)}>
                   {style.label}
                 </span>
                 <div className="flex items-center gap-2">
                   {isEditing && level === 0 && (
-                    <div className="flex items-center bg-slate-50 rounded-full px-1 py-0.5 border border-slate-100 shadow-sm">
+                    <div className="flex items-center bg-slate-50 rounded-full px-1 py-0.5 border border-slate-200 shadow-none">
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-7 w-7 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-full"
+                        className="h-6 w-6 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-full"
                         onClick={(e) => { e.stopPropagation(); handleAddUnit(node.id); }}
                       >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-3.5 h-3.5" />
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-7 w-7 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full"
+                        className="h-6 w-6 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full"
                         onClick={(e) => { e.stopPropagation(); handleDeleteUnit(node); }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   )}
                   {isEditing && level > 0 && (
-                    <div className="flex items-center bg-slate-50 rounded-full px-1 py-0.5 border border-slate-100 shadow-sm">
+                    <div className="flex items-center bg-slate-50 rounded-full px-1 py-0.5 border border-slate-200 shadow-none">
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-7 w-7 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full"
+                        className="h-6 w-6 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-full"
                         onClick={(e) => { e.stopPropagation(); handleDeleteUnit(node); }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   )}
                   {level === 0 && (
                     <div 
-                      className="flex items-center gap-1.5 text-[10px] font-black text-indigo-600 uppercase cursor-pointer hover:bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 transition-all bg-white shadow-sm"
+                      className="flex items-center gap-1.5 text-xs font-black text-[#0C005F] uppercase cursor-pointer hover:bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200 transition-all bg-white shadow-none"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleExpand(node.id);
                       }}
                     >
                       <span>{children.length} Units</span>
-                      <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-500", isExpanded ? "rotate-180" : "rotate-0")} />
+                      <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-300", isExpanded ? "rotate-180" : "rotate-0")} />
                     </div>
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3.5">
                 {(isSpecialL0 || !isSpecialL0) && (
                   <div className="relative">
-                    <Avatar className="h-12 w-12 border-2 border-white shadow-md">
+                    <Avatar className="h-11 w-11 border border-slate-200 shadow-none">
                       <AvatarImage src={isSpecialL0 ? UB_LOGO : (isAcademicBranch(node.id) ? node.logo_url : head?.photo_url)} className="object-cover" />
                       <AvatarFallback className="bg-slate-50 text-slate-400">
-                        {isAcademicBranch(node.id) ? <Building2 className="w-6 h-6" /> : <Users className="w-5 h-5" />}
+                        {isAcademicBranch(node.id) ? <Building2 className="w-5 h-5" /> : <Users className="w-4 h-4" />}
                       </AvatarFallback>
                     </Avatar>
                     {!isSpecialL0 && !isAcademicBranch(node.id) && (
-                      <div className={cn("absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white", getStatusColor(head))} />
+                      <div className={cn("absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white", getStatusColor(head))} />
                     )}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <h4 className={cn("text-sm font-black truncate leading-tight", style.text)}>{node.name || "Untitled"}</h4>
                   {!isSpecialL0 && !isAcademicBranch(node.id) && (
-                    <p className={cn("text-[11px] font-bold truncate mt-0.5", style.subtext)}>{head ? getFullName(head) : "Position Pending"}</p>
+                    <p className={cn("text-xs font-semibold truncate mt-0.5", style.subtext)}>{head ? getFullName(head) : "Position Pending"}</p>
                   )}
                 </div>
               </div>
@@ -851,7 +851,7 @@ export default function UniversityChart() {
                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-6 h-[2px] bg-slate-200" />
                      <Button 
                        variant="outline" 
-                       className="w-full border-dashed border-2 hover:border-[#0C005F] hover:bg-[#0C005F]/5 text-slate-400 hover:text-[#0C005F] gap-2 h-12 transition-all text-xs"
+                       className="w-full border-dashed border-2 hover:border-[#0C005F] hover:bg-[#0C005F]/5 text-slate-400 hover:text-[#0C005F] gap-2 h-10 transition-all text-xs"
                        onClick={() => handleAddUnit(node.id)}
                      >
                        <Plus className="w-3.5 h-3.5" />
@@ -863,7 +863,7 @@ export default function UniversityChart() {
                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-6 h-[2px] bg-slate-200" />
                      <Button 
                        variant="outline" 
-                       className="w-full border-dashed border-2 hover:border-[#0C005F] hover:bg-[#0C005F]/5 text-slate-400 hover:text-[#0C005F] gap-2 h-12 transition-all text-xs"
+                       className="w-full border-dashed border-2 hover:border-[#0C005F] hover:bg-[#0C005F]/5 text-slate-400 hover:text-[#0C005F] gap-2 h-10 transition-all text-xs"
                        onClick={() => handleAddUnit(node.id)}
                      >
                        <Plus className="w-3.5 h-3.5" />
@@ -881,7 +881,7 @@ export default function UniversityChart() {
                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-6 h-[2px] bg-slate-200" />
                  <Button 
                    variant="outline" 
-                   className="w-full border-dashed border-2 hover:border-[#0C005F] hover:bg-[#0C005F]/5 text-slate-400 hover:text-[#0C005F] gap-2 h-12 transition-all text-xs"
+                   className="w-full border-dashed border-2 hover:border-[#0C005F] hover:bg-[#0C005F]/5 text-slate-400 hover:text-[#0C005F] gap-2 h-10 transition-all text-xs"
                    onClick={() => handleAddUnit(node.id)}
                  >
                    <Plus className="w-3.5 h-3.5" />
@@ -898,8 +898,6 @@ export default function UniversityChart() {
   const selectedHead = employees.find(e => e.id === selectedNode?.head_id);
   const isExecutiveNode = selectedNode && (!selectedNode.parent_id || orgUnits.find(u => u.id === selectedNode.parent_id && !u.parent_id));
 
-  // headsList useMemo was moved up to be used in availableEmployees
-  
   const isInstitutional = useMemo(() => {
     if (!selectedNode) return false;
     const name = selectedNode.name?.toLowerCase() || "";
@@ -916,42 +914,42 @@ export default function UniversityChart() {
 
       <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
         {/* Left Sidebar: Cascading Tree — hidden on mobile when detail pane is open */}
-        <div className={`${selectedNode ? 'hidden md:flex' : 'flex'} w-full md:w-[450px] border-r bg-white flex-col`}>
+        <div className={`${selectedNode ? 'hidden md:flex' : 'flex'} w-full md:w-[420px] border-r border-slate-200 bg-white flex-col`}>
           {/* Sidebar Search & Edit Header */}
-          <div className="p-4 md:p-6 border-b flex items-center gap-3 bg-slate-50/30">
-            <div className="relative flex-[2]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <div className="p-3 border-b border-slate-200 flex items-center gap-2 bg-slate-50/50">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <Input 
                 placeholder="Search units..." 
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
-                className="pl-9 h-11 bg-white border-slate-200 shadow-sm focus:ring-1 focus:ring-[#0C005F]/20 transition-all"
+                className="pl-9 h-8.5 bg-white border-slate-200 shadow-none text-xs rounded-lg focus-visible:ring-[#0C005F]"
               />
             </div>
             <Button 
               variant={isEditing ? "default" : "outline"}
               className={cn(
-                "flex-1 h-11 gap-2 transition-all duration-300 font-bold", 
-                isEditing ? "bg-amber-500 hover:bg-amber-600 border-amber-600 text-white shadow-lg shadow-amber-500/20" : "text-[#0C005F] border-[#0C005F]/10 hover:bg-[#0C005F]/5"
+                "h-8.5 px-3.5 gap-1.5 transition-all duration-300 text-xs font-bold shrink-0 rounded-lg shadow-none", 
+                isEditing ? "bg-amber-500 hover:bg-amber-600 border-amber-600 text-white" : "text-[#0C005F] border-slate-200 hover:bg-slate-50"
               )}
               onClick={handleToggleEdit}
             >
-              {isEditing ? <Check className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+              {isEditing ? <Check className="w-3.5 h-3.5" /> : <Edit2 className="w-3.5 h-3.5" />}
               {isEditing ? "Done" : "Edit"}
             </Button>
           </div>
 
-          <div className="flex-1 overflow-y-auto overflow-x-auto p-4 md:p-8 custom-scrollbar">
-          <div className="space-y-6 relative min-w-[320px]">
+          <div className="flex-1 overflow-y-auto overflow-x-auto p-4 custom-scrollbar">
+          <div className="space-y-4 relative min-w-[300px]">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400 animate-pulse">
-                <Building2 className="w-12 h-12 mb-4 opacity-20" />
-                <p className="text-sm font-medium">Loading structure...</p>
+                <Building2 className="w-12 h-12 mb-4 opacity-20 text-[#0C005F]" />
+                <p className="text-xs font-semibold">Loading structure...</p>
               </div>
             ) : orgUnits.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-100 rounded-2xl">
                 <Building2 className="w-12 h-12 mb-4 opacity-20" />
-                <Button onClick={() => handleAddUnit()} className="bg-[#0C005F]">
+                <Button onClick={() => handleAddUnit()} className="bg-[#0C005F] text-xs font-bold">
                   Add First Unit
                 </Button>
               </div>
@@ -969,7 +967,7 @@ export default function UniversityChart() {
           {/* Mobile back button */}
           {selectedNode && (
             <button
-              className="md:hidden flex items-center gap-1 text-xs font-bold text-[#0C005F] px-4 py-3 border-b bg-slate-50 self-start w-full"
+              className="md:hidden flex items-center gap-1 text-xs font-bold text-[#0C005F] px-4 py-3 border-b border-slate-200 bg-slate-50 self-start w-full"
               onClick={() => setSelectedNode(null)}
             >
               ← Back to chart
@@ -977,28 +975,27 @@ export default function UniversityChart() {
           )}
           {!selectedNode ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50">
-              <div className="w-24 h-24 bg-white rounded-3xl shadow-xl flex items-center justify-center mb-8 border border-slate-100">
-                <Building2 className="w-12 h-12 opacity-20 text-indigo-600" />
+              <div className="w-20 h-20 bg-white rounded-2xl shadow-none flex items-center justify-center mb-6 border border-slate-200">
+                <Building2 className="w-10 h-10 opacity-20 text-[#0C005F]" />
               </div>
-              <h2 className="text-xl font-black uppercase tracking-[0.3em] text-slate-300">Select an Office</h2>
+              <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">Select an Office</h2>
             </div>
           ) : (
-            <div className="p-12 space-y-12">
+            <div className="p-8 md:p-10 space-y-10">
               {/* Detail Header */}
-              <div className="flex items-center justify-between pb-8 border-b-2 border-slate-100 relative">
-                <div className="absolute -top-12 -left-12 -right-12 h-32 bg-gradient-to-b from-slate-50 to-white -z-10" />
-                <div className="flex-1 mr-8 flex items-center gap-6">
+              <div className="flex items-center justify-between pb-6 border-b border-slate-200 relative">
+                <div className="flex-1 mr-8 flex items-center gap-5">
                   {(isInstitutional || isAcademicBranch(selectedNode.id)) && (
                     <div className="relative group/logo">
-                      <Avatar className="h-20 w-20 border-2 border-white shadow-xl ring-4 ring-slate-50">
+                      <Avatar className="h-16 w-16 border border-white shadow-none ring-2 ring-slate-100">
                         <AvatarImage src={isInstitutional ? UB_LOGO : selectedNode.logo_url} className="object-cover" />
                         <AvatarFallback className="bg-slate-50 text-slate-400">
-                          <Building2 className="w-8 h-8 opacity-20" />
+                          <Building2 className="w-7 h-7 opacity-20" />
                         </AvatarFallback>
                       </Avatar>
                       {isEditingDetail && !isInstitutional && (
                         <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Upload className="w-6 h-6 text-white" />
+                          <Upload className="w-5 h-5 text-white" />
                           <input type="file" className="hidden" onChange={handleLogoUpload} accept="image/*" />
                         </label>
                       )}
@@ -1009,32 +1006,37 @@ export default function UniversityChart() {
                       <Input 
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        className="text-3xl font-black h-16 bg-white shadow-xl border-indigo-200 focus:ring-4 focus:ring-indigo-100 transition-all"
+                        className="text-2xl font-black h-12 bg-white shadow-none border-slate-200 focus:ring-2 focus:ring-[#0C005F]"
                         placeholder="Enter office name..."
                       />
                     ) : (
-                      <div className="space-y-1">
-                        <h2 className="text-5xl font-black text-slate-900 tracking-tighter drop-shadow-sm">{selectedNode.name}</h2>
+                      <div className="flex items-center gap-3.5 flex-wrap">
+                        <h2 className="text-3xl font-black text-slate-900 tracking-tight">{selectedNode.name}</h2>
+                        {isInstitutional && (
+                          <div className="bg-slate-100/90 px-3 py-1 rounded-lg border border-slate-200 text-2xs font-bold text-[#0C005F] uppercase tracking-wider shrink-0">
+                            {orgUnits.filter(u => u.parent_id === selectedNode.id).length} Active Units
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   {!isInstitutional && (
                     isEditingDetail ? (
                       <>
-                        <Button variant="outline" onClick={() => setIsEditingDetail(false)} className="h-11 px-6 font-bold text-slate-500">Cancel</Button>
-                        <Button onClick={handleSaveDetail} className="h-11 px-8 bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-black shadow-lg shadow-emerald-600/20 transition-all hover:scale-105 active:scale-95">
-                          <Save className="w-5 h-5" />
+                        <Button variant="outline" onClick={() => setIsEditingDetail(false)} className="h-9 px-5 font-bold text-xs text-slate-500 rounded-lg border-slate-200 shadow-none">Cancel</Button>
+                        <Button onClick={handleSaveDetail} className="h-9 px-6 bg-emerald-600 hover:bg-emerald-700 text-white gap-2 text-xs font-bold uppercase tracking-wider shadow-none rounded-lg">
+                          <Save className="w-4 h-4" />
                           Save Changes
                         </Button>
                       </>
                     ) : (
                       <Button 
                         onClick={() => setIsEditingDetail(true)}
-                        className="h-11 px-8 bg-indigo-600 hover:bg-indigo-700 text-white gap-2 font-black shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95"
+                        className="h-9 px-6 bg-[#0C005F] hover:bg-[#1900C5] text-white gap-2 text-xs font-bold uppercase tracking-wider shadow-none rounded-lg"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
                         Modify Office
                       </Button>
                     )
@@ -1043,20 +1045,8 @@ export default function UniversityChart() {
               </div>
 
               {isInstitutional ? (
-                <div className="space-y-12 animate-in fade-in duration-700">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-6">
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">Institutional Sub-Offices</h3>
-                      <p className="text-xs text-slate-400 italic">Select an office to view or manage its specific assignments.</p>
-                    </div>
-                    <div className="bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
-                      <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">
-                        {orgUnits.filter(u => u.parent_id === selectedNode.id).length} Active Units
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="animate-in fade-in duration-500">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {orgUnits
                       .filter(u => u.parent_id === selectedNode.id)
                       .map(unit => {
@@ -1067,39 +1057,34 @@ export default function UniversityChart() {
                           <Card 
                             key={unit.id} 
                             onClick={() => setSelectedNode(unit)}
-                            className="group cursor-pointer hover:shadow-2xl transition-all duration-500 border-slate-200 overflow-hidden bg-white hover:-translate-y-2 relative"
+                            className="group cursor-pointer hover:border-[#0C005F] transition-all duration-300 border-slate-200 overflow-hidden bg-white shadow-none rounded-xl relative"
                           >
-                            <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <CardContent className="p-8 space-y-6">
-                              <div className="space-y-2">
-                                <h4 className="text-xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-2 leading-tight tracking-tight">
-                                  {unit.name}
-                                </h4>
-                              </div>
-                              
-                              <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-3xl border border-slate-100 group-hover:bg-indigo-50/50 transition-colors">
-                                <Avatar className="h-12 w-12 border-2 border-white shadow-md">
+                            <CardContent className="p-6 flex flex-col justify-between space-y-6 h-full">
+                              <div className="flex items-start gap-4">
+                                <Avatar className="h-12 w-12 border border-slate-100 shadow-sm shrink-0">
                                   <AvatarImage src={isAcademicBranch(selectedNode.id) ? unit.logo_url : head?.photo_url} />
-                                  <AvatarFallback className="bg-white">
-                                    {isAcademicBranch(selectedNode.id) ? <Building2 className="w-5 h-5 text-slate-200" /> : <Users className="w-5 h-5 text-slate-200" />}
+                                  <AvatarFallback className="bg-slate-50">
+                                    {isAcademicBranch(selectedNode.id) ? <Building2 className="w-5 h-5 text-slate-300" /> : <Users className="w-5 h-5 text-slate-300" />}
                                   </AvatarFallback>
                                 </Avatar>
-                                <div className="min-w-0">
-                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">
-                                    {isAcademicBranch(selectedNode.id) ? "Department" : "Head of Office"}
-                                  </p>
-                                  <p className="text-sm font-bold text-slate-900 truncate">
-                                    {isAcademicBranch(selectedNode.id) ? unit.name : (head ? getFullName(head) : "Pending")}
-                                  </p>
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="text-base font-black text-slate-900 group-hover:text-[#0C005F] transition-colors leading-tight tracking-tight">
+                                    {unit.name}
+                                  </h4>
+                                  {!isAcademicBranch(selectedNode.id) && (
+                                    <p className="text-2xs font-bold text-slate-400 uppercase tracking-wider mt-1 truncate">
+                                      Head: {head ? getFullName(head) : "Pending"}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
 
-                              <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                  <Users className="w-4 h-4 text-indigo-400" />
+                              <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-auto">
+                                <div className="flex items-center gap-2 text-2xs font-bold uppercase tracking-wider text-slate-500">
+                                  <Users className="w-3.5 h-3.5 text-[#0C005F]" />
                                   {unitStaffCount} Personnel
                                 </div>
-                                <div className="text-[10px] font-black uppercase tracking-widest text-indigo-600 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                                <div className="text-2xs font-bold uppercase tracking-wider text-[#0C005F] opacity-0 group-hover:opacity-100 transition-all">
                                   View Details →
                                 </div>
                               </div>
@@ -1108,9 +1093,9 @@ export default function UniversityChart() {
                         );
                       })}
                     {orgUnits.filter(u => u.parent_id === selectedNode.id).length === 0 && (
-                      <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-100 rounded-[32px]">
-                        <Building2 className="w-16 h-16 mb-4 opacity-10" />
-                        <p className="text-sm font-black uppercase tracking-[0.2em]">No departments found</p>
+                      <div className="col-span-full py-16 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-200 rounded-2xl">
+                        <Building2 className="w-12 h-12 mb-3 opacity-20" />
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">No departments found</p>
                       </div>
                     )}
                   </div>
@@ -1118,9 +1103,9 @@ export default function UniversityChart() {
               ) : (
                 <>
                   {/* Head of Office Section */}
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                       <h3 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">
+                       <h3 className="text-xs font-black text-[#0C005F] uppercase tracking-widest">
                          {headsList.length <= 1 ? "Head of Office" : "Heads of Office"}
                        </h3>
                     </div>
@@ -1129,14 +1114,14 @@ export default function UniversityChart() {
                                        orgUnits.find(u => u.id === selectedNode.parent_id && !u.parent_id) ? 1 : 2;
                       
                       const cardStyles = [
-                        { bg: "bg-[#0C005F]", text: "text-white", subtext: "text-white/60", badge: "bg-amber-400 text-[#0C005F]", border: "border-amber-400/20" },
-                        { bg: "bg-white", text: "text-slate-900", subtext: "text-slate-500", badge: "bg-indigo-600 text-white", border: "border-slate-200" },
+                        { bg: "bg-[#0C005F]", text: "text-white", subtext: "text-white/60", badge: "bg-amber-400 text-[#0C005F]", border: "border-slate-200" },
+                        { bg: "bg-white", text: "text-slate-900", subtext: "text-slate-500", badge: "bg-[#0C005F] text-white", border: "border-slate-200" },
                         { bg: "bg-white", text: "text-slate-900", subtext: "text-slate-500", badge: "bg-emerald-600 text-white", border: "border-slate-200" }
                       ];
                       const s = cardStyles[nodeLevel];
 
                       return headsList.length === 0 ? (
-                        <Card className={cn("shadow-xl overflow-hidden group transition-all duration-500 hover:shadow-2xl border-2", s.bg, s.border)}>
+                        <Card className={cn("shadow-none overflow-hidden group transition-all duration-300 rounded-xl border border-slate-200", s.bg)}>
                           <CardContent className="p-8">
                             <div className="flex flex-col md:flex-row gap-8 items-center justify-center text-slate-400">
                               <Users className="w-16 h-16 opacity-20" />
@@ -1152,21 +1137,21 @@ export default function UniversityChart() {
                         const emp = employees.find(e => e.id === head.employee_id);
                         return (
                           <Card 
-                            className={cn("shadow-xl overflow-hidden group transition-all duration-500 hover:shadow-2xl border-2 cursor-pointer hover:border-indigo-300", s.bg, s.border)}
+                            className={cn("shadow-none overflow-hidden group transition-all duration-300 rounded-xl border border-slate-200 cursor-pointer hover:border-[#0C005F]", s.bg)}
                             onClick={() => emp && navigate('/employees', { state: { openEmployeeId: emp.id } })}
                           >
                             <CardContent className="p-8">
                               <div className="flex flex-col md:flex-row gap-12">
                                 <div className="shrink-0 flex flex-col items-center gap-6">
                                   <div className="relative">
-                                    <Avatar className="h-40 w-40 border-4 border-white shadow-2xl ring-1 ring-slate-100">
+                                    <Avatar className="h-40 w-40 border-4 border-white shadow-none ring-1 ring-slate-100">
                                       <AvatarImage src={emp?.photo_url} className="object-cover" />
                                       <AvatarFallback className="bg-slate-50">
                                         <Users className="w-16 h-16 text-slate-200" />
                                       </AvatarFallback>
                                     </Avatar>
                                     <div className={cn(
-                                      "absolute bottom-2 right-2 w-10 h-10 border-4 border-white rounded-full shadow-lg",
+                                      "absolute bottom-2 right-2 w-10 h-10 border-4 border-white rounded-full shadow-none",
                                       getStatusColor(emp)
                                     )} />
                                   </div>
@@ -1174,18 +1159,18 @@ export default function UniversityChart() {
                                 
                                 <div className="flex-1 space-y-8 relative">
                                   <div className="flex flex-wrap gap-2">
-                                    <span className={cn("px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg", s.badge)}>
+                                    <span className={cn("px-4 py-1.5 text-xs font-black uppercase tracking-widest rounded-full shadow-none", s.badge)}>
                                       {head.title || (isExecutiveNode ? selectedNode.name : "Department Head")}
                                     </span>
                                   </div>
 
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
                                     <div className="space-y-2">
-                                      <p className={cn("text-[10px] font-black uppercase tracking-widest", s.subtext)}>Employee Name</p>
+                                      <p className={cn("text-xs font-black uppercase tracking-widest", s.subtext)}>Employee Name</p>
                                       <h4 className={cn("text-3xl font-black leading-tight", s.text)}>
                                         {emp ? getFullName(emp) : "Pending Assignment"}
                                       </h4>
-                                      <p className={cn("font-bold uppercase tracking-widest text-xs", nodeLevel === 0 ? "text-amber-400" : "text-indigo-600")}>
+                                      <p className={cn("font-bold uppercase tracking-widest text-xs", nodeLevel === 0 ? "text-amber-400" : "text-[#0C005F]")}>
                                         {emp?.position || "Position Pending"}
                                       </p>
                                     </div>
@@ -1196,10 +1181,10 @@ export default function UniversityChart() {
                                          { label: "Email", icon: MailIcon, value: emp?.contact_email },
                                          { label: "Phone", icon: PhoneIcon, value: emp?.contact_phone },
                                        ].map((info) => (
-                                         <div key={info.label} className={cn("flex items-center gap-8 justify-between group/row border-b pb-2", nodeLevel === 0 ? "border-white/10" : "border-slate-50")}>
-                                           <span className={cn("text-[10px] font-black uppercase tracking-widest", s.subtext)}>{info.label}</span>
+                                         <div key={info.label} className={cn("flex items-center gap-8 justify-between group/row border-b pb-2", nodeLevel === 0 ? "border-white/10" : "border-slate-100")}>
+                                           <span className={cn("text-xs font-black uppercase tracking-widest", s.subtext)}>{info.label}</span>
                                            <div className="flex items-center gap-3">
-                                             <span className={cn("text-sm font-bold transition-colors", s.text)}>
+                                             <span className={cn("text-xs font-semibold transition-colors", s.text)}>
                                                {info.value || "—"}
                                              </span>
                                              <info.icon className={cn("w-3.5 h-3.5", s.subtext)} />
@@ -1220,21 +1205,21 @@ export default function UniversityChart() {
                             return (
                               <Card 
                                 key={idx} 
-                                className={cn("shadow-lg overflow-hidden group transition-all duration-500 hover:shadow-2xl border-2 cursor-pointer hover:border-indigo-300", s.bg, s.border)}
+                                className={cn("shadow-none overflow-hidden group transition-all duration-300 rounded-xl border border-slate-200 cursor-pointer hover:border-[#0C005F]", s.bg)}
                                 onClick={() => emp && navigate('/employees', { state: { openEmployeeId: emp.id } })}
                               >
                                 <CardContent className="p-6">
                                   <div className="flex flex-col sm:flex-row gap-6">
                                     <div className="shrink-0 flex flex-col items-center gap-4">
                                       <div className="relative">
-                                        <Avatar className="h-28 w-28 border-4 border-white shadow-xl ring-1 ring-slate-100">
+                                        <Avatar className="h-28 w-28 border-4 border-white shadow-none ring-1 ring-slate-100">
                                           <AvatarImage src={emp?.photo_url} className="object-cover" />
                                           <AvatarFallback className="bg-slate-50">
                                             <Users className="w-12 h-12 text-slate-200" />
                                           </AvatarFallback>
                                         </Avatar>
                                         <div className={cn(
-                                          "absolute bottom-1 right-1 w-7 h-7 border-4 border-white rounded-full shadow-md",
+                                          "absolute bottom-1 right-1 w-7 h-7 border-4 border-white rounded-full shadow-none",
                                           getStatusColor(emp)
                                         )} />
                                       </div>
@@ -1242,17 +1227,17 @@ export default function UniversityChart() {
                                     
                                     <div className="flex-1 space-y-4 min-w-0">
                                       <div className="flex flex-wrap gap-2">
-                                        <span className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full shadow-md truncate max-w-full", s.badge)}>
+                                        <span className={cn("px-3 py-1 text-2xs font-black uppercase tracking-widest rounded-full shadow-none truncate max-w-full", s.badge)}>
                                           {head.title || (isExecutiveNode ? selectedNode.name : "Department Head")}
                                         </span>
                                       </div>
 
                                       <div className="space-y-1">
-                                        <p className={cn("text-[9px] font-black uppercase tracking-widest", s.subtext)}>Employee Name</p>
+                                        <p className={cn("text-xs font-black uppercase tracking-widest", s.subtext)}>Employee Name</p>
                                         <h4 className={cn("text-xl font-black leading-tight truncate", s.text)}>
                                           {emp ? getFullName(emp) : "Pending Assignment"}
                                         </h4>
-                                        <p className={cn("font-bold uppercase tracking-widest text-[10px]", nodeLevel === 0 ? "text-amber-400" : "text-indigo-600")}>
+                                        <p className={cn("font-bold uppercase tracking-widest text-xs", nodeLevel === 0 ? "text-amber-400" : "text-[#0C005F]")}>
                                           {emp?.position || "Position Pending"}
                                         </p>
                                       </div>
@@ -1263,10 +1248,10 @@ export default function UniversityChart() {
                                            { label: "Email", icon: MailIcon, value: emp?.contact_email },
                                            { label: "Phone", icon: PhoneIcon, value: emp?.contact_phone },
                                          ].map((info) => (
-                                           <div key={info.label} className={cn("flex items-center gap-4 justify-between group/row border-b pb-1 last:border-b-0", nodeLevel === 0 ? "border-white/10" : "border-slate-50")}>
-                                             <span className={cn("text-[9px] font-black uppercase tracking-widest", s.subtext)}>{info.label}</span>
+                                           <div key={info.label} className={cn("flex items-center gap-4 justify-between group/row border-b pb-1 last:border-b-0", nodeLevel === 0 ? "border-white/10" : "border-slate-100")}>
+                                             <span className={cn("text-xs font-black uppercase tracking-widest", s.subtext)}>{info.label}</span>
                                              <div className="flex items-center gap-2 min-w-0">
-                                               <span className={cn("text-xs font-bold transition-colors truncate", s.text)}>
+                                               <span className={cn("text-xs font-semibold transition-colors truncate", s.text)}>
                                                  {info.value || "—"}
                                                </span>
                                                <info.icon className={cn("w-3 h-3 shrink-0", s.subtext)} />
@@ -1296,7 +1281,7 @@ export default function UniversityChart() {
                             {editHeads.map((head, idx) => {
                               const emp = employees.find(e => e.id === head.employee_id);
                               return (
-                                <div key={head.employee_id || idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                                <div key={head.employee_id || idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-2xl border border-slate-200 shadow-none">
                                   <div className="flex items-center gap-3">
                                     <Avatar className="h-10 w-10">
                                       <AvatarImage src={emp?.photo_url} />
@@ -1369,8 +1354,8 @@ export default function UniversityChart() {
                                 <Card 
                                   key={emp.id} 
                                   className={cn(
-                                    "border-slate-200 bg-white transition-all group",
-                                    isCurrentlyHead ? "border-[#0C005F] bg-[#0C005F]/5 shadow-sm" : "hover:border-amber-100 hover:shadow-md"
+                                    "border-slate-200 bg-white transition-all group shadow-none",
+                                    isCurrentlyHead ? "border-[#0C005F] bg-[#0C005F]/5" : "hover:border-amber-200"
                                   )}
                                 >
                                   <CardContent className="p-4 flex items-center justify-between">
@@ -1419,13 +1404,13 @@ export default function UniversityChart() {
                     </div>
                   )}
 
-              <div className="space-y-8">
+              <div className="space-y-6">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">
+                  <h3 className="text-xs font-black text-[#0C005F] uppercase tracking-widest">
                     {isEditingDetail ? "Manage Assignments" : "Employees Assigned"}
                   </h3>
                   <div className="flex items-center gap-4">
-                    <span className="text-xs font-bold text-slate-400 uppercase">{departmentEmployees.length} Total</span>
+                    <span className="text-2xs font-bold text-slate-400 uppercase tracking-wider">{departmentEmployees.length} Total</span>
                   </div>
                 </div>
 
@@ -1559,7 +1544,7 @@ export default function UniversityChart() {
                       departmentEmployees.map((emp) => (
                         <Card 
                           key={emp.id} 
-                          className="border-slate-200 shadow-sm hover:shadow-xl transition-all group overflow-hidden bg-white cursor-pointer hover:border-indigo-300"
+                          className="border-slate-200 shadow-none transition-all group overflow-hidden bg-white cursor-pointer hover:border-indigo-300"
                           onClick={() => navigate('/employees', { state: { openEmployeeId: emp.id } })}
                         >
                           <CardContent className="p-6 flex gap-6">

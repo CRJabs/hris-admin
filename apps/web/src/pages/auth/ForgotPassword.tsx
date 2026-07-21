@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Mail } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +12,12 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMsg("");
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -28,7 +30,7 @@ export default function ForgotPassword() {
       toast.success("Password reset email sent!");
     } catch (error: unknown) {
       const err = error as Error;
-      toast.error(err.message || "Failed to send reset email.");
+      setErrorMsg(err.message || "Failed to send reset email.");
     } finally {
       setIsLoading(false);
     }
@@ -78,6 +80,13 @@ export default function ForgotPassword() {
                     />
                   </div>
                 </div>
+
+                {errorMsg && (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50/90 p-3.5 flex items-start gap-3 text-left animate-in fade-in duration-200">
+                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <p className="text-xs font-bold text-rose-700">{errorMsg}</p>
+                  </div>
+                )}
 
                 <Button 
                   className="w-full bg-gradient-to-r from-[#0C005F] to-[#1900C5] text-white hover:opacity-95 transition-opacity rounded-lg h-11 text-sm font-semibold shadow-md" 

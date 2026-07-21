@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Loader2, Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,23 +54,15 @@ export default function Login() {
       const message = err?.message || "";
 
       if (code === "email_not_confirmed") {
-        toast.error("Please verify your email before logging in.");
-        toast.info("Check your inbox (and spam folder) for the verification link.");
         setInlineError("Your email is not verified yet.");
         setInlineHint("Open your verification email, then return and sign in.");
       } else if (code === "invalid_credentials") {
-        toast.error("Invalid email or password.");
-        toast.info("Double-check your credentials or use 'forgot password?'.");
         setInlineError("Invalid email or password.");
         setInlineHint("Check your credentials or reset your password.");
       } else if (message.toLowerCase().includes("network")) {
-        toast.error("Network error while signing in.");
-        toast.info("Please check your internet connection and try again.");
         setInlineError("Network error while signing in.");
         setInlineHint("Check your internet connection and retry.");
       } else {
-        toast.error("Unable to log in right now.");
-        toast.info(message || "Please try again in a few moments.");
         setInlineError("Unable to log in right now.");
         setInlineHint(message || "Please try again in a few moments.");
       }
@@ -180,9 +172,12 @@ export default function Login() {
               </div>
 
               {inlineError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-left">
-                  <p className="text-xs font-semibold text-red-700">{inlineError}</p>
-                  {inlineHint && <p className="mt-0.5 text-xs text-red-600">{inlineHint}</p>}
+                <div className="rounded-xl border border-rose-200 bg-rose-50/90 p-3.5 flex items-start gap-3 text-left animate-in fade-in duration-200">
+                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-bold text-rose-700">{inlineError}</p>
+                    {inlineHint && <p className="mt-0.5 text-2xs text-rose-600/90 font-medium">{inlineHint}</p>}
+                  </div>
                 </div>
               )}
 

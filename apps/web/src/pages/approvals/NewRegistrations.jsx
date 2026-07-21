@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Check, X, UserPlus, Eye, Search, Filter, Trash2 } from "lucide-react";
+import { Check, X, UserPlus, Eye, Search, Filter, Trash2, Clock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import E201Modal from "@/components/employees/E201Modal";
@@ -202,52 +203,80 @@ export default function NewRegistrations() {
   const pendingCount = registrations.filter(e => e.employment_status === 'Pending').length;
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-[1440px] mx-auto">
+    <div className="space-y-4 w-full">
       {/* Search & Filter Bar is now rendered at layout level */}
 
       {isLoading ? (
-        <div className="text-center p-8 text-muted-foreground">Loading registrations...</div>
+        <div className="text-center p-8 text-slate-400 text-xs font-semibold">Loading registrations...</div>
       ) : filteredRegistrations.length === 0 ? (
-        <Card className="border-dashed shadow-none bg-muted/10">
-           <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
-              <UserPlus className="w-12 h-12 mb-3 opacity-20" />
-              <p className="font-medium text-lg">
+        <Card className="border-dashed border-slate-200 shadow-none bg-slate-50/50 rounded-xl">
+           <CardContent className="flex flex-col items-center justify-center p-12 text-center text-slate-400">
+              <UserPlus className="w-12 h-12 mb-3 opacity-20 text-[#0C005F]" />
+              <p className="font-bold text-base text-slate-600">
                 {pendingCount === 0 ? "No pending registrations" : "No matching registrations"}
               </p>
-              <p className="text-sm">
+              <p className="text-xs">
                 {pendingCount === 0 ? "No new applicants at the moment." : "Try adjusting your search or filter."}
               </p>
            </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           {filteredRegistrations.map((emp) => (
-            <Card key={emp.id} className="overflow-hidden">
-               <CardHeader className="bg-muted/30 pb-3 p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                 <div>
-                   <CardTitle className="text-base flex items-center gap-2">
-                      {emp.first_name} {emp.last_name}
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Pending Registration</Badge>
-                   </CardTitle>
-                   <CardDescription className="mt-1">
-                      {emp.contact_email || emp.email || "No email"} • {emp.department || "No Department"}
-                   </CardDescription>
-                 </div>
-                 <div className="flex flex-row gap-2 shrink-0 justify-center">
-                    <Button size="sm" variant="outline" onClick={() => handleViewRegistrant(emp)} className="gap-1.5">
-                       <Eye className="w-4 h-4" /> View Details
-                    </Button>
-                    <Button size="sm" onClick={() => handleRegistrationAction(emp, 'approved')} className="gap-1.5 bg-green-600 hover:bg-green-700">
-                       <Check className="w-4 h-4" /> Approve
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleRegistrationAction(emp, 'rejected')} className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50">
-                       <X className="w-4 h-4" /> Reject
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleDelete(emp)} className="gap-1.5 text-red-600 border-red-200 hover:text-white hover:bg-red-600">
-                       <Trash2 className="w-4 h-4" /> Delete
-                    </Button>
-                 </div>
-               </CardHeader>
+            <Card key={emp.id} className="overflow-hidden shadow-none rounded-xl border border-slate-200 bg-white hover:border-[#0C005F] transition-all group">
+                <CardHeader className="bg-slate-50/50 group-hover:bg-blue-50/20 transition-colors pb-3 p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                      {emp.photo_url ? (
+                        <img src={emp.photo_url} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-bold text-slate-600">
+                          {emp.first_name?.[0]}{emp.last_name?.[0]}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm font-black text-slate-900 flex items-center gap-2 flex-wrap">
+                         {emp.first_name} {emp.last_name}
+                         <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 text-2xs font-bold uppercase tracking-wider">Pending Registration</Badge>
+                      </CardTitle>
+                      <CardDescription className="mt-0.5 text-xs text-slate-500 font-medium">
+                         {emp.contact_email || emp.email || "No email"} • {emp.department || "No Department"}
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5 shrink-0">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      Requested on {format(new Date(emp.created_at || new Date()), "MMM d, yyyy h:mm a")}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-3.5">
+                   <div className="flex flex-col md:flex-row gap-5">
+                     <div className="flex-1 space-y-2">
+                        <p className="text-xs font-semibold text-slate-700">Registration: <span className="text-[#0C005F] font-bold">New Employee Registration</span></p>
+                        <div className="p-3 border border-slate-200 rounded-lg bg-slate-50/50">
+                           <p className="text-2xs font-bold text-[#0C005F] uppercase tracking-wider mb-1">Registration Details</p>
+                           <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                             Position: <span className="font-semibold text-slate-700">{emp.position || "Staff"}</span> • Department: <span className="font-semibold text-slate-700">{emp.department || "General"}</span> • Email: <span className="font-semibold text-slate-700">{emp.contact_email || emp.email || "—"}</span>
+                           </p>
+                        </div>
+                     </div>
+                      <div className="flex flex-row md:flex-col gap-2 shrink-0 justify-center">
+                         <Button size="sm" variant="outline" onClick={() => handleViewRegistrant(emp)} className="h-8 text-xs gap-1.5 border-slate-200 rounded-lg font-bold shadow-none">
+                            <Eye className="w-3.5 h-3.5" /> View Details
+                         </Button>
+                         <Button size="sm" onClick={() => handleRegistrationAction(emp, 'approved')} className="h-8 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-none">
+                            <Check className="w-3.5 h-3.5" /> Approve
+                         </Button>
+                         <Button size="sm" variant="outline" onClick={() => handleRegistrationAction(emp, 'rejected')} className="h-8 text-xs gap-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-slate-200 rounded-lg font-bold shadow-none">
+                            <X className="w-3.5 h-3.5" /> Reject
+                         </Button>
+                         <Button size="sm" variant="outline" onClick={() => handleDelete(emp)} className="h-8 text-xs gap-1.5 text-rose-600 border-rose-200 hover:text-white hover:bg-rose-600 rounded-lg font-bold shadow-none">
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                         </Button>
+                      </div>
+                   </div>
+                </CardContent>
             </Card>
           ))}
         </div>

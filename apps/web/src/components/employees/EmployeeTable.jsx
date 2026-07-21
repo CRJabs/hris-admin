@@ -80,31 +80,31 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
   };
 
   return (
-    <div className="flex flex-col min-h-0 flex-1 rounded-xl border border-border bg-card overflow-hidden">
+    <div className="flex flex-col min-h-0 flex-1 rounded-xl border border-slate-200 bg-white shadow-none overflow-hidden">
       <div className="overflow-auto flex-1">
-      <table className="w-full caption-bottom text-sm min-w-[700px]">
-        <TableHeader className="sticky top-0 z-10 shadow-sm bg-[#0C005F]">
+      <table className="w-full caption-bottom text-xs min-w-[700px]">
+        <TableHeader className="sticky top-0 z-10 shadow-none bg-[#0C005F]">
           <TableRow className="bg-[#0C005F] hover:bg-[#0C005F]">
-            <TableHead className="text-xs font-semibold uppercase tracking-wider w-25 border-x border-[#0a0050] text-white py-2.5">
+            <TableHead className="text-2xs font-bold uppercase tracking-wider w-25 border-x border-[#0a0050] text-white py-2.5">
               <SortButton column="employee_id" label="ID" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider border-x border-[#0a0050] text-white py-2.5">
+            <TableHead className="text-2xs font-bold uppercase tracking-wider border-x border-[#0a0050] text-white py-2.5">
               <SortButton column="last_name" label="EMPLOYEE NAME" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider border-x border-[#0a0050] text-white py-2.5">
+            <TableHead className="text-2xs font-bold uppercase tracking-wider border-x border-[#0a0050] text-white py-2.5">
               <SortButton column="department" label="DEPARTMENT/OFFICE" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell border-x border-[#0a0050] text-white py-2.5">
+            <TableHead className="text-2xs font-bold uppercase tracking-wider hidden sm:table-cell border-x border-[#0a0050] text-white py-2.5">
               <SortButton column="position" label="POSITION" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider border-x border-[#0a0050] text-white py-2.5">
+            <TableHead className="text-2xs font-bold uppercase tracking-wider border-x border-[#0a0050] text-white py-2.5">
               <SortButton column="employment_status" label="STATUS" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider hidden sm:table-cell border-x border-[#0a0050] text-white py-2.5">
+            <TableHead className="text-2xs font-bold uppercase tracking-wider hidden sm:table-cell border-x border-[#0a0050] text-white py-2.5">
               <SortButton column="employment_tenure" label="TENURE" />
             </TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider text-center w-15 border-x border-[#0a0050] text-white py-2.5">ACTIVE</TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider w-15 border-x border-[#0a0050] text-white py-2.5"></TableHead>
+            <TableHead className="text-2xs font-bold uppercase tracking-wider text-center w-15 border-x border-[#0a0050] text-white py-2.5">ACTIVE</TableHead>
+            <TableHead className="text-2xs font-bold uppercase tracking-wider w-15 border-x border-[#0a0050] text-white py-2.5"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -130,7 +130,7 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
             ))
           ) : employees.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+              <TableCell colSpan={7} className="text-center py-12 text-slate-400 font-medium">
                 No employees found matching your criteria.
               </TableCell>
             </TableRow>
@@ -138,63 +138,68 @@ export default function EmployeeTable({ employees, onViewE201, onToggleActive, o
             paginated.map((emp) => (
               <TableRow
                 key={emp.id || emp.employee_id}
-                className="cursor-pointer hover:bg-muted/30 transition-colors"
+                className="cursor-pointer hover:bg-slate-50/70 transition-colors border-b border-slate-100"
                 onClick={() => onViewE201(emp)}
               >
-                <TableCell className="font-mono text-xs text-muted-foreground">
+                <TableCell className="font-mono text-xs text-slate-500 font-medium">
                   {emp.employee_id}
                   {emp.pendingRequests?.length > 0 && (
                     <div className="mt-1 flex items-center gap-1 text-amber-600 font-medium" title="Pending profile updates">
                        <AlertCircle className="w-3 h-3" />
-                       <span className="text-[9px] uppercase tracking-wider">Updates</span>
+                       <span className="text-2xs uppercase tracking-wider">Updates</span>
                     </div>
                   )}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-8 h-8">
+                    <Avatar className="w-8 h-8 border border-slate-200">
                       <AvatarImage key={emp.photo_url} src={emp.photo_url} alt={emp.first_name} />
-                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+                      <AvatarFallback className="text-xs bg-slate-100 text-[#0C005F] font-bold">
                         {emp.first_name?.[0]}{emp.last_name?.[0]}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium">{emp.last_name}, {emp.first_name} {emp.middle_name?.[0]}.</p>
+                        <p className="text-xs font-bold text-slate-900">{emp.last_name}, {emp.first_name} {emp.middle_name?.[0]}.</p>
                         {headEmployeeIds.has(emp.id) && (
-                          <Badge className="h-4 text-[9px] px-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 gap-1 font-bold uppercase tracking-wider">
+                          <Badge className="h-4 text-2xs px-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 gap-1 font-bold uppercase tracking-wider">
                             <Crown className="w-2.5 h-2.5" /> Head
                           </Badge>
                         )}
                         {emp.classification_iii?.toLowerCase() === 'resigned' && (
-                          <Badge className="h-4 text-[9px] px-1.5 bg-rose-50 text-rose-700 border border-rose-200 font-bold uppercase tracking-wider">
+                          <Badge className="h-4 text-2xs px-1.5 bg-rose-50 text-rose-700 border border-rose-200 font-bold uppercase tracking-wider">
                             Resigned
                           </Badge>
                         )}
                         {emp.classification_iii?.toLowerCase() === 'retired' && (
-                          <Badge className="h-4 text-[9px] px-1.5 bg-purple-50 text-purple-700 border border-purple-200 font-bold uppercase tracking-wider">
+                          <Badge className="h-4 text-2xs px-1.5 bg-purple-50 text-purple-700 border border-purple-200 font-bold uppercase tracking-wider">
                             Retired
                           </Badge>
                         )}
+                        {(!emp.date_hired || !emp.department || !emp.position || !emp.employment_classification || !emp.classification_ii) && (
+                          <Badge className="h-4 text-2xs px-1.5 bg-amber-50 text-amber-700 border border-amber-200 font-bold uppercase tracking-wider">
+                            Incomplete Info
+                          </Badge>
+                        )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground">{emp.email}</p>
+                      <p className="text-xs text-slate-500 font-medium">{emp.email}</p>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="text-sm">{emp.department}</TableCell>
-                <TableCell className="text-sm hidden sm:table-cell">{emp.position}</TableCell>
+                <TableCell className="text-xs text-slate-700 font-medium">{emp.department}</TableCell>
+                <TableCell className="text-xs text-slate-700 font-medium hidden sm:table-cell">{emp.position}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary" className="text-[10px] bg-slate-50 text-slate-600 border-slate-200">
+                  <Badge variant="outline" className="text-2xs font-bold uppercase tracking-wider bg-slate-50 text-slate-600 border-slate-200">
                     {emp.employment_status || "Fulltime"}
                   </Badge>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  <Badge variant="outline" className={`text-[10px] ${statusStyles[emp.employment_tenure] || ""}`}>
+                  <Badge variant="outline" className={`text-2xs font-bold uppercase tracking-wider ${statusStyles[emp.employment_tenure] || ""}`}>
                     {emp.employment_tenure || "Probationary"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-center">
-                  <div className={`w-2.5 h-2.5 rounded-full mx-auto ${emp.is_active ? "bg-green-500" : "bg-red-400"}`} />
+                  <div className={`w-2.5 h-2.5 rounded-full mx-auto ${emp.is_active ? "bg-emerald-500" : "bg-rose-400"}`} />
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

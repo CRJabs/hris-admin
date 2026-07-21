@@ -189,71 +189,82 @@ export default function ProfileUpdates() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-[1440px] mx-auto">
+    <div className="space-y-4 w-full">
       {/* Search & Filter Bar is now rendered at layout level */}
 
       {isLoading ? (
-        <div className="text-center p-8 text-muted-foreground">Loading requests...</div>
+        <div className="text-center p-8 text-slate-400 text-xs font-semibold">Loading requests...</div>
       ) : filteredRequests.length === 0 ? (
-        <Card className="border-dashed shadow-none bg-muted/10">
-           <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
-              <CheckSquare className="w-12 h-12 mb-3 opacity-20" />
-              <p className="font-medium text-lg">
+        <Card className="border-dashed border-slate-200 shadow-none bg-slate-50/50 rounded-xl">
+           <CardContent className="flex flex-col items-center justify-center p-12 text-center text-slate-400">
+              <CheckSquare className="w-12 h-12 mb-3 opacity-20 text-[#0C005F]" />
+              <p className="font-bold text-base text-slate-600">
                 {requests.length === 0 ? "No requests found" : "No matching requests"}
               </p>
-              <p className="text-sm">
+              <p className="text-xs">
                 {requests.length === 0 ? "You are all caught up!" : "Try adjusting your search or filter."}
               </p>
            </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           {filteredRequests.map((req) => (
-            <Card key={req.id} className="overflow-hidden cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group" onClick={() => handleViewRegistrant({ ...req.employees, pendingRequests: [req] })}>
-                <CardHeader className="bg-muted/30 group-hover:bg-primary/5 transition-colors pb-3 p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-base flex items-center gap-2">
-                       {req.employees?.first_name} {req.employees?.last_name}
-                       {req.status === 'pending' && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Pending</Badge>}
-                       {req.status === 'approved' && <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Approved</Badge>}
-                       {req.status === 'rejected' && <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Rejected</Badge>}
-                    </CardTitle>
-                    <CardDescription className="mt-1">
-                       {req.employees?.employee_id} • {req.employees?.department}
-                    </CardDescription>
+            <Card key={req.id} className="overflow-hidden cursor-pointer hover:border-[#0C005F] transition-all shadow-none rounded-xl border border-slate-200 bg-white group" onClick={() => handleViewRegistrant({ ...req.employees, pendingRequests: [req] })}>
+                <CardHeader className="bg-slate-50/50 group-hover:bg-blue-50/20 transition-colors pb-3 p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                      {req.employees?.photo_url ? (
+                        <img src={req.employees.photo_url} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-bold text-slate-600">
+                          {req.employees?.first_name?.[0]}{req.employees?.last_name?.[0]}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm font-black text-slate-900 flex items-center gap-2 flex-wrap">
+                         {req.employees?.first_name} {req.employees?.last_name}
+                         {req.status === 'pending' && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 text-2xs font-bold uppercase tracking-wider">Pending</Badge>}
+                         {req.status === 'approved' && <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 text-2xs font-bold uppercase tracking-wider">Approved</Badge>}
+                         {req.status === 'rejected' && <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 text-2xs font-bold uppercase tracking-wider">Rejected</Badge>}
+                      </CardTitle>
+                      <CardDescription className="mt-0.5 text-xs text-slate-500 font-medium">
+                         {req.employees?.employee_id || "—"} • {req.employees?.department || "—"}
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-1.5 shrink-0">
-                      <Clock className="w-3.5 h-3.5" />
+                  <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5 shrink-0">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
                       Requested on {format(new Date(req.created_at || new Date()), "MMM d, yyyy h:mm a")}
                   </div>
                 </CardHeader>
-                <CardContent className="p-4 pt-4">
-                   <div className="flex flex-col md:flex-row gap-6">
+                <CardContent className="p-4 pt-3.5">
+                   <div className="flex flex-col md:flex-row gap-5">
                      <div className="flex-1 space-y-2">
-                        <p className="text-sm font-medium">Modification: <span className="text-primary">Profile Information Update</span></p>
-                        <div className="p-3 border rounded-md bg-blue-50/30">
-                           <p className="text-xs text-blue-600 font-semibold mb-1 uppercase">Changes Submitted</p>
-                           <p className="text-xs text-muted-foreground leading-relaxed">
+                        <p className="text-xs font-semibold text-slate-700">Modification: <span className="text-[#0C005F] font-bold">Profile Information Update</span></p>
+                        <div className="p-3 border border-slate-200 rounded-lg bg-slate-50/50">
+                           <p className="text-2xs font-bold text-[#0C005F] uppercase tracking-wider mb-1">Changes Submitted</p>
+                           <p className="text-xs text-slate-500 leading-relaxed font-medium">
                              The employee has submitted a batch update to their profile information. Review the details or approve to apply all changes.
                            </p>
                         </div>
                      </div>
                       {req.status === 'pending' ? (
                          <div className="flex flex-row md:flex-col gap-2 shrink-0 justify-center" onClick={(e) => e.stopPropagation()}>
-                            <Button size="sm" onClick={() => handleUpdateAction(req, 'approved')} className="gap-1.5 bg-green-600 hover:bg-green-700">
-                               <Check className="w-4 h-4" /> Approve
+                            <Button size="sm" onClick={() => handleUpdateAction(req, 'approved')} className="h-8 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-none">
+                               <Check className="w-3.5 h-3.5" /> Approve
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => handleUpdateAction(req, 'rejected')} className="gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50">
-                               <X className="w-4 h-4" /> Reject
+                            <Button size="sm" variant="outline" onClick={() => handleUpdateAction(req, 'rejected')} className="h-8 text-xs gap-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-slate-200 rounded-lg font-bold shadow-none">
+                               <X className="w-3.5 h-3.5" /> Reject
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => handleDelete(req)} className="gap-1.5 text-red-600 border-red-200 hover:text-white hover:bg-red-600">
-                               <Trash2 className="w-4 h-4" /> Delete
+                            <Button size="sm" variant="outline" onClick={() => handleDelete(req)} className="h-8 text-xs gap-1.5 text-rose-600 border-rose-200 hover:text-white hover:bg-rose-600 rounded-lg font-bold shadow-none">
+                               <Trash2 className="w-3.5 h-3.5" /> Delete
                             </Button>
                          </div>
                       ) : (
                          <div className="flex flex-row md:flex-col gap-2 shrink-0 justify-center" onClick={(e) => e.stopPropagation()}>
-                            <Button size="sm" variant="outline" onClick={() => handleDelete(req)} className="gap-1.5 text-red-600 border-red-200 hover:text-white hover:bg-red-600">
-                               <Trash2 className="w-4 h-4" /> Delete
+                            <Button size="sm" variant="outline" onClick={() => handleDelete(req)} className="h-8 text-xs gap-1.5 text-rose-600 border-rose-200 hover:text-white hover:bg-rose-600 rounded-lg font-bold shadow-none">
+                               <Trash2 className="w-3.5 h-3.5" /> Delete
                             </Button>
                          </div>
                       )}
