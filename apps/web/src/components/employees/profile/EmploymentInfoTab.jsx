@@ -200,9 +200,9 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
   ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       {/* Active Employment Information */}
-      <Card className="shadow-none border border-slate-200 rounded-xl bg-white">
+      <Card className="shadow-none border border-slate-200 rounded-[8px] bg-white">
         <CardHeader className="p-4 pb-2">
           <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
             Current Employment Information
@@ -408,7 +408,7 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
       </Card>
 
       {/* Employment History Timeline */}
-      <Card className="shadow-none border border-slate-200 rounded-xl bg-white">
+      <Card className="shadow-none border border-slate-200 rounded-[8px] bg-white">
         <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
           <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
             Employment History

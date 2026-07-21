@@ -150,6 +150,9 @@ export default function LeaveApplications() {
       });
 
       toast.success(`Leave application ${action} successfully.`);
+      setApplications(prev => prev.filter(a => a.id !== app.id));
+      setModalOpen(false);
+      window.dispatchEvent(new CustomEvent('pending_counts_changed'));
       fetchApplications();
     } catch (err) {
       toast.error(`Failed to ${action} leave: ${err.message}`);
@@ -185,12 +188,15 @@ export default function LeaveApplications() {
       await supabase.from('admin_activity_log').insert({
         actor_type: 'admin',
         actor_name: 'Administrator',
-        action: 'admin_rejected_leave', // fallback action
+        action: 'dept_head_rejected_leave', // fallback action
         description: `Moved Leave Application for ${empName} to Bin`,
         employee_id: app.employee_id
       });
 
       toast.success("Leave application moved to Bin.");
+      setApplications(prev => prev.filter(a => a.id !== app.id));
+      setModalOpen(false);
+      window.dispatchEvent(new CustomEvent('pending_counts_changed'));
       fetchApplications();
     } catch (err) {
       console.error(err);

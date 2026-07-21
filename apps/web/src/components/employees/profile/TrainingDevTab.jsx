@@ -51,7 +51,7 @@ function SectionBlock({ title, data, icon: Icon, isEditing, columns, onUpdate, i
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
-    <Card className="shadow-none border border-slate-200 rounded-xl bg-white">
+    <Card className="shadow-none border border-slate-200 rounded-[8px] bg-white">
       <CardHeader 
         className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 bg-[#0C005F]/5 cursor-pointer hover:bg-[#0C005F]/10 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}

@@ -92,7 +92,7 @@ export default function BenefitsTab({ employee }) {
             return (
               <div 
                 key={benefit.id} 
-                className={`flex flex-col p-4 rounded-xl border transition-all ${
+                className={`flex flex-col p-4 rounded-[8px] border transition-all ${
                   isEligible 
                     ? 'bg-emerald-50/30 border-emerald-200 hover:border-emerald-300' 
                     : (!record ? 'bg-amber-50/30 border-amber-200' : 'bg-slate-50/50 border-slate-200 hover:border-slate-300')

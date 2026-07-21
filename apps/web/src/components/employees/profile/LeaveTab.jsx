@@ -34,12 +34,12 @@ function LeaveBalanceCard({ id, title, total, used, isCommutable, isReadOnly, on
   const isExhausted = remaining <= 0;
 
   let cardBorderClass = "border-slate-200";
-  if (isDirty) cardBorderClass = "border-amber-400 shadow-md ring-1 ring-amber-400/20";
+  if (isDirty) cardBorderClass = "border-amber-400 ring-1 ring-amber-400/20";
   else if (isExhausted) cardBorderClass = "border-red-200 opacity-60";
   else if (isLow) cardBorderClass = "border-amber-300";
 
   return (
-    <Card className={`shadow-sm overflow-hidden relative transition-all ${cardBorderClass}`}>
+    <Card className={`shadow-none rounded-[8px] overflow-hidden relative transition-all ${cardBorderClass}`}>
       <div className={`h-1.5 w-full ${isCommutable ? "bg-amber-400" : "bg-[#0C005F]"}`} />
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-4">
@@ -298,7 +298,7 @@ export default function LeaveTab({ employee, isReadOnly = false, onChange, reque
 
         {/* Right: Recent Leave Activity */}
         <div className="lg:col-span-8">
-          <Card className="shadow-sm border-slate-300 flex flex-col" style={{ height: "600px" }}>
+          <Card className="shadow-none border border-slate-200 rounded-[8px] flex flex-col bg-white" style={{ height: "600px" }}>
             <CardHeader className="p-4 border-b bg-slate-50/50 flex flex-row items-center justify-between space-y-0 shrink-0">
               <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
                 Recent Leave Activity

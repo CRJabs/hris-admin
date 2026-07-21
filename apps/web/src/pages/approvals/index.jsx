@@ -29,7 +29,7 @@ export default function Approvals() {
         const [updates, regs, leaves, commutations, resignations, retirements] = await Promise.all([
           supabase.from('employee_update_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('employees').select('id', { count: 'exact', head: true }).eq('employment_status', 'Pending'),
-          supabase.from('leave_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('leave_applications').select('id', { count: 'exact', head: true }).in('status', ['pending', 'pending_dept_head']),
           supabase.from('commutation_requests').select('id', { count: 'exact', head: true }).not('status', 'in', '("approved","rejected")'),
           supabase.from('resignation_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('retirement_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending')
@@ -75,7 +75,14 @@ export default function Approvals() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'retirement_requests' }, fetchCounts)
       .subscribe();
 
+    const handleCountsChanged = () => {
+      fetchCounts();
+    };
+
+    window.addEventListener('pending_counts_changed', handleCountsChanged);
+
     return () => {
+      window.removeEventListener('pending_counts_changed', handleCountsChanged);
       updatesSub.unsubscribe();
       regsSub.unsubscribe();
       leavesSub.unsubscribe();

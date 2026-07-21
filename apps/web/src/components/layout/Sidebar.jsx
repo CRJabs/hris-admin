@@ -254,7 +254,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       const [updates, regs, leaves, commutations, resignations, retirements] = await Promise.all([
         supabase.from('employee_update_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('employees').select('id', { count: 'exact', head: true }).eq('employment_status', 'Pending'),
-        supabase.from('leave_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('leave_applications').select('id', { count: 'exact', head: true }).in('status', ['pending', 'pending_dept_head']),
         supabase.from('commutation_requests').select('id', { count: 'exact', head: true }).not('status', 'in', '("approved","rejected")'),
         supabase.from('resignation_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('retirement_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending')
@@ -276,6 +276,12 @@ export default function Sidebar({ collapsed, setCollapsed }) {
   useEffect(() => {
     fetchNotifications();
     fetchPendingCounts();
+
+    const handleCountsChanged = () => {
+      fetchPendingCounts();
+    };
+
+    window.addEventListener('pending_counts_changed', handleCountsChanged);
 
     const activitySub = supabase.channel('sidebar_activity_log')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_activity_log' }, fetchNotifications)
@@ -301,6 +307,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       .subscribe();
 
     return () => {
+      window.removeEventListener('pending_counts_changed', handleCountsChanged);
       activitySub.unsubscribe();
       updatesSub.unsubscribe();
       regsSub.unsubscribe();

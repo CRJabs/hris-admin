@@ -1,12 +1,18 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Zap, Shield, FileText, Loader2, Info, LogOut, Gift, Bell, CheckSquare, BookOpen } from "lucide-react";
+import { Home, User, GraduationCap, Award, Briefcase, CalendarDays, AlertCircle, Zap, Shield, FileText, Loader2, Info, LogOut, Gift, Bell, CheckSquare, BookOpen, Menu, Trash2, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProfileSkeleton } from "@/components/employees/profile/ProfileSkeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 const PersonalDetailsTab = lazy(() => import("@/components/employees/profile/PersonalDetailsTab"));
 const EducationTab = lazy(() => import("@/components/employees/profile/EducationTab"));
 const TrainingDevTab = lazy(() => import("@/components/employees/profile/TrainingDevTab"));
@@ -33,7 +39,30 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Check, X } from "lucide-react";
+
+const getNotificationCategory = (type) => {
+  switch (type?.toLowerCase()) {
+    case 'info':
+      return { label: 'General Information', color: 'bg-blue-50 text-blue-700 border-blue-200' };
+    case 'important':
+      return { label: 'Important Advisory', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
+    case 'urgent':
+      return { label: 'Urgent Notice', color: 'bg-rose-50 text-rose-700 border-rose-200' };
+    case 'event':
+      return { label: 'Event / Activity', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+    case 'policy':
+      return { label: 'Policy Update', color: 'bg-purple-50 text-purple-700 border-purple-200' };
+    case 'approved':
+      return { label: 'Approval Status', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+    case 'rejected':
+      return { label: 'Status Update', color: 'bg-rose-50 text-rose-700 border-rose-200' };
+    case 'expired':
+    case 'expiring':
+      return { label: 'License Advisory', color: 'bg-amber-50 text-amber-700 border-amber-200' };
+    default:
+      return { label: 'General Information', color: 'bg-blue-50 text-blue-700 border-blue-200' };
+  }
+};
 
 const hasValueChanged = (oldValue, newValue) => {
   if (oldValue === newValue) return false;
@@ -72,8 +101,8 @@ export default function EmployeeProfile() {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [leaveCredits, setLeaveCredits] = useState([]); // Leave credits balance from DB
-  const [leaveApplications, setLeaveApplications] = useState([]); // Leave applications from DB
+  const [leaveCredits, setLeaveCredits] = useState([]);
+  const [leaveApplications, setLeaveApplications] = useState([]);
   const [headOfUnit, setHeadOfUnit] = useState(null);
   const [isInstitutionalHead, setIsInstitutionalHead] = useState(false);
   const [ledUnitIds, setLedUnitIds] = useState([]);
@@ -94,7 +123,6 @@ export default function EmployeeProfile() {
         if (error) throw error;
         setEmployeeData(data);
 
-        // Fetch leave credits
         const { data: credits, error: creditsError } = await supabase
           .from("leave_credits")
           .select("*")
@@ -104,7 +132,6 @@ export default function EmployeeProfile() {
           setLeaveCredits(credits);
         }
 
-        // Fetch leave applications
         const { data: apps, error: appsError } = await supabase
           .from("leave_applications")
           .select("*")
@@ -115,7 +142,6 @@ export default function EmployeeProfile() {
           setLeaveApplications(apps || []);
         }
 
-        // Fetch active teaching load for semestral tab visibility
         const { data: activeSems } = await supabase
           .from("employee_semesters")
           .select("teaching_load")
@@ -126,7 +152,6 @@ export default function EmployeeProfile() {
         );
         setHasTeachingLoad(teachingLoad);
 
-        // Fetch head-of-office status
         const { data: headUnit } = await supabase
           .from('org_units')
           .select('name, parent_id')
@@ -134,15 +159,12 @@ export default function EmployeeProfile() {
           .maybeSingle();
 
         if (headUnit) {
-          // Only the head of the absolute root node (parent_id IS NULL) is the University President.
-          // All other heads — deans, directors, registrars, etc. — are Heads of Office.
           const isPresident = headUnit.parent_id === null;
           setHeadOfUnit({ name: headUnit.name, isPresident });
         } else {
           setHeadOfUnit(null);
         }
 
-        // Check if employee is institutional head
         const { data: allUnits, error: unitsError } = await supabase
           .from("org_units")
           .select("id, name, parent_id, head_id, heads");
@@ -185,9 +207,7 @@ export default function EmployeeProfile() {
     }
     loadProfile();
 
-    // Set up realtime subscription for this employee's record
     let sub = null;
-    let leaveAppSub = null;
     if (user?.id) {
       sub = supabase
         .channel(`employee_profile_${user.id}`)
@@ -207,11 +227,9 @@ export default function EmployeeProfile() {
 
     return () => {
       if (sub) sub.unsubscribe();
-      if (leaveAppSub) leaveAppSub.unsubscribe();
     };
   }, [user]);
   
-  // Fetch notifications from DB and subscribe to realtime updates
   const fetchNotifications = async (employeeId) => {
     if (!employeeId) return;
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -234,7 +252,6 @@ export default function EmployeeProfile() {
     }
   };
 
-  // Check for expiring licenses and upsert notifications if not already stored
   const checkLicenseExpiry = async (emp) => {
     if (!emp?.licenses || !emp?.id) return;
     const today = new Date();
@@ -247,7 +264,6 @@ export default function EmployeeProfile() {
       const isExpired = daysToExpiry < 0;
       const refKey = `license-${lic.number}`;
 
-      // Check if a notification for this license already exists
       const { data: existing } = await supabase
         .from('notifications')
         .select('id')
@@ -274,7 +290,6 @@ export default function EmployeeProfile() {
       fetchNotifications(employeeData.id);
       checkLicenseExpiry(employeeData);
 
-      // Realtime: listen for new/updated notifications for this employee
       const notifSub = supabase
         .channel(`employee_notifications_${employeeData.id}`)
         .on('postgres_changes',
@@ -289,7 +304,6 @@ export default function EmployeeProfile() {
 
   const handleNotificationOpen = async () => {
     setUnreadCount(0);
-    // Mark all as read in DB
     if (employeeData?.id) {
       await supabase
         .from('notifications')
@@ -300,7 +314,7 @@ export default function EmployeeProfile() {
   };
 
   const handleStartEdit = () => {
-    setEditedData(JSON.parse(JSON.stringify(employeeData))); // Deep clone
+    setEditedData(JSON.parse(JSON.stringify(employeeData)));
     setIsEditing(true);
   };
 
@@ -327,7 +341,6 @@ export default function EmployeeProfile() {
   const confirmSave = async () => {
     setIsSaving(true);
     try {
-      // Sanitize empty strings to null for better database compatibility
       const sanitizedEditedData = Object.fromEntries(
         Object.entries(editedData).map(([key, value]) => [
           key,
@@ -343,7 +356,6 @@ export default function EmployeeProfile() {
         return;
       }
 
-      // Create update request in supabase
       const { error } = await supabase
         .from('employee_update_requests')
         .insert({
@@ -354,7 +366,6 @@ export default function EmployeeProfile() {
 
       if (error) throw error;
 
-      // Notify the employee: submission confirmation
       await supabase.from('notifications').insert({
         employee_id: employeeData.id,
         type: 'info',
@@ -362,7 +373,6 @@ export default function EmployeeProfile() {
         message: 'Your profile update request has been submitted and is pending HR review. You will be notified once it has been reviewed.'
       });
 
-      // Log to admin activity
       await supabase.from('admin_activity_log').insert({
         actor_type: 'employee',
         actor_name: `${employeeData.first_name} ${employeeData.last_name}`,
@@ -390,7 +400,6 @@ export default function EmployeeProfile() {
   const handleFieldChange = (name, value) => {
     if (isEditing) {
       setEditedData(prev => ({ ...prev, [name]: value }));
-      // For immediate DB updates like photo/signature, also update source of truth
       if (name === 'photo_url' || name === 'signature_url') {
         setEmployeeData(prev => ({ ...prev, [name]: value }));
       }
@@ -399,7 +408,6 @@ export default function EmployeeProfile() {
     }
   };
 
-  // Refresh leave data after filing a leave
   const refreshLeaveData = async () => {
     if (!employeeData?.id) return;
     const [creditsRes, appsRes] = await Promise.all([
@@ -410,7 +418,6 @@ export default function EmployeeProfile() {
     if (appsRes.data) setLeaveApplications(appsRes.data);
   };
 
-  // Set up realtime subscription for leave applications
   useEffect(() => {
     if (!employeeData?.id) return;
     const leaveAppSub = supabase
@@ -432,9 +439,8 @@ export default function EmployeeProfile() {
   }
 
   if (!employeeData) {
-    // Fallback if data is missing
     return (
-      <Card className="border-red-200 bg-red-50 text-red-800">
+      <Card className="border-red-200 bg-red-50 text-red-800 rounded-[8px] shadow-none">
         <CardContent className="p-6 flex items-center gap-3">
           <AlertCircle className="w-5 h-5" />
           <p>Your employee profile could not be loaded. Please contact HR.</p>
@@ -445,10 +451,8 @@ export default function EmployeeProfile() {
 
   return (
     <div className="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden">
-      {/* Top Standardized Header */}
-      <div className="bg-[#0C005F] text-white py-3 md:py-4 px-4 md:px-8 flex justify-between items-center shadow-md z-10 shrink-0">
+      <div className="bg-[#0C005F] text-white py-3 px-4 flex justify-between items-center border-b border-white/10 shrink-0 z-10">
         <div className="flex items-center gap-3 md:gap-6">
-          {/* Mobile: small ub.png; Desktop: full logo */}
           <img
             src="/assets/ub.png"
             alt="UB"
@@ -461,186 +465,231 @@ export default function EmployeeProfile() {
             className="hidden md:block h-10 object-contain"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
-          <FileText className="w-8 h-8 text-white/80 hidden" />
           <div>
             <h1 className="text-base md:text-xl font-bold leading-none">Personnel Information</h1>
             <p className="text-[10px] md:text-xs text-white/70 mt-1 uppercase tracking-wider">Digital 201 Form</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-4 flex-wrap justify-end">
-          {!isEditing && (
-            <>
-              <Button
-                onClick={() => setIsRequestModalOpen(true)}
-                className="bg-white text-[#0C005F] hover:bg-slate-100/80 font-bold gap-2 text-xs md:text-sm border border-slate-200 shadow-sm"
-              >
-                <FileText className="w-4 h-4 text-amber-500 fill-amber-500" />
-                <span>File a request</span>
-              </Button>
-              {(isInstitutionalHead || headOfUnit !== null || employeeData?.position?.toLowerCase().includes("president") || employeeData?.position?.toLowerCase().includes("vice president") || employeeData?.position?.toLowerCase().includes("vp")) && (
-                <Button
-                  onClick={() => setIsApprovalsModalOpen(true)}
-                  className="bg-white text-[#0C005F] hover:bg-slate-100/80 font-bold gap-2 text-xs md:text-sm border border-slate-200 shadow-sm"
-                >
-                  <CheckSquare className="w-4 h-4 text-amber-500 fill-amber-500" />
-                  <span>Pending Approvals</span>
-                </Button>
-              )}
-            </>
-          )}
-          {!isEditing ? (
-            <Button
-              onClick={handleStartEdit}
-              className="bg-white text-[#0C005F] hover:bg-slate-100/80 font-bold gap-2 text-xs md:text-sm border border-slate-200 shadow-sm"
-            >
-              <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
-              <span className="hidden sm:inline">Update Information</span>
-              <span className="sm:hidden">Update</span>
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30 text-2xs font-bold uppercase tracking-widest animate-pulse">
-              Editing Mode
-            </div>
-          )}
+        <div className="flex items-center gap-3 justify-end">
+          {(() => {
+            const isExec = (
+              employeeData?.classification_ii?.toLowerCase() === "executive" ||
+              employeeData?.position?.toLowerCase().includes("president") ||
+              employeeData?.position?.toLowerCase().includes("vice president") ||
+              employeeData?.position?.toLowerCase().includes("vp")
+            );
+            const isAcademicHead = !isExec && (
+              employeeData?.employment_classification?.toLowerCase() === "academic official" ||
+              employeeData?.classification_ii?.toLowerCase() === "academic official"
+            );
+            const isExecutiveHead = isExec || (headOfUnit !== null && !isAcademicHead);
+            const canSeeApprovalsModal = isAcademicHead || isExecutiveHead;
 
-          <div className="flex items-center gap-2">
-            <Popover onOpenChange={(open) => open && handleNotificationOpen()}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="relative bg-white text-[#0C005F] hover:bg-white/90 shadow-sm border-none"
-                >
-                  <Bell className="h-5 w-5 fill-current" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-2xs font-bold text-white border-2 border-white">
-                      {unreadCount}
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0 overflow-hidden rounded-xl border-slate-200 shadow-2xl" align="end">
-                <div className="bg-[#0C005F] p-4 text-white">
-                  <h3 className="text-sm font-bold flex items-center gap-2">
-                    <Bell className="w-4 h-4" /> System Notifications
-                  </h3>
-                </div>
-                <ScrollArea className="h-[350px]">
-                  {notifications.length > 0 ? (
-                    <div className="divide-y divide-slate-100">
-                      {notifications.map((notif) => (
-                        <div key={notif.id} className="p-4 hover:bg-slate-50 transition-colors">
-                          <div className="flex justify-between items-start mb-1">
-                            <p className={`text-2xs font-bold uppercase tracking-wider ${
-                              notif.type === 'approved' ? 'text-green-600' :
-                              notif.type === 'rejected' ? 'text-red-600' :
-                              notif.type === 'expired' ? 'text-red-600' :
-                              notif.type === 'expiring' ? 'text-amber-600' :
-                              notif.type === 'info' ? 'text-blue-600' : 'text-primary'
-                            }`}>
-                              {notif.title}
-                            </p>
-                            <span className="text-2xs text-muted-foreground">
-                              {notif.date && !isNaN(notif.date) ? format(notif.date, "MMM d") : ""}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-700 leading-snug">{notif.description}</p>
-                        </div>
-                      ))}
-                    </div>
+            return (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="bg-white text-[#0C005F] hover:bg-slate-100 h-9 w-9 border border-slate-200 shadow-none rounded-[8px]"
+                    title="Options Menu"
+                  >
+                    <Menu className="w-5 h-5 text-[#0C005F]" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-[8px] border-slate-200 bg-white text-slate-800 shadow-none border">
+                  {!isEditing ? (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => setIsRequestModalOpen(true)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs md:text-sm font-semibold text-slate-800 cursor-pointer rounded-[6px] hover:bg-slate-100 focus:bg-slate-100"
+                      >
+                        <FileText className="w-4 h-4 text-[#0C005F] fill-[#0C005F]" />
+                        <span>File a request</span>
+                      </DropdownMenuItem>
+
+                      {canSeeApprovalsModal && (
+                        <DropdownMenuItem
+                          onClick={() => setIsApprovalsModalOpen(true)}
+                          className="flex items-center gap-2.5 px-3 py-2 text-xs md:text-sm font-semibold text-slate-800 cursor-pointer rounded-[6px] hover:bg-slate-100 focus:bg-slate-100"
+                        >
+                          <CheckSquare className="w-4 h-4 text-[#0C005F] fill-[#0C005F]" />
+                          <span>Pending Approvals</span>
+                        </DropdownMenuItem>
+                      )}
+
+                      <DropdownMenuItem
+                        onClick={handleStartEdit}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs md:text-sm font-semibold text-slate-800 cursor-pointer rounded-[6px] hover:bg-slate-100 focus:bg-slate-100"
+                      >
+                        <Zap className="w-4 h-4 text-[#0C005F] fill-[#0C005F]" />
+                        <span>Update Information</span>
+                      </DropdownMenuItem>
+                    </>
                   ) : (
-                    <div className="p-8 text-center text-muted-foreground">
-                      <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                      <p className="text-xs font-medium">All caught up!</p>
-                    </div>
+                    <DropdownMenuItem disabled className="px-3 py-2 text-xs font-bold text-amber-600 uppercase">
+                      Editing Mode Active
+                    </DropdownMenuItem>
                   )}
-                </ScrollArea>
-                {notifications.length > 0 && (
-                  <div className="p-2 border-t bg-slate-50 text-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-2xs h-6 text-primary hover:text-primary font-bold"
-                      onClick={async () => {
-                        if (employeeData?.id) {
-                          await supabase.from('notifications').delete().eq('employee_id', employeeData.id);
-                          setNotifications([]);
-                          setUnreadCount(0);
-                        }
-                      }}
-                    >
-                      Clear all notifications
-                    </Button>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            );
+          })()}
+
+          <Popover onOpenChange={(open) => open && handleNotificationOpen()}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="relative bg-white text-[#0C005F] hover:bg-slate-100 h-9 w-9 border border-slate-200 shadow-none rounded-[8px]"
+              >
+                <Bell className="h-4 w-4 fill-current" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-2xs font-bold text-white border-2 border-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[640px] max-w-[calc(100vw-2rem)] p-0 overflow-hidden rounded-[8px] border-slate-200 shadow-none border max-h-[calc(100vh-80px)] flex flex-col" align="end">
+              <div className="bg-[#0C005F] p-4 text-white shrink-0 flex items-center justify-between">
+                <h3 className="text-sm font-bold flex items-center gap-2">
+                  <Bell className="w-4 h-4" /> System Notifications
+                </h3>
+                {unreadCount > 0 && (
+                  <Badge className="bg-amber-500 text-white border-none text-2xs font-bold px-2 py-0.5 rounded-[4px]">
+                    {unreadCount} New
+                  </Badge>
+                )}
+              </div>
+              <ScrollArea className="flex-1 p-4 max-h-[460px] overflow-y-auto">
+                {notifications.length > 0 ? (
+                  <div className="space-y-3">
+                    {notifications.map((notif) => {
+                      const cat = getNotificationCategory(notif.type);
+                      return (
+                        <div key={notif.id} className="p-3.5 bg-white border border-slate-200 rounded-[8px] space-y-1.5 hover:bg-slate-50/80 transition-colors relative group">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <Badge variant="outline" className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 border ${cat.color}`}>
+                              {cat.label}
+                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                                {notif.date && !isNaN(notif.date) ? format(notif.date, "MMM d, yyyy") : ""}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-[4px]"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (notif.id) {
+                                    await supabase.from('notifications').delete().eq('id', notif.id);
+                                    setNotifications(prev => prev.filter(n => n.id !== notif.id));
+                                  }
+                                }}
+                                title="Delete notification"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-xs font-bold text-slate-900 leading-snug uppercase tracking-tight pr-6">{notif.title}</p>
+                          <p className="text-xs text-slate-600 font-medium leading-relaxed">{notif.description}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-16 text-center text-muted-foreground">
+                    <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                    <p className="text-xs font-medium">All caught up! No notifications.</p>
                   </div>
                 )}
-              </PopoverContent>
-            </Popover>
+              </ScrollArea>
+              {notifications.length > 0 && (
+                <div className="p-2 border-t border-slate-200 bg-slate-50 text-center shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-2xs h-7 text-primary hover:text-primary font-bold"
+                    onClick={async () => {
+                      if (employeeData?.id) {
+                        await supabase.from('notifications').delete().eq('employee_id', employeeData.id);
+                        setNotifications([]);
+                        setUnreadCount(0);
+                      }
+                    }}
+                  >
+                    Clear all notifications
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={logout}
-              title="Log out"
-              className="text-white/70 hover:text-white hover:bg-white/10"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={logout}
+            title="Log out"
+            className="text-white/70 hover:text-white hover:bg-white/10 h-9 w-9"
+          >
+            <LogOut className="h-5 w-5" />
+          </Button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden p-3 md:p-8">
-        <div className="max-w-[1800px] mx-auto h-full flex flex-col">
+      <div className="flex-1 overflow-hidden p-4">
+        <div className="w-full h-full flex flex-col">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            {/* Horizontally scrollable tab bar — icon-only on mobile */}
-            <div className="overflow-x-auto shrink-0 mb-4 md:mb-6">
-            <TabsList className="flex w-max min-w-full bg-white border shadow-sm h-10 p-1">
-              <TabsTrigger value="home" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
-                <Home className="w-4 h-4 shrink-0" />
-                <span className="hidden md:inline">Home</span>
-              </TabsTrigger>
-              {/* Removed Pending Approvals Tab Trigger */}
-              <TabsTrigger value="profiling" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
-                <User className="w-4 h-4 shrink-0" />
-                <span className="hidden md:inline">Personal Data</span>
-              </TabsTrigger>
-              <TabsTrigger value="education" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
-                <GraduationCap className="w-4 h-4 shrink-0" />
-                <span className="hidden md:inline">Educational Record</span>
-              </TabsTrigger>
-              <TabsTrigger value="training" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
-                <Award className="w-4 h-4 shrink-0" />
-                <span className="hidden md:inline">Trainings</span>
-              </TabsTrigger>
-              <TabsTrigger value="employment" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
-                <Briefcase className="w-4 h-4 shrink-0" />
-                <span className="hidden md:inline">Employment Info</span>
-              </TabsTrigger>
-              {(() => {
-                const isTeaching = employeeData?.employment_classification?.toLowerCase() === "teaching";
-                const showSemestral = isTeaching || hasTeachingLoad;
-                return showSemestral ? (
-                  <TabsTrigger value="semestral" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
-                    <BookOpen className="w-4 h-4 shrink-0" />
-                    <span className="hidden md:inline">Semestral Records</span>
-                  </TabsTrigger>
-                ) : null;
-              })()}
-              <TabsTrigger value="leave" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
-                <CalendarDays className="w-4 h-4 shrink-0" />
-                <span className="hidden md:inline">Leave Credits</span>
-              </TabsTrigger>
-              <TabsTrigger value="benefits" className="flex-1 gap-1 md:gap-2 text-xs h-8 font-bold data-[state=active]:bg-[#0C005F] data-[state=active]:text-white min-w-[40px]">
-                <Gift className="w-4 h-4 shrink-0" />
-                <span className="hidden md:inline">Benefits</span>
-              </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto shrink-0 mb-3">
+              <TabsList className="flex w-max min-w-full bg-white border border-slate-200 shadow-none rounded-[8px] h-10 p-1 gap-1">
+                <TabsTrigger value="home" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                  <Home className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden md:inline">Home</span>
+                </TabsTrigger>
+                <TabsTrigger value="profiling" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                  <User className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden md:inline">Personal Data</span>
+                </TabsTrigger>
+                <TabsTrigger value="education" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                  <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden md:inline">Educational Record</span>
+                </TabsTrigger>
+                <TabsTrigger value="training" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                  <Award className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden md:inline">Trainings</span>
+                </TabsTrigger>
+                <TabsTrigger value="employment" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                  <Briefcase className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden md:inline">Employment Info</span>
+                </TabsTrigger>
+                {(() => {
+                  const isTeaching = employeeData?.employment_classification?.toLowerCase() === "teaching";
+                  const showSemestral = isTeaching || hasTeachingLoad;
+                  return showSemestral ? (
+                    <TabsTrigger value="semestral" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                      <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                      <span className="hidden md:inline">Semestral Records</span>
+                    </TabsTrigger>
+                  ) : null;
+                })()}
+                <TabsTrigger value="leave" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                  <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden md:inline">Leave Credits</span>
+                </TabsTrigger>
+                <TabsTrigger value="benefits" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                  <Gift className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden md:inline">Benefits</span>
+                </TabsTrigger>
+              </TabsList>
             </div>
 
-            <ScrollArea className="flex-1 pr-4">
+            <ScrollArea className="flex-1">
               <Suspense fallback={<ProfileSkeleton />}>
-                <TabsContent value="home" className="m-0 space-y-6">
+                <TabsContent value="home" className="m-0 h-full flex flex-col">
                   <HomeTab 
                     employee={employeeData} 
                     onViewProfile={() => setActiveTab("profiling")}
@@ -719,17 +768,17 @@ export default function EmployeeProfile() {
 
       {/* Floating Action Bar */}
       {isEditing && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 w-[calc(100%-2rem)] max-w-lg">
-          <Card className="bg-white/90 backdrop-blur-md shadow-2xl border-[#0C005F]/20 flex flex-wrap items-center gap-3 px-4 md:px-6 py-4 rounded-2xl">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 w-[calc(100%-2rem)] max-w-xl">
+          <Card className="bg-white/95 backdrop-blur-md border border-slate-300 shadow-none flex flex-wrap items-center justify-between gap-4 px-5 md:px-6 py-3.5 rounded-[8px]">
             <div className="flex flex-col flex-1 min-w-0">
               <p className="text-[10px] font-bold text-[#0C005F] uppercase tracking-widest opacity-60">Editing Profile</p>
-              <p className="text-xs font-medium truncate">Unsaved changes will be lost on discard</p>
+              <p className="text-xs font-semibold text-slate-700 whitespace-nowrap">Unsaved changes will be lost on discard</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 shrink-0">
               <Button
                 variant="outline"
                 onClick={handleDiscard}
-                className="gap-2 border-slate-200 hover:bg-slate-50"
+                className="gap-2 bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 hover:text-rose-700 rounded-[6px] font-bold shadow-none"
               >
                 <X className="w-4 h-4" />
                 Discard
@@ -737,7 +786,7 @@ export default function EmployeeProfile() {
               <Button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="bg-[#0C005F] text-white hover:bg-[#0C005F]/90 gap-2 px-6 md:px-8 shadow-lg shadow-[#0C005F]/20"
+                className="bg-[#0C005F] text-white hover:bg-[#0C005F]/90 gap-2 px-6 shadow-none rounded-[6px] font-bold"
               >
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -799,13 +848,31 @@ export default function EmployeeProfile() {
 
       {/* Pending Approvals Modal */}
       <Suspense fallback={null}>
-        <PendingApprovalsModal
-          open={isApprovalsModalOpen}
-          onOpenChange={setIsApprovalsModalOpen}
-          employee={employeeData}
-          ledUnitIds={ledUnitIds}
-          onSuccess={refreshLeaveData}
-        />
+        {(() => {
+          const isExec = (
+            employeeData?.classification_ii?.toLowerCase() === "executive" ||
+            employeeData?.position?.toLowerCase().includes("president") ||
+            employeeData?.position?.toLowerCase().includes("vice president") ||
+            employeeData?.position?.toLowerCase().includes("vp")
+          );
+          const isAcademicHead = !isExec && (
+            employeeData?.employment_classification?.toLowerCase() === "academic official" ||
+            employeeData?.classification_ii?.toLowerCase() === "academic official"
+          );
+          const isExecutiveHead = isExec || (headOfUnit !== null && !isAcademicHead);
+
+          return (
+            <PendingApprovalsModal
+              open={isApprovalsModalOpen}
+              onOpenChange={setIsApprovalsModalOpen}
+              employee={employeeData}
+              ledUnitIds={ledUnitIds}
+              isAcademicHead={isAcademicHead}
+              isExecutiveHead={isExecutiveHead}
+              onSuccess={refreshLeaveData}
+            />
+          );
+        })()}
       </Suspense>
     </div>
   );

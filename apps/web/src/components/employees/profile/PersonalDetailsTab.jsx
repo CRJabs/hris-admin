@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 
 function SectionBlock({ title, icon: Icon, children, action }) {
   return (
-    <Card className="shadow-none border border-slate-200 rounded-xl bg-white">
+    <Card className="shadow-none border border-slate-200 rounded-[8px] bg-white">
       <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">
           {title}
@@ -140,12 +140,24 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
       // Append cache-buster so the CDN always serves the latest version
       const cachedUrl = `${publicUrl}?t=${Date.now()}`;
 
-      const { error: updateError } = await supabase
+      let { data: updatedRows, error: updateError } = await supabase
         .from('employees')
         .update({ photo_url: cachedUrl })
-        .eq('id', employee.id);
+        .eq('id', employee.id)
+        .select();
 
       if (updateError) throw updateError;
+      if (!updatedRows || updatedRows.length === 0) {
+        const { data: updatedByUser, error: err2 } = await supabase
+          .from('employees')
+          .update({ photo_url: cachedUrl })
+          .eq('user_id', ownerId)
+          .select();
+        if (err2) throw err2;
+        if (!updatedByUser || updatedByUser.length === 0) {
+          throw new Error("Failed to update profile picture in database. Permission denied or employee record not found.");
+        }
+      }
       
       toast.success("Profile picture updated successfully!");
       onChange('photo_url', cachedUrl);
@@ -201,12 +213,24 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
       // Append cache-buster so the CDN always serves the latest version
       const cachedUrl = `${publicUrl}?t=${Date.now()}`;
 
-      const { error: updateError } = await supabase
+      let { data: updatedRows, error: updateError } = await supabase
         .from('employees')
         .update({ signature_url: cachedUrl })
-        .eq('id', employee.id);
+        .eq('id', employee.id)
+        .select();
 
       if (updateError) throw updateError;
+      if (!updatedRows || updatedRows.length === 0) {
+        const { data: updatedByUser, error: err2 } = await supabase
+          .from('employees')
+          .update({ signature_url: cachedUrl })
+          .eq('user_id', ownerId)
+          .select();
+        if (err2) throw err2;
+        if (!updatedByUser || updatedByUser.length === 0) {
+          throw new Error("Failed to update signature in database. Permission denied or employee record not found.");
+        }
+      }
       
       toast.success("Signature updated successfully!");
       onChange('signature_url', cachedUrl);
@@ -278,7 +302,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                     {employee.first_name?.[0]}{employee.last_name?.[0]}
                   </AvatarFallback>
                 </Avatar>
-                {(showPhotoUpload || isEditMode) && (
+                {isEditMode && (
                   <label className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                      <p className="text-xs text-white font-medium flex items-center gap-1">Change</p>
                      <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
@@ -700,7 +724,7 @@ export default function PersonalDetailsTab({ employee, onToggleActive, isReadOnl
                            <p className="text-xs text-muted-foreground">No signature uploaded</p>
                         </div>
                       )}
-                      {(showPhotoUpload || isEditMode) && (
+                      {isEditMode && (
                         <label className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                            <p className="text-xs text-white font-medium flex items-center gap-1">Change Signature</p>
                            <input type="file" className="hidden" accept="image/*" onChange={handleSignatureUpload} />

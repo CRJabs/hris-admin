@@ -121,7 +121,9 @@ export default function NewRegistrations() {
         if (error) throw error;
         toast.success(`Registration for ${emp.first_name} rejected.`);
       }
+      setRegistrations(prev => prev.filter(r => r.id !== emp.id));
       setModalOpen(false);
+      window.dispatchEvent(new CustomEvent('pending_counts_changed'));
       fetchRequests();
     } catch (err) {
       toast.error(`Failed to process registration: ${err.message}`);
@@ -158,15 +160,17 @@ export default function NewRegistrations() {
         actor_type: 'admin',
         actor_name: 'Administrator',
         action: 'admin_rejected_registration', // fallback action
-        description: `Moved New Registration for ${empName} to Bin`,
+        description: `Deleted pending registration for ${empName.trim()}`,
         employee_id: emp.id
       });
 
-      toast.success("Registration request moved to Bin.");
+      toast.success(`Registration for ${empName.trim()} deleted.`);
+      setRegistrations(prev => prev.filter(r => r.id !== emp.id));
+      setModalOpen(false);
+      window.dispatchEvent(new CustomEvent('pending_counts_changed'));
       fetchRequests();
     } catch (err) {
-      console.error(err);
-      toast.error(`Failed to delete registration request: ${err.message}`);
+      toast.error(`Failed to delete registration: ${err.message}`);
     }
   };
 

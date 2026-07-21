@@ -94,7 +94,7 @@ export default function SemestralRecordsTab({
   };
 
   return (
-    <Card className="shadow-none border border-slate-200 rounded-xl bg-white w-full">
+    <Card className="shadow-none border border-slate-200 rounded-[8px] bg-white w-full">
       <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between border-b bg-slate-50/50">
         <div>
           <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-700">

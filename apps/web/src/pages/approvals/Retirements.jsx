@@ -134,7 +134,9 @@ export default function Retirements() {
       });
 
       toast.success(`Request ${action} successfully.`);
+      setRequests(prev => prev.filter(r => r.id !== req.id));
       setModalOpen(false);
+      window.dispatchEvent(new CustomEvent('pending_counts_changed'));
       fetchRequests();
     } catch (err) {
       toast.error(`Action failed: ${err.message}`);

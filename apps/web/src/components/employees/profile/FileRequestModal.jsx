@@ -106,304 +106,169 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
     checkRetirementBenefit();
   }, [employee?.id, open]);
 
-  const isRetirementEligible = dbRetirementEligible || employeeAge >= 60 || (employeeAge >= 57 && employeeYearsInService >= 25);
+  const isRetirementEligible = dbRetirementEligible || (employeeAge >= 60 && employeeYearsInService >= 5);
 
-  // Reset form when modal opens or activeForm changes
   useEffect(() => {
     if (open) {
-      if (activeForm === "select") {
-        setLeaveType("");
-        setLeaveStartDate("");
-        setLeaveEndDate("");
-        setLeavePurpose("");
-        setLeaveOverlapError("");
-        setStatement("");
-        setCommutationTotalDays("");
-        setCommutationHoursPerDay("");
-        setCommutationTeachingDays("");
-      }
-    } else {
       setActiveForm("select");
+      setLeaveType("");
+      setLeaveStartDate("");
+      setLeaveEndDate("");
+      setLeavePurpose("");
+      setLeaveOverlapError("");
+      setStatement("");
+      setCommutationTotalDays("");
+      setCommutationHoursPerDay("");
+      setCommutationTeachingDays("");
     }
+  }, [open]);
+
+  useEffect(() => {
+    async function loadMetadata() {
+      if (open && activeForm === "commutation") {
+        setLoadingMetadata(true);
+        try {
+          const [empRes, semRes] = await Promise.all([
+            supabase.from("employees").select("id, first_name, last_name, position, department"),
+            supabase.from("employee_semesters").select("*")
+          ]);
+          if (empRes.data) setAllEmployees(empRes.data);
+          if (semRes.data) setSemesters(semRes.data);
+        } catch (err) {
+          console.error("Error loading commutation metadata", err);
+        } finally {
+          setLoadingMetadata(false);
+        }
+      }
+    }
+    loadMetadata();
   }, [open, activeForm]);
 
-  // Load commutation metadata and calculate default days
   useEffect(() => {
-    const fetchCommutationMetadata = async () => {
-      if (activeForm !== "commutation" || !employee?.id) return;
-      setLoadingMetadata(true);
-      try {
-        const [empsRes, semsRes] = await Promise.all([
-          supabase.from("employees").select("id, first_name, last_name, employee_id, position, department, employment_classification, classification_ii, date_hired, org_unit_id"),
-          supabase.from("employee_semesters").select("*").eq("employee_id", employee.id)
-        ]);
-
-        if (empsRes.data) setAllEmployees(empsRes.data);
-        if (semsRes.data) setSemesters(semsRes.data);
-
-        // Precompute default commutation days
-        // Group leave credits by leave type
-        const sickCreds = leaveCredits.filter(c => c.leave_type === "Sick" && c.is_commutable);
-        const vacCreds = leaveCredits.filter(c => c.leave_type === "Vacation" && c.is_commutable);
-        
-        let unusedSick = 0;
-        sickCreds.forEach(c => {
-          unusedSick += Math.max(0, parseFloat(c.total_credits) - parseFloat(c.used_credits));
-        });
-        
-        let unusedVac = 0;
-        vacCreds.forEach(c => {
-          unusedVac += Math.max(0, parseFloat(c.total_credits) - parseFloat(c.used_credits));
-        });
-
-        const totalUnusedCommutable = unusedSick + unusedVac;
-        setCommutationTotalDays(totalUnusedCommutable.toString());
-      } catch (err) {
-        console.error("Error fetching metadata for commutation:", err);
-      } finally {
-        setLoadingMetadata(false);
-      }
-    };
-    fetchCommutationMetadata();
-  }, [activeForm, employee?.id, leaveCredits]);
-
-  // Leave credit parsing
-  const selectedCredit = leaveCredits.find((c) => `${c.id}` === leaveType);
-  const remainingCredits = selectedCredit ? selectedCredit.total_credits - selectedCredit.used_credits : null;
-
-  // Overlap check for leaves
-  useEffect(() => {
-    const checkOverlap = async () => {
-      if (activeForm !== "leave" || !leaveStartDate || !leaveEndDate || !employee?.id) {
+    async function checkOverlap() {
+      if (!leaveStartDate || !leaveEndDate || !employee?.id) {
         setLeaveOverlapError("");
         return;
       }
-      const { data, error } = await supabase
+      if (leaveStartDate > leaveEndDate) {
+        setLeaveOverlapError("Start date cannot be after end date.");
+        return;
+      }
+      const { data: overlapping } = await supabase
         .from("leave_applications")
-        .select("id, leave_type, start_date, end_date, status")
+        .select("id, start_date, end_date, status")
         .eq("employee_id", employee.id)
-        .in("status", ["pending", "approved"])
+        .neq("status", "rejected")
         .lte("start_date", leaveEndDate)
         .gte("end_date", leaveStartDate);
 
-      if (!error && data && data.length > 0) {
-        const overlap = data[0];
-        setLeaveOverlapError(
-          `You already have a ${overlap.status} ${overlap.leave_type} leave from ${overlap.start_date} to ${overlap.end_date} that overlaps.`
-        );
+      if (overlapping && overlapping.length > 0) {
+        setLeaveOverlapError("You already have a leave request covering these dates.");
       } else {
         setLeaveOverlapError("");
       }
-    };
+    }
     checkOverlap();
-  }, [leaveStartDate, leaveEndDate, employee?.id, activeForm]);
+  }, [leaveStartDate, leaveEndDate, employee?.id]);
 
-  const isLeaveValid =
-    leaveType &&
-    leaveStartDate &&
-    leaveEndDate &&
-    leavePurpose.trim() &&
-    remainingCredits > 0 &&
-    !leaveOverlapError &&
-    new Date(leaveEndDate) >= new Date(leaveStartDate);
+  const selectedCredit = leaveCredits.find(c => `${c.id}` === leaveType);
+  const isLeaveValid = leaveType && leaveStartDate && leaveEndDate && !leaveOverlapError && leaveStartDate <= leaveEndDate;
 
   const handleFileLeave = async () => {
-    if (!isLeaveValid || !selectedCredit || !employee?.id) return;
+    if (!isLeaveValid || !employee?.id) return;
     setIsSubmitting(true);
     try {
-      let initialStatus = "pending";
-      let approvedByDeptHead = false;
-
-      // Check department head
-      const { data: deptHeadCheck } = await supabase
-        .from("org_units")
-        .select("head_id")
-        .eq("id", employee.org_unit_id || "")
-        .maybeSingle();
-
-      if (deptHeadCheck && deptHeadCheck.head_id) {
-        if (deptHeadCheck.head_id === employee.id) {
-          approvedByDeptHead = true;
-          initialStatus = "pending";
-        } else {
-          initialStatus = "pending_dept_head";
-        }
-      }
-
-      const { error: insertError } = await supabase
-        .from("leave_applications")
-        .insert({
-          employee_id: employee.id,
-          leave_credit_id: selectedCredit.id,
-          leave_type: selectedCredit.leave_type,
-          is_commutable: selectedCredit.is_commutable,
-          start_date: leaveStartDate,
-          end_date: leaveEndDate,
-          purpose: leavePurpose,
-          status: initialStatus,
-          approved_by_dept_head: approvedByDeptHead
-        });
-
-      if (insertError) throw insertError;
-
-      // Notifications
-      await supabase.from("notifications").insert({
+      const { error } = await supabase.from("leave_applications").insert({
         employee_id: employee.id,
-        type: "info",
-        title: "Leave Application Filed",
-        message: `Your request for ${selectedCredit.leave_type} Leave has been submitted and is currently ${initialStatus.replace("_", " ")}.`
+        leave_credit_id: selectedCredit.id,
+        leave_type: selectedCredit.leave_type,
+        start_date: leaveStartDate,
+        end_date: leaveEndDate,
+        purpose: leavePurpose || null,
+        status: "pending_dept_head"
       });
 
-      // Admin log
-      await supabase.from("admin_activity_log").insert({
-        actor_type: "employee",
-        actor_name: `${employee.first_name} ${employee.last_name}`,
-        action: "employee_filed_leave",
-        description: `${employee.first_name} ${employee.last_name} filed a leave application for ${selectedCredit.leave_type} Leave`,
-        employee_id: employee.id
+      if (error) throw error;
+
+      await supabase.from('notifications').insert({
+        employee_id: employee.id,
+        type: 'info',
+        title: 'Leave Application Submitted',
+        message: `Your application for ${selectedCredit.leave_type} Leave (${leaveStartDate} to ${leaveEndDate}) has been filed and is pending department head approval.`
       });
 
       toast.success("Leave application submitted successfully!");
       if (onSuccess) onSuccess();
       onOpenChange(false);
     } catch (err) {
-      toast.error("Failed to file leave: " + err.message);
+      toast.error("Failed to submit leave application: " + err.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleFileCommutation = async () => {
+    if (!employee?.id || !commutationTotalDays) return;
     setIsSubmitting(true);
     try {
-      // Resolve approvers using server RPC
-      const { data: result, error: rpcErr } = await supabase.rpc('resolve_commutation_approvers', { emp_id: employee.id });
-      if (rpcErr) throw rpcErr;
-
-      const ra = result.ra_id ? allEmployees.find(e => e.id === result.ra_id) : null;
-      const notedBy = result.noted_by_id ? allEmployees.find(e => e.id === result.noted_by_id) : null;
-      const approvedBy = result.approved_by_id ? allEmployees.find(e => e.id === result.approved_by_id) : null;
-      const conditionName = result.condition_name;
-
-      const initialStatus = ra ? "pending_ra" : "pending_hr_forward";
-
-      // Compute grid snapshot to freeze the table
+      const totalDaysNum = parseFloat(commutationTotalDays);
       const isTeaching = employee?.employment_classification?.toLowerCase() === "teaching";
-      
-      const getLeaveValues = (type) => {
-        const matching = leaveCredits.filter(c => c.leave_type === type);
-        const commutable = matching.filter(c => c.is_commutable);
-        const nonComm = matching.filter(c => !c.is_commutable);
-        
-        const allocated = matching.reduce((sum, c) => sum + parseFloat(c.total_credits || 0), 0);
-        const nonCommutableDays = nonComm.reduce((sum, c) => sum + parseFloat(c.total_credits || 0), 0);
-        const commutableDays = commutable.reduce((sum, c) => sum + parseFloat(c.total_credits || 0), 0);
-        const used = matching.reduce((sum, c) => sum + parseFloat(c.used_credits || 0), 0);
-        const unused = Math.max(0, allocated - used);
-        
-        return { allocated, nonCommutableDays, commutableDays, used, unused };
-      };
+      const hoursPerDayNum = commutationHoursPerDay ? parseFloat(commutationHoursPerDay) : null;
+      const teachingDaysNum = commutationTeachingDays ? parseFloat(commutationTeachingDays) : null;
 
-      const sickVals = getLeaveValues("Sick");
-      const vacVals = getLeaveValues("Vacation");
-      const famVals = getLeaveValues("Family");
-      const forceVals = getLeaveValues("Force");
-
-      const yearsInService = employee?.date_hired ? (new Date() - new Date(employee.date_hired)) / (365.25 * 86400 * 1000) : 0;
-      const includeForce = !isTeaching && (leaveCredits.some(c => c.leave_type === "Force") || yearsInService >= 3);
-      
-      const snapshot = {
-        sick: sickVals,
-        vacation: vacVals,
-        family: famVals,
-        ...(includeForce ? { force: forceVals } : {}),
-        total: {
-          allocated: sickVals.allocated + vacVals.allocated + famVals.allocated + (includeForce ? forceVals.allocated : 0),
-          nonCommutableDays: sickVals.nonCommutableDays + vacVals.nonCommutableDays + famVals.nonCommutableDays + (includeForce ? forceVals.nonCommutableDays : 0),
-          commutableDays: sickVals.commutableDays + vacVals.commutableDays + famVals.commutableDays + (includeForce ? forceVals.commutableDays : 0),
-          used: sickVals.used + vacVals.used + famVals.used + (includeForce ? forceVals.used : 0),
-          unused: sickVals.unused + vacVals.unused + famVals.unused + (includeForce ? forceVals.unused : 0)
-        }
-      };
-
-      const { error } = await supabase
-        .from("commutation_requests")
-        .insert({
-          employee_id: employee.id,
-          status: initialStatus,
-          total_days: parseFloat(commutationTotalDays) || 0,
-          hours_per_day: commutationHoursPerDay ? parseFloat(commutationHoursPerDay) : null,
-          teaching_days: commutationTeachingDays ? parseFloat(commutationTeachingDays) : null,
-          ra_id: ra?.id || null,
-          noted_by_id: notedBy?.id || null,
-          approved_by_id: approvedBy?.id || null,
-          commutation_snapshot: snapshot
-        });
+      const { error } = await supabase.from("commutation_requests").insert({
+        employee_id: employee.id,
+        total_days_commuted: totalDaysNum,
+        hours_per_day: hoursPerDayNum,
+        teaching_days_commuted: teachingDaysNum,
+        status: "pending_dept_head",
+        filed_date: new Date().toISOString().split("T")[0]
+      });
 
       if (error) throw error;
 
-      await supabase.from("notifications").insert({
+      await supabase.from('notifications').insert({
         employee_id: employee.id,
-        type: "info",
-        title: "Commutation Request Filed",
-        message: ra 
-          ? `Your commutation request has been submitted and is awaiting recommending approval from ${ra.first_name} ${ra.last_name}.`
-          : "Your commutation request has been submitted and is pending HR review."
-      });
-
-      await supabase.from("admin_activity_log").insert({
-        actor_type: "employee",
-        actor_name: `${employee.first_name} ${employee.last_name}`,
-        action: "employee_submitted_update",
-        description: `${employee.first_name} ${employee.last_name} submitted a Commutation Request (Condition: ${conditionName})`,
-        employee_id: employee.id
+        type: 'info',
+        title: 'Commutation Request Filed',
+        message: `Your commutation request for ${totalDaysNum} day(s) has been submitted for approval.`
       });
 
       toast.success("Commutation request submitted successfully!");
       if (onSuccess) onSuccess();
       onOpenChange(false);
     } catch (err) {
-      toast.error("Failed to submit request: " + err.message);
+      toast.error("Failed to submit commutation: " + err.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleFileResignation = async () => {
-    if (!statement.trim()) {
-      toast.error("Please enter a Statement of Resignation.");
-      return;
-    }
+    if (!employee?.id || !statement.trim()) return;
     setIsSubmitting(true);
     try {
-      const finalWorkDay = getFridayTwoWeeksAfter();
-      const { error } = await supabase
-        .from("resignation_requests")
-        .insert({
-          employee_id: employee.id,
-          statement: statement,
-          final_work_day: finalWorkDay,
-          status: "pending"
-        });
+      const filingDate = new Date().toISOString().split("T")[0];
+      const effectiveDate = getFridayTwoWeeksAfter();
+
+      const { error } = await supabase.from("resignation_requests").insert({
+        employee_id: employee.id,
+        filing_date: filingDate,
+        effective_date: effectiveDate,
+        statement: statement.trim(),
+        status: "pending_hr"
+      });
 
       if (error) throw error;
 
-      await supabase.from("notifications").insert({
+      await supabase.from('notifications').insert({
         employee_id: employee.id,
-        type: "info",
-        title: "Resignation Notice Filed",
-        message: `Your Resignation request has been filed with final work day set to ${finalWorkDay}.`
+        type: 'warning',
+        title: 'Resignation Filed',
+        message: `Your resignation notice (effective ${effectiveDate}) has been submitted to HR.`
       });
 
-      await supabase.from("admin_activity_log").insert({
-        actor_type: "employee",
-        actor_name: `${employee.first_name} ${employee.last_name}`,
-        action: "employee_submitted_update",
-        description: `${employee.first_name} ${employee.last_name} filed a Resignation Request`,
-        employee_id: employee.id
-      });
-
-      toast.success("Resignation notice submitted!");
+      toast.success("Resignation notice submitted to HR!");
       if (onSuccess) onSuccess();
       onOpenChange(false);
     } catch (err) {
@@ -414,38 +279,28 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
   };
 
   const handleFileRetirement = async () => {
-    if (!statement.trim()) {
-      toast.error("Please enter a Statement of Retirement.");
-      return;
-    }
+    if (!employee?.id || !statement.trim()) return;
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from("retirement_requests")
-        .insert({
-          employee_id: employee.id,
-          statement: statement,
-          status: "pending"
-        });
+      const filingDate = new Date().toISOString().split("T")[0];
+
+      const { error } = await supabase.from("retirement_requests").insert({
+        employee_id: employee.id,
+        filing_date: filingDate,
+        statement: statement.trim(),
+        status: "pending_hr"
+      });
 
       if (error) throw error;
 
-      await supabase.from("notifications").insert({
+      await supabase.from('notifications').insert({
         employee_id: employee.id,
-        type: "info",
-        title: "Retirement Request Filed",
-        message: "Your Retirement request has been filed and is pending HR review."
+        type: 'info',
+        title: 'Retirement Application Submitted',
+        message: `Your application for official retirement has been submitted to HR.`
       });
 
-      await supabase.from("admin_activity_log").insert({
-        actor_type: "employee",
-        actor_name: `${employee.first_name} ${employee.last_name}`,
-        action: "employee_submitted_update",
-        description: `${employee.first_name} ${employee.last_name} filed a Retirement Request`,
-        employee_id: employee.id
-      });
-
-      toast.success("Retirement request submitted!");
+      toast.success("Retirement application submitted to HR!");
       if (onSuccess) onSuccess();
       onOpenChange(false);
     } catch (err) {
@@ -459,7 +314,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`max-h-[85vh] overflow-y-auto rounded-2xl transition-all duration-300 ${activeForm === "commutation" ? "max-w-4xl" : "max-w-xl"}`}>
+      <DialogContent className={`max-h-[85vh] overflow-y-auto bg-white text-slate-800 border border-slate-200 shadow-none rounded-[8px] transition-all duration-300 ${activeForm === "commutation" ? "max-w-4xl" : "max-w-xl"}`}>
         <DialogHeader>
           <div className="flex items-center gap-2">
             {activeForm !== "select" && (
@@ -468,12 +323,12 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                 variant="ghost"
                 size="icon"
                 onClick={() => setActiveForm("select")}
-                className="-ml-2 h-8 w-8 rounded-full"
+                className="-ml-2 h-8 w-8 rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-800"
               >
-                <ChevronLeft className="w-5 h-5 text-slate-600" />
+                <ChevronLeft className="w-5 h-5" />
               </Button>
             )}
-            <DialogTitle className="text-xl font-bold text-slate-800">
+            <DialogTitle className="text-xl font-bold text-[#0C005F]">
               {activeForm === "select" && "File a Request"}
               {activeForm === "leave" && "File Leave Application"}
               {activeForm === "commutation" && "Commute Leave Credits"}
@@ -496,12 +351,12 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
               type="button"
               variant="outline"
               onClick={() => setActiveForm("leave")}
-              className="flex flex-col items-center justify-center p-6 h-36 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/30 rounded-2xl transition-all gap-3 text-center"
+              className="flex flex-col items-center justify-center p-6 h-36 bg-white hover:bg-slate-50 border-slate-200 rounded-[8px] shadow-none transition-all gap-3 text-center text-slate-800"
             >
-              <CalendarDays className="w-8 h-8 text-indigo-600" />
+              <CalendarDays className="w-8 h-8 text-[#0C005F]" />
               <div className="space-y-0.5">
                 <p className="text-sm font-bold text-slate-800">Leave Request</p>
-                <p className="text-[10px] text-slate-400 font-medium">Sick, Vacation, or Force Leave</p>
+                <p className="text-[10px] text-slate-500 font-medium">Sick, Vacation, or Force Leave</p>
               </div>
             </Button>
 
@@ -509,12 +364,12 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
               type="button"
               variant="outline"
               onClick={() => setActiveForm("commutation")}
-              className="flex flex-col items-center justify-center p-6 h-36 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/30 rounded-2xl transition-all gap-3 text-center"
+              className="flex flex-col items-center justify-center p-6 h-36 bg-white hover:bg-slate-50 border-slate-200 rounded-[8px] shadow-none transition-all gap-3 text-center text-slate-800"
             >
-              <RefreshCw className="w-8 h-8 text-amber-500" />
+              <RefreshCw className="w-8 h-8 text-[#0C005F]" />
               <div className="space-y-0.5">
                 <p className="text-sm font-bold text-slate-800">Commutation</p>
-                <p className="text-[10px] text-slate-400 font-medium">Convert credits into pay</p>
+                <p className="text-[10px] text-slate-500 font-medium">Convert credits into pay</p>
               </div>
             </Button>
 
@@ -522,12 +377,12 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
               type="button"
               variant="outline"
               onClick={() => setActiveForm("resignation")}
-              className="flex flex-col items-center justify-center p-6 h-36 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/30 rounded-2xl transition-all gap-3 text-center"
+              className="flex flex-col items-center justify-center p-6 h-36 bg-white hover:bg-slate-50 border-slate-200 rounded-[8px] shadow-none transition-all gap-3 text-center text-slate-800"
             >
-              <LogOut className="w-8 h-8 text-red-500" />
+              <LogOut className="w-8 h-8 text-[#0C005F]" />
               <div className="space-y-0.5">
                 <p className="text-sm font-bold text-slate-800">Resignation</p>
-                <p className="text-[10px] text-slate-400 font-medium">Formal resignation notice</p>
+                <p className="text-[10px] text-slate-500 font-medium">Formal resignation notice</p>
               </div>
             </Button>
 
@@ -536,12 +391,12 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                 type="button"
                 variant="outline"
                 onClick={() => setActiveForm("retirement")}
-                className="flex flex-col items-center justify-center p-6 h-36 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/30 rounded-2xl transition-all gap-3 text-center animate-in fade-in"
+                className="flex flex-col items-center justify-center p-6 h-36 bg-white hover:bg-slate-50 border-slate-200 rounded-[8px] shadow-none transition-all gap-3 text-center text-slate-800"
               >
-                <Award className="w-8 h-8 text-emerald-600" />
+                <Award className="w-8 h-8 text-[#0C005F]" />
                 <div className="space-y-0.5">
                   <p className="text-sm font-bold text-slate-800">Retirement</p>
-                  <p className="text-[10px] text-slate-400 font-medium">File for official retirement</p>
+                  <p className="text-[10px] text-slate-500 font-medium">File for official retirement</p>
                 </div>
               </Button>
             )}
@@ -549,16 +404,16 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
         )}
 
         {activeForm === "leave" && (
-          <div className="space-y-4 py-3">
+          <div className="space-y-4 py-3 text-slate-800">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-500 uppercase">Leave Type</Label>
               <Select value={leaveType} onValueChange={setLeaveType}>
-                <SelectTrigger className="h-10 border-slate-200">
+                <SelectTrigger className="h-10 bg-white border-slate-200 text-slate-800 rounded-[8px] shadow-none focus-visible:ring-[#0C005F]">
                   <SelectValue placeholder="Select leave type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white text-slate-800 border-slate-200 rounded-[8px]">
                   <SelectGroup>
-                    <SelectLabel>Available Leaves</SelectLabel>
+                    <SelectLabel className="text-slate-400">Available Leaves</SelectLabel>
                     {leaveCredits.map((credit) => {
                       const remaining = credit.total_credits - credit.used_credits;
                       return (
@@ -566,6 +421,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                           key={credit.id} 
                           value={`${credit.id}`}
                           disabled={remaining <= 0}
+                          className="text-slate-800 focus:bg-slate-100 focus:text-slate-900"
                         >
                           {credit.leave_type} Leave ({credit.is_commutable ? "Commutable" : "Non-commutable"}) — {remaining} left
                         </SelectItem>
@@ -583,7 +439,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                   type="date"
                   value={leaveStartDate}
                   onChange={(e) => setLeaveStartDate(e.target.value)}
-                  className="h-10 border-slate-200"
+                  className="h-10 bg-white border-slate-200 text-slate-800 rounded-[8px] shadow-none focus-visible:ring-[#0C005F]"
                 />
               </div>
               <div className="space-y-1.5">
@@ -592,14 +448,14 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                   type="date"
                   value={leaveEndDate}
                   onChange={(e) => setLeaveEndDate(e.target.value)}
-                  className="h-10 border-slate-200"
+                  className="h-10 bg-white border-slate-200 text-slate-800 rounded-[8px] shadow-none focus-visible:ring-[#0C005F]"
                 />
               </div>
             </div>
 
             {leaveOverlapError && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-[8px] flex items-start gap-2 shadow-none">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
                 <span>{leaveOverlapError}</span>
               </div>
             )}
@@ -610,7 +466,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                 value={leavePurpose}
                 onChange={(e) => setLeavePurpose(e.target.value)}
                 placeholder="Briefly explain the reason for your leave request..."
-                className="min-h-[90px] border-slate-200"
+                className="min-h-[90px] bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 rounded-[8px] shadow-none focus-visible:ring-[#0C005F]"
               />
             </div>
 
@@ -619,7 +475,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                 type="button"
                 onClick={handleFileLeave}
                 disabled={isSubmitting || !isLeaveValid}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 rounded-lg"
+                className="bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold gap-2 rounded-[8px] shadow-none"
               >
                 {isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -672,7 +528,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
           const isPresident = employee?.position?.toLowerCase()?.includes("university president") || employee?.department?.toLowerCase()?.includes("university president");
 
           return (
-            <div className="space-y-6 py-3 max-h-[70vh] overflow-y-auto pr-1">
+            <div className="space-y-6 py-3 max-h-[70vh] overflow-y-auto pr-1 text-slate-800">
               <div className="text-center font-semibold text-slate-700 text-xs tracking-wide">
                 <span className="font-extrabold text-[#0C005F]">{employee.first_name} {employee.middle_name ? employee.middle_name + " " : ""}{employee.last_name}</span> of <span className="font-extrabold text-[#0C005F]">{employee.department}</span> hereby applies for the commutation of unused sick/vacation/forced leave benefits.
               </div>
@@ -685,10 +541,10 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
               ) : (
                 <>
                   {/* Commutation Table Grid */}
-                  <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                  <div className="border border-slate-200 rounded-[8px] overflow-hidden shadow-none bg-white">
                     <table className="w-full text-left border-collapse text-[11px]">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold text-center">
+                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold text-center">
                           <th className="p-2 text-left w-1/4"></th>
                           <th className="p-2 border-l border-slate-200">Sick Leave</th>
                           <th className="p-2 border-l border-slate-200">
@@ -724,11 +580,11 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                         </tr>
                         <tr>
                           <td className="p-2 text-left font-bold text-slate-600 bg-slate-50/50">Number of Days Commutable</td>
-                          <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{sick.commutableDays}</td>
-                          <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{vacation.commutableDays}</td>
-                          <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{family.commutableDays}</td>
-                          {includeForce && <td className="p-2 border-l border-slate-100 text-amber-600 font-bold">{force.commutableDays}</td>}
-                          <td className="p-2 border-l border-slate-100 font-bold text-amber-700 bg-slate-50/20">{total.commutableDays}</td>
+                          <td className="p-2 border-l border-slate-100 text-[#0C005F] font-bold">{sick.commutableDays}</td>
+                          <td className="p-2 border-l border-slate-100 text-[#0C005F] font-bold">{vacation.commutableDays}</td>
+                          <td className="p-2 border-l border-slate-100 text-[#0C005F] font-bold">{family.commutableDays}</td>
+                          {includeForce && <td className="p-2 border-l border-slate-100 text-[#0C005F] font-bold">{force.commutableDays}</td>}
+                          <td className="p-2 border-l border-slate-100 font-bold text-[#0C005F] bg-slate-50/20">{total.commutableDays}</td>
                         </tr>
                         <tr>
                           <td className="p-2 text-left font-bold text-slate-600 bg-slate-50/50">Number of Used Leave</td>
@@ -738,7 +594,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                           {includeForce && <td className="p-2 border-l border-slate-100">{force.used}</td>}
                           <td className="p-2 border-l border-slate-100 font-bold text-slate-800 bg-slate-50/20">{total.used}</td>
                         </tr>
-                        <tr className="border-b-2 border-slate-200">
+                        <tr className="border-b border-slate-200">
                           <td className="p-2 text-left font-bold text-slate-600 bg-slate-50/50">Number of Unused Leave</td>
                           <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{sick.unused}</td>
                           <td className="p-2 border-l border-slate-100 text-emerald-600 font-bold">{vacation.unused}</td>
@@ -753,7 +609,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                               type="number"
                               value={commutationTotalDays}
                               onChange={(e) => setCommutationTotalDays(e.target.value)}
-                              className="h-8 text-xs font-bold text-slate-800 focus-visible:ring-[#0C005F]/20 border-slate-200 w-full max-w-[120px] ml-1"
+                              className="h-8 text-xs font-bold text-slate-800 bg-white border-slate-200 w-full max-w-[120px] ml-1 rounded-[6px] shadow-none focus-visible:ring-[#0C005F]"
                             />
                           </td>
                         </tr>
@@ -767,7 +623,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                                 placeholder="e.g. 5.70"
                                 value={commutationHoursPerDay}
                                 onChange={(e) => setCommutationHoursPerDay(e.target.value)}
-                                className="h-8 text-xs font-bold text-slate-800 focus-visible:ring-[#0C005F]/20 border-slate-200 w-full max-w-[120px] ml-1"
+                                className="h-8 text-xs font-bold text-slate-800 bg-white border-slate-200 w-full max-w-[120px] ml-1 rounded-[6px] shadow-none focus-visible:ring-[#0C005F]"
                               />
                             </td>
                           </tr>
@@ -778,8 +634,8 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
 
                   {/* Teaching Load Section for Non-Teaching with teaching load ONLY */}
                   {hasTeachingLoad && (
-                    <div className="p-4 border border-slate-200 bg-slate-50/30 rounded-xl space-y-3">
-                      <h4 className="text-[10px] font-black uppercase text-slate-500 tracking-wider">For Teaching Load</h4>
+                    <div className="p-4 border border-slate-200 bg-slate-50/50 rounded-[8px] space-y-3 shadow-none">
+                      <h4 className="text-[10px] font-black uppercase text-[#0C005F] tracking-wider">For Teaching Load</h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <Label className="text-[10px] font-bold text-slate-500 uppercase">Hours Per Day</Label>
@@ -789,7 +645,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                             placeholder="e.g. 5.70"
                             value={commutationHoursPerDay}
                             onChange={(e) => setCommutationHoursPerDay(e.target.value)}
-                            className="h-9 text-xs font-bold border-slate-200"
+                            className="h-9 text-xs font-bold bg-white border-slate-200 text-slate-800 rounded-[6px] shadow-none"
                           />
                         </div>
                         <div className="space-y-1.5">
@@ -799,14 +655,14 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                             placeholder="Days for teaching load"
                             value={commutationTeachingDays}
                             onChange={(e) => setCommutationTeachingDays(e.target.value)}
-                            className="h-9 text-xs font-bold border-slate-200"
+                            className="h-9 text-xs font-bold bg-white border-slate-200 text-slate-800 rounded-[6px] shadow-none"
                           />
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Signature Blocks Preview matching PDF specification */}
+                  {/* Signature Blocks Preview */}
                   <div className="pt-4 border-t border-slate-200 flex flex-wrap justify-between items-end gap-6 text-[11px] text-slate-600 font-medium">
                     {!isPresident && (
                       <div className="text-center">
@@ -828,12 +684,12 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                 </>
               )}
 
-              <DialogFooter className="pt-4 border-t border-slate-100">
+              <DialogFooter className="pt-4 border-t border-slate-200">
                 <Button
                   type="button"
                   onClick={handleFileCommutation}
                   disabled={isSubmitting || loadingMetadata || !commutationTotalDays}
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-2 rounded-lg border-none w-full sm:w-auto"
+                  className="bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold gap-2 rounded-[8px] border-none shadow-none w-full sm:w-auto"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -848,31 +704,31 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
         })()}
 
         {activeForm === "resignation" && (
-          <div className="space-y-4 py-3">
+          <div className="space-y-4 py-3 text-slate-800">
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Employee ID</Label>
-                <Input value={employee.employee_id || "—"} disabled className="h-9 bg-slate-50" />
+                <Input value={employee.employee_id || "—"} disabled className="h-9 bg-slate-50 border-slate-200 text-slate-800 rounded-[6px]" />
               </div>
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Full Name</Label>
-                <Input value={`${employee.first_name} ${employee.last_name}`} disabled className="h-9 bg-slate-50" />
+                <Input value={`${employee.first_name} ${employee.last_name}`} disabled className="h-9 bg-slate-50 border-slate-200 text-slate-800 rounded-[6px]" />
               </div>
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Email</Label>
-                <Input value={employee.contact_email || "—"} disabled className="h-9 bg-slate-50" />
+                <Input value={employee.contact_email || "—"} disabled className="h-9 bg-slate-50 border-slate-200 text-slate-800 rounded-[6px]" />
               </div>
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Phone Number</Label>
-                <Input value={employee.contact_phone || "—"} disabled className="h-9 bg-slate-50" />
+                <Input value={employee.contact_phone || "—"} disabled className="h-9 bg-slate-50 border-slate-200 text-slate-800 rounded-[6px]" />
               </div>
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Filing Date</Label>
-                <Input value={todayStr} disabled className="h-9 bg-slate-50" />
+                <Input value={todayStr} disabled className="h-9 bg-slate-50 border-slate-200 text-slate-800 rounded-[6px]" />
               </div>
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Final Work Day</Label>
-                <Input value={getFridayTwoWeeksAfter()} disabled className="h-9 bg-slate-50 text-indigo-600 font-bold" />
+                <Input value={getFridayTwoWeeksAfter()} disabled className="h-9 bg-slate-50 border-slate-200 text-[#0C005F] font-bold rounded-[6px]" />
               </div>
             </div>
 
@@ -882,7 +738,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                 value={statement}
                 onChange={(e) => setStatement(e.target.value)}
                 placeholder="Input your formal statement explaining your reason for resigning..."
-                className="min-h-[120px] border-slate-200 text-sm"
+                className="min-h-[120px] bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 text-sm rounded-[8px] shadow-none focus-visible:ring-[#0C005F]"
               />
             </div>
 
@@ -891,7 +747,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                 type="button"
                 onClick={handleFileResignation}
                 disabled={isSubmitting || !statement.trim()}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold gap-2 rounded-lg border-none"
+                className="bg-rose-600 hover:bg-rose-700 text-white font-bold gap-2 rounded-[8px] border-none shadow-none"
               >
                 {isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -905,31 +761,31 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
         )}
 
         {activeForm === "retirement" && (
-          <div className="space-y-4 py-3">
+          <div className="space-y-4 py-3 text-slate-800">
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Employee ID</Label>
-                <Input value={employee.employee_id || "—"} disabled className="h-9 bg-slate-50" />
+                <Input value={employee.employee_id || "—"} disabled className="h-9 bg-slate-50 border-slate-200 text-slate-800 rounded-[6px]" />
               </div>
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Full Name</Label>
-                <Input value={`${employee.first_name} ${employee.last_name}`} disabled className="h-9 bg-slate-50" />
+                <Input value={`${employee.first_name} ${employee.last_name}`} disabled className="h-9 bg-slate-50 border-slate-200 text-slate-800 rounded-[6px]" />
               </div>
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Email</Label>
-                <Input value={employee.contact_email || "—"} disabled className="h-9 bg-slate-50" />
+                <Input value={employee.contact_email || "—"} disabled className="h-9 bg-slate-50 border-slate-200 text-slate-800 rounded-[6px]" />
               </div>
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Phone Number</Label>
-                <Input value={employee.contact_phone || "—"} disabled className="h-9 bg-slate-50" />
+                <Input value={employee.contact_phone || "—"} disabled className="h-9 bg-slate-50 border-slate-200 text-slate-800 rounded-[6px]" />
               </div>
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Filing Date</Label>
-                <Input value={todayStr} disabled className="h-9 bg-slate-50" />
+                <Input value={todayStr} disabled className="h-9 bg-slate-50 border-slate-200 text-slate-800 rounded-[6px]" />
               </div>
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Employee Age</Label>
-                <Input value={`${employeeAge} Years Old`} disabled className="h-9 bg-slate-50 text-emerald-600 font-bold" />
+                <Input value={`${employeeAge} Years Old`} disabled className="h-9 bg-slate-50 border-slate-200 text-emerald-600 font-bold rounded-[6px]" />
               </div>
             </div>
 
@@ -939,7 +795,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                 value={statement}
                 onChange={(e) => setStatement(e.target.value)}
                 placeholder="Input your formal statement explaining your retirement notice..."
-                className="min-h-[120px] border-slate-200 text-sm"
+                className="min-h-[120px] bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 text-sm rounded-[8px] shadow-none focus-visible:ring-[#0C005F]"
               />
             </div>
 
@@ -948,7 +804,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                 type="button"
                 onClick={handleFileRetirement}
                 disabled={isSubmitting || !statement.trim()}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 rounded-lg border-none"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 rounded-[8px] border-none shadow-none"
               >
                 {isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

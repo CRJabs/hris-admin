@@ -117,6 +117,9 @@ export default function ProfileUpdates() {
       }
 
       toast.success(`Request ${status} successfully.`);
+      setRequests(prev => prev.filter(r => r.id !== req.id));
+      setModalOpen(false);
+      window.dispatchEvent(new CustomEvent('pending_counts_changed'));
       fetchRequests();
     } catch (err) {
       toast.error(`Failed to ${status} request: ${err.message}`);
@@ -158,6 +161,9 @@ export default function ProfileUpdates() {
       });
 
       toast.success("Request moved to Bin.");
+      setRequests(prev => prev.filter(r => r.id !== req.id));
+      setModalOpen(false);
+      window.dispatchEvent(new CustomEvent('pending_counts_changed'));
       fetchRequests();
     } catch (err) {
       console.error(err);

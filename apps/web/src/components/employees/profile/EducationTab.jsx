@@ -32,7 +32,7 @@ export default function EducationTab({ employee, isReadOnly = false, isEditing =
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-none border border-slate-200 rounded-xl bg-white">
+      <Card className="shadow-none border border-slate-200 rounded-[8px] bg-white">
         <CardHeader 
           className="flex flex-row items-center justify-between pb-2 bg-[#0C005F]/5 cursor-pointer hover:bg-[#0C005F]/10 transition-colors"
           onClick={() => setIsMainExpanded(!isMainExpanded)}
