@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { 
-  SendHorizontal, Users, Search, AlertCircle, 
+  SendHorizontal, Search, AlertCircle, 
   Trash2, RefreshCw, FileText
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -236,7 +236,7 @@ export default function Publish() {
       return;
     }
     if (!message.trim()) {
-      setInlineError("Please enter the announcement message body.");
+      setInlineError("Please enter the announcement message.");
       return;
     }
     if (targetedEmployees.length === 0) {
@@ -302,34 +302,34 @@ export default function Publish() {
   };
 
   return (
-    <div className="p-4 space-y-6 animate-in fade-in duration-500 pb-12">
+    <div className="p-4 h-[calc(100vh-1rem)] flex flex-col box-border min-h-[600px] pb-4 animate-in fade-in duration-500">
       {inlineError && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-800 animate-in slide-in-from-top-4 duration-300">
+        <div className="mb-4 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-800 shrink-0">
           <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
           <p className="text-xs font-bold text-rose-700">{inlineError}</p>
         </div>
       )}
 
       {/* Main Grid: Left = Single Consolidated Form, Right = Full Height Recent Announcements Log */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
         
         {/* Left Column: Consolidated Announcement & Audience Selection Card */}
-        <div className="lg:col-span-7">
-          <Card className="border-slate-200 shadow-none rounded-xl overflow-hidden bg-white">
-            <CardContent className="p-6 space-y-6">
+        <div className="lg:col-span-7 h-full flex flex-col min-h-0">
+          <Card className="border-slate-200 shadow-none rounded-xl overflow-hidden bg-white h-full flex flex-col min-h-0">
+            <CardContent className="p-6 space-y-5 flex-1 flex flex-col min-h-0 overflow-y-auto">
               
               {/* Category Select */}
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-700">Announcement Category</label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200">
+                  <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200 shadow-none">
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="border-slate-200 shadow-none">
                     {ANNOUNCEMENT_TYPES.map(cat => (
                       <SelectItem key={cat.id} value={cat.id} className="text-xs font-medium">
                         <span className="flex items-center gap-2">
-                          <Badge className={`${cat.badgeClass} text-2xs px-2 py-0.5 border`}>{cat.label}</Badge>
+                          <Badge className={`${cat.badgeClass} text-2xs px-2 py-0.5 border shadow-none`}>{cat.label}</Badge>
                         </span>
                       </SelectItem>
                     ))}
@@ -339,23 +339,23 @@ export default function Publish() {
 
               {/* Title Input */}
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-700">Announcement Title</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700">Title</label>
                 <Input 
-                  placeholder="e.g. Campus Advisory - Scheduled System Maintenance & Operations"
+                  placeholder="write title here"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="h-10 text-xs bg-slate-50 border-slate-200 focus:bg-white"
+                  className="h-10 text-xs bg-slate-50 border-slate-200 focus:bg-white shadow-none"
                 />
               </div>
 
-              {/* Message Body Input */}
+              {/* Message Input */}
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-700">Message Body</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700">Message</label>
                 <Textarea 
-                  placeholder="Write the complete announcement details here..."
+                  placeholder="write message here"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className="min-h-[140px] text-xs bg-slate-50 border-slate-200 focus:bg-white leading-relaxed"
+                  className="min-h-[120px] text-xs bg-slate-50 border-slate-200 focus:bg-white leading-relaxed resize-none shadow-none"
                 />
               </div>
 
@@ -363,36 +363,36 @@ export default function Publish() {
               <div className="pt-4 border-t border-slate-100 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Target Audience</span>
-                  <Badge variant="outline" className="text-2xs font-bold text-[#0C005F] bg-slate-50 border-slate-200">
+                  <Badge variant="outline" className="text-2xs font-bold text-[#0C005F] bg-slate-50 border-slate-200 shadow-none">
                     {targetedEmployees.length} Personnel Target
                   </Badge>
                 </div>
 
                 {/* Target Mode Selector Tabs */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-100/70 p-1.5 rounded-lg border border-slate-200">
+                <div className="grid grid-cols-5 gap-2 bg-slate-100/70 p-1.5 rounded-lg border border-slate-200">
                   <button
                     type="button"
                     onClick={() => setTargetMode("all")}
                     className={`py-2 px-3 text-2xs font-bold uppercase tracking-wider rounded-md transition-all ${
-                      targetMode === "all" ? "bg-white text-[#0C005F] shadow-sm" : "text-slate-500 hover:text-slate-900"
+                      targetMode === "all" ? "bg-white text-[#0C005F] border border-slate-200" : "text-slate-500 hover:text-slate-900"
                     }`}
                   >
-                    All Employees
+                    All
                   </button>
                   <button
                     type="button"
                     onClick={() => setTargetMode("departments")}
                     className={`py-2 px-3 text-2xs font-bold uppercase tracking-wider rounded-md transition-all ${
-                      targetMode === "departments" ? "bg-white text-[#0C005F] shadow-sm" : "text-slate-500 hover:text-slate-900"
+                      targetMode === "departments" ? "bg-white text-[#0C005F] border border-slate-200" : "text-slate-500 hover:text-slate-900"
                     }`}
                   >
-                    By Office
+                    Office
                   </button>
                   <button
                     type="button"
                     onClick={() => setTargetMode("classification")}
                     className={`py-2 px-3 text-2xs font-bold uppercase tracking-wider rounded-md transition-all ${
-                      targetMode === "classification" ? "bg-white text-[#0C005F] shadow-sm" : "text-slate-500 hover:text-slate-900"
+                      targetMode === "classification" ? "bg-white text-[#0C005F] border border-slate-200" : "text-slate-500 hover:text-slate-900"
                     }`}
                   >
                     Classification
@@ -401,19 +401,19 @@ export default function Publish() {
                     type="button"
                     onClick={() => setTargetMode("benefits")}
                     className={`py-2 px-3 text-2xs font-bold uppercase tracking-wider rounded-md transition-all ${
-                      targetMode === "benefits" ? "bg-white text-[#0C005F] shadow-sm" : "text-slate-500 hover:text-slate-900"
+                      targetMode === "benefits" ? "bg-white text-[#0C005F] border border-slate-200" : "text-slate-500 hover:text-slate-900"
                     }`}
                   >
-                    By Benefit
+                    Benefit
                   </button>
                   <button
                     type="button"
                     onClick={() => setTargetMode("individual")}
-                    className={`py-2 px-3 text-2xs font-bold uppercase tracking-wider rounded-md transition-all col-span-2 sm:col-span-1 ${
-                      targetMode === "individual" ? "bg-white text-[#0C005F] shadow-sm" : "text-slate-500 hover:text-slate-900"
+                    className={`py-2 px-3 text-2xs font-bold uppercase tracking-wider rounded-md transition-all ${
+                      targetMode === "individual" ? "bg-white text-[#0C005F] border border-slate-200" : "text-slate-500 hover:text-slate-900"
                     }`}
                   >
-                    Specific Staff
+                    Personnel
                   </button>
                 </div>
 
@@ -425,11 +425,11 @@ export default function Publish() {
                   </div>
                 )}
 
-                {/* Mode 2: By Department */}
+                {/* Mode 2: By Department / Office */}
                 {targetMode === "departments" && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">Select Target Departments / Offices:</span>
+                      <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">Select Target Offices:</span>
                       <Button 
                         variant="ghost" 
                         size="sm" 
@@ -444,7 +444,7 @@ export default function Publish() {
                         {departments.map(d => (
                           <label 
                             key={d.id || d.name} 
-                            className="flex items-center gap-2.5 p-2 bg-white rounded-md border border-slate-200/80 cursor-pointer hover:border-indigo-200 transition-colors"
+                            className="flex items-center gap-2.5 p-2 bg-white rounded-md border border-slate-200 cursor-pointer hover:border-indigo-200 transition-colors"
                           >
                             <Checkbox 
                               checked={selectedDepts.includes(d.name)}
@@ -532,7 +532,7 @@ export default function Publish() {
                   </div>
                 )}
 
-                {/* Mode 5: Specific Individual Employees */}
+                {/* Mode 5: Specific Personnel */}
                 {targetMode === "individual" && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-3">
@@ -542,14 +542,14 @@ export default function Publish() {
                           placeholder="Search employee name or ID..."
                           value={empSearch}
                           onChange={(e) => setEmpSearch(e.target.value)}
-                          className="pl-9 h-9 text-xs bg-slate-50 border-slate-200"
+                          className="pl-9 h-9 text-xs bg-slate-50 border-slate-200 shadow-none"
                         />
                       </div>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={handleSelectAllIndividual}
-                        className="h-9 text-2xs font-bold uppercase tracking-wider border-slate-200"
+                        className="h-9 text-2xs font-bold uppercase tracking-wider border-slate-200 shadow-none"
                       >
                         {selectedEmployeeIds.length === filteredEmployeesForPicker.length ? "Deselect All" : "Select All"}
                       </Button>
@@ -560,7 +560,7 @@ export default function Publish() {
                         {filteredEmployeesForPicker.map(emp => (
                           <label 
                             key={emp.id} 
-                            className="flex items-center justify-between p-2 bg-white rounded-md border border-slate-200/80 cursor-pointer hover:border-indigo-200 transition-colors"
+                            className="flex items-center justify-between p-2 bg-white rounded-md border border-slate-200 cursor-pointer hover:border-indigo-200 transition-colors"
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <Checkbox 
@@ -589,12 +589,12 @@ export default function Publish() {
               </div>
 
               {/* Action Bar */}
-              <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
+              <div className="pt-4 mt-auto border-t border-slate-100 flex items-center justify-between">
                 <Button 
                   variant="outline" 
                   onClick={() => { setTitle(""); setMessage(""); setInlineError(""); }}
                   disabled={isPublishing}
-                  className="h-10 px-5 text-xs font-bold border-slate-200 rounded-lg"
+                  className="h-10 px-5 text-xs font-bold border-slate-200 rounded-lg shadow-none"
                 >
                   Reset Draft
                 </Button>
@@ -602,7 +602,7 @@ export default function Publish() {
                 <Button 
                   onClick={handlePublish}
                   disabled={isPublishing}
-                  className="h-10 px-8 bg-[#0C005F] hover:bg-[#1900C5] text-white gap-2 text-xs font-bold uppercase tracking-wider rounded-lg shadow-md"
+                  className="h-10 px-8 bg-[#0C005F] hover:bg-[#1900C5] text-white gap-2 text-xs font-bold uppercase tracking-wider rounded-lg shadow-none"
                 >
                   <SendHorizontal className="w-4 h-4" />
                   {isPublishing ? "Broadcasting..." : "Publish Announcement"}
@@ -614,29 +614,24 @@ export default function Publish() {
         </div>
 
         {/* Right Column: Full Height Recent Announcements Log */}
-        <div className="lg:col-span-5">
-          <Card className="border-slate-200 shadow-none rounded-xl overflow-hidden bg-white h-full flex flex-col min-h-[580px]">
+        <div className="lg:col-span-5 h-full flex flex-col min-h-0">
+          <Card className="border-slate-200 shadow-none rounded-xl overflow-hidden bg-white h-full flex flex-col min-h-0">
             <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-5 flex flex-row items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
                 <FileText className="w-4 h-4 text-[#0C005F]" />
                 <CardTitle className="text-xs font-black text-slate-900 uppercase tracking-wider">Recent Announcements</CardTitle>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[9px] font-bold text-slate-400 bg-white border-slate-200">
-                  Auto-clears after 1 week
-                </Badge>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={fetchPublishedHistory}
-                  className="h-7 w-7 text-slate-400 hover:text-slate-600 rounded-md"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingHistory ? "animate-spin" : ""}`} />
-                </Button>
-              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={fetchPublishedHistory}
+                className="h-7 w-7 text-slate-400 hover:text-slate-600 rounded-md"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingHistory ? "animate-spin" : ""}`} />
+              </Button>
             </CardHeader>
 
-            <CardContent className="p-5 flex-1 flex flex-col overflow-hidden">
+            <CardContent className="p-5 flex-1 flex flex-col min-h-0 overflow-hidden">
               <ScrollArea className="flex-1 pr-2">
                 {publishedHistory.length === 0 ? (
                   <div className="py-24 text-center text-slate-400 space-y-2">
@@ -654,14 +649,9 @@ export default function Publish() {
                         <div key={item.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2 group transition-colors hover:border-slate-300">
                           <div className="flex items-start justify-between gap-3">
                             <div className="space-y-1 min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge className={`${catItem.badgeClass} text-[9px] px-2 py-0.5 border`}>
-                                  {catItem.label}
-                                </Badge>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase">
-                                  {item.metadata?.recipient_count || 1} Recipients
-                                </span>
-                              </div>
+                              <Badge className={`${catItem.badgeClass} text-[9px] px-2 py-0.5 border shadow-none`}>
+                                {catItem.label}
+                              </Badge>
                               <p className="text-xs font-black text-slate-900 truncate">{item.description}</p>
                             </div>
                             
@@ -678,13 +668,12 @@ export default function Publish() {
                           </div>
 
                           {item.metadata?.message_excerpt && (
-                            <p className="text-2xs text-slate-600 line-clamp-3 leading-relaxed bg-white p-2.5 rounded-md border border-slate-200/80">
+                            <p className="text-2xs text-slate-600 line-clamp-3 leading-relaxed bg-white p-2.5 rounded-md border border-slate-200">
                               "{item.metadata.message_excerpt}"
                             </p>
                           )}
 
-                          <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400 font-medium">
-                            <span>By: {item.actor_name?.split('@')[0]}</span>
+                          <div className="flex items-center justify-end pt-1 text-[10px] text-slate-400 font-medium">
                             <span>{item.created_at ? format(new Date(item.created_at), "MMM d, yyyy h:mm a") : ""}</span>
                           </div>
                         </div>
