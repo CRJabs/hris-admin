@@ -74,15 +74,6 @@ function formatActionTitle(action) {
 
 const navItems = [
   { label: "Home", icon: Zap, path: "/" },
-  { 
-    label: "Accounts Management", 
-    icon: Shield, 
-    path: "/accounts",
-    children: [
-      { label: "Administrator Accounts", icon: Shield, path: "/accounts/admin" },
-      { label: "Employee Accounts", icon: Users, path: "/accounts/employee" },
-    ]
-  },
   { label: "Analytics", icon: TrendingUp, path: "/analytics" },
   { label: "Reports", icon: BarChart3, path: "/reports" },
   { label: "University Chart", icon: Building2, path: "/company" },
@@ -122,6 +113,15 @@ const navItems = [
     children: [
       { label: "Activity", icon: Bell, path: "/activity" },
       { label: "Bin", icon: Trash2, path: "/activity/bin" },
+    ]
+  },
+  { 
+    label: "Accounts Management", 
+    icon: Shield, 
+    path: "/accounts",
+    children: [
+      { label: "Administrator Accounts", icon: Shield, path: "/accounts/admin" },
+      { label: "Employee Accounts", icon: Users, path: "/accounts/employee" },
     ]
   },
 ];
