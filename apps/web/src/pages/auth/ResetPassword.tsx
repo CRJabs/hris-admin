@@ -8,8 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { useAuth } from "@/lib/AuthContext";
+
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,6 +23,11 @@ export default function ResetPassword() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
+
+    if (password.length < 6) {
+      setErrorMsg("Password must be at least 6 characters long.");
+      return;
+    }
 
     if (password !== confirmPassword) {
       setErrorMsg("Passwords do not match.");
@@ -36,6 +44,7 @@ export default function ResetPassword() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.id) {
         await supabase.from("user_profiles").update({ temp_password: null }).eq("id", user.id);
+        await refreshUser();
       }
 
       toast.success("Password successfully updated. You can now log in.");

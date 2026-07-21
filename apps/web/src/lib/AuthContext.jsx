@@ -94,6 +94,20 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
+  const refreshUser = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const profileData = await fetchUserProfile(session.user.id);
+        setUser(profileData);
+        return profileData;
+      }
+    } catch (err) {
+      console.error("Error refreshing user profile", err);
+    }
+    return null;
+  };
+
   const logout = async () => {
     setIsLoadingAuth(true);
     try {
@@ -113,6 +127,7 @@ export const AuthProvider = ({ children }) => {
       isLoadingAuth,
       isLoadingPublicSettings,
       authError,
+      refreshUser,
       logout
     }}>
       {children}

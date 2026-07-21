@@ -8,8 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { useAuth } from "@/lib/AuthContext";
+
 export default function ForcePasswordChange() {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -42,18 +45,14 @@ export default function ForcePasswordChange() {
 
       if (updateError) throw updateError;
 
-      await supabase.from("user_profiles").update({ temp_password: null }).eq("id", user.id);
+      const { error: profileErr } = await supabase.from("user_profiles").update({ temp_password: null }).eq("id", user.id);
+      if (profileErr) console.warn("Could not update user_profiles temp_password:", profileErr);
 
-      // Determine where to send the user based on their role
-      const { data: profileData } = await supabase
-        .from("user_profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
+      const updatedProfile = await refreshUser();
 
       toast.success("Password updated successfully! You are now logged in.");
 
-      if (profileData?.role === "employee") {
+      if (updatedProfile?.role === "employee") {
         navigate("/my-profile");
       } else {
         navigate("/");
