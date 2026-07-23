@@ -24,8 +24,6 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthContext";
 import { PersonalSection } from "@/components/employees/registration/sections/PersonalSection";
 import { FamilySection } from "@/components/employees/registration/sections/FamilySection";
-import { HistorySection } from "@/components/employees/registration/sections/HistorySection";
-import { EducationSection } from "@/components/employees/registration/sections/EducationSection";
 import { SubmissionSection } from "@/components/employees/registration/sections/SubmissionSection";
 import DynamicGrid from "@/components/employees/registration/DynamicGrid";
 import { sanitizeByFieldName, validateUniversityEmail } from "@/utils/inputValidation";
@@ -456,47 +454,44 @@ export default function EmployeeRegistration() {
     <div className="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden">
 
       {/* Top Header */}
-      <div className="bg-[#0C005F] text-white py-4 px-8 flex justify-between items-center shadow-md z-10 shrink-0">
-        <div className="flex items-center gap-6">
+      <div className="bg-[#0C005F] text-white py-3 px-4 md:py-4 md:px-8 flex justify-between items-center shadow-md z-10 shrink-0 gap-2">
+        <div className="flex items-center gap-3 md:gap-6 min-w-0">
           <img
             src="/assets/ub-hris-logo-white.png"
             alt="UB HRIS"
-            className="h-10 object-contain"
+            className="h-8 md:h-10 object-contain shrink-0"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
               e.currentTarget.nextSibling.style.display = 'block';
             }}
           />
-          <FileText className="w-8 h-8 text-white/80 hidden" />
-          <div>
-            <h1 className="text-xl font-bold leading-none">Personnel Information</h1>
-            <p className="text-xs text-white/70 mt-1 uppercase tracking-wider">Digital 201 Form Filing</p>
+          <FileText className="w-7 h-7 text-white/80 hidden shrink-0" />
+          <div className="min-w-0">
+            <h1 className="text-base md:text-xl font-bold leading-none truncate">Personnel Information</h1>
+            <p className="text-2xs md:text-xs text-white/70 mt-1 uppercase tracking-wider truncate">Digital 201 Form Filing</p>
           </div>
         </div>
-        <div className="flex gap-4 items-center">
+        <div className="flex gap-2 md:gap-4 items-center shrink-0">
           <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
             <AlertDialogTrigger asChild>
               <Button
                 type="button"
+                variant="ghost"
+                size="sm"
+                className="text-red-300 hover:text-white hover:bg-red-500/20 gap-1 h-8 md:h-10 text-xs px-2 md:px-3 font-semibold"
                 disabled={isDiscarding}
-                className="bg-red-500 hover:bg-red-600 text-white h-10 font-bold"
               >
                 {isDiscarding ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Discarding...
-                  </>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  "Discard"
+                  <Trash2 className="w-3.5 h-3.5" />
                 )}
+                <span className="hidden sm:inline">Discard</span>
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="bg-white border-slate-200">
+            <AlertDialogContent className="bg-white rounded-xl border border-slate-200 shadow-xl max-w-md">
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-[#0C005F] flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-500" />
-                  Discard Registration?
-                </AlertDialogTitle>
+                <AlertDialogTitle className="text-lg font-bold text-slate-900">Discard Registration?</AlertDialogTitle>
                 <AlertDialogDescription>
                   This action cannot be undone. This will permanently delete your account and all the information you've entered.
                 </AlertDialogDescription>
@@ -513,7 +508,7 @@ export default function EmployeeRegistration() {
             </AlertDialogContent>
           </AlertDialog>
 
-          <Button onClick={() => setActiveTab("certify")} className="bg-white text-[#0C005F] hover:bg-white/90 h-10 font-bold">
+          <Button onClick={() => setActiveTab("certify")} className="bg-white text-[#0C005F] hover:bg-white/90 h-8 md:h-10 text-xs md:text-sm font-bold px-3 md:px-4">
             Go to Submit
           </Button>
         </div>
@@ -522,17 +517,17 @@ export default function EmployeeRegistration() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           {activeTab !== "certify" && (
-            <div className="bg-white border-b border-slate-200 px-8 py-2 shrink-0">
-              <TabsList className="w-full justify-center bg-transparent h-auto flex-wrap gap-2 p-0">
+            <div className="bg-white border-b border-slate-200 px-3 md:px-8 py-2 shrink-0 overflow-x-auto scrollbar-none">
+              <TabsList className="w-full justify-start md:justify-center bg-transparent h-auto flex-nowrap md:flex-wrap gap-2 p-0 min-w-max">
                 {tabs.map(tab => {
                   const Icon = tab.icon;
                   return (
                     <TabsTrigger 
                       key={tab.id} 
                       value={tab.id}
-                      className="gap-2 rounded-lg data-[state=active]:bg-[#0C005F] data-[state=active]:shadow-none data-[state=active]:text-white py-2 px-4 border border-transparent"
+                      className="gap-2 rounded-lg data-[state=active]:bg-[#0C005F] data-[state=active]:shadow-none data-[state=active]:text-white py-2 px-3 md:px-4 border border-transparent whitespace-nowrap"
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-4 h-4 shrink-0" />
                       <span className="font-semibold text-xs">{tab.label}</span>
                     </TabsTrigger>
                   );
@@ -542,7 +537,7 @@ export default function EmployeeRegistration() {
           )}
 
           <ScrollArea className="flex-1 bg-slate-50 relative">
-            <div className="max-w-5xl mx-auto p-8 pb-32">
+            <div className="max-w-5xl mx-auto p-4 md:p-8 pb-32">
               <TabsContent value="profiling" className="m-0 focus-visible:ring-0 space-y-8">
                 <PersonalSection formData={formData} handleChange={handleChange} handleSelect={handleSelect} handleGrid={handleGrid} langCols={langCols} />
                 <FamilySection 

@@ -808,13 +808,13 @@ export default function Reports() {
             </button>
           </div>
 
-          {/* Section 3 — Month, Year, Export (25%) */}
-          <div className="flex items-center justify-end gap-2 px-3 py-2" style={{ width: '25%', minWidth: 0, flexShrink: 0 }}>
+          {/* Section 3 — Month, Year, Export */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center justify-end gap-2 px-3 py-2 w-full lg:w-auto shrink-0 border-t lg:border-t-0 border-slate-200">
             <select
               id="report-month-select"
               value={selectedMonth}
               onChange={e => setSelectedMonth(Number(e.target.value))}
-              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-none focus:outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F] cursor-pointer min-w-0 flex-1"
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-none focus:outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F] cursor-pointer min-w-[110px] flex-1 sm:flex-initial"
             >
               {MONTH_NAMES.map((m, i) => (
                 <option key={m} value={i}>{m}</option>
@@ -824,7 +824,7 @@ export default function Reports() {
               id="report-year-select"
               value={selectedYear}
               onChange={e => setSelectedYear(Number(e.target.value))}
-              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-none focus:outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F] cursor-pointer w-18 shrink-0"
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-none focus:outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F] cursor-pointer w-20 shrink-0"
             >
               {YEAR_OPTIONS.map(y => (
                 <option key={y} value={y}>{y}</option>
@@ -847,7 +847,7 @@ export default function Reports() {
               id="export-pdf-btn"
               onClick={handleExport}
               disabled={isExporting || isLoading}
-              className="gap-1.5 bg-[#0C005F] hover:bg-[#1900C5] text-white h-8 text-xs font-bold uppercase tracking-wider shadow-none shrink-0 px-3.5 rounded-lg"
+              className="gap-1.5 bg-[#0C005F] hover:bg-[#1900C5] text-white h-8 text-xs font-bold uppercase tracking-wider shadow-none shrink-0 px-3.5 rounded-lg flex-1 sm:flex-initial"
             >
               {isExporting
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />

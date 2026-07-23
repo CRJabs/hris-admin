@@ -18,19 +18,19 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const ACTION_TITLE_COLORS = {
-  employee_submitted_update: "text-amber-600 bg-amber-50 border-amber-200",
-  employee_submitted_registration: "text-blue-600 bg-blue-50 border-blue-200",
-  admin_approved_update: "text-green-600 bg-green-50 border-green-200",
-  admin_rejected_update: "text-red-600 bg-red-50 border-red-200",
-  admin_approved_registration: "text-green-600 bg-green-50 border-green-200",
-  admin_rejected_registration: "text-red-600 bg-red-50 border-red-200",
-  admin_edited_employee: "text-purple-600 bg-purple-50 border-purple-200",
-  admin_added_employee: "text-blue-600 bg-blue-50 border-blue-200",
-  admin_assigned_leave_credits: "text-purple-600 bg-purple-50 border-purple-200",
-  admin_toggled_employee_status: "text-slate-600 bg-slate-50 border-slate-200",
-  admin_approved_leave: "text-green-600 bg-green-50 border-green-200",
-  admin_rejected_leave: "text-red-600 bg-red-50 border-red-200",
-  benefit_eligible_employee: "text-pink-600 bg-pink-50 border-pink-200",
+  employee_submitted_update: "text-[#0C005F] bg-[#0C005F]/5 border-[#0C005F]/10",
+  employee_submitted_registration: "text-[#0C005F] bg-[#0C005F]/5 border-[#0C005F]/10",
+  admin_approved_update: "text-blue-700 bg-blue-50/80 border-blue-200",
+  admin_rejected_update: "text-blue-800 bg-blue-100/40 border-blue-200",
+  admin_approved_registration: "text-blue-700 bg-blue-50/80 border-blue-200",
+  admin_rejected_registration: "text-blue-800 bg-blue-100/40 border-blue-200",
+  admin_edited_employee: "text-[#0C005F] bg-[#0C005F]/10 border-[#0C005F]/20",
+  admin_added_employee: "text-blue-700 bg-blue-50/80 border-blue-200",
+  admin_assigned_leave_credits: "text-[#0C005F] bg-[#0C005F]/10 border-[#0C005F]/20",
+  admin_toggled_employee_status: "text-[#0C005F] bg-blue-50/50 border-blue-100",
+  admin_approved_leave: "text-blue-700 bg-blue-50/80 border-blue-200",
+  admin_rejected_leave: "text-blue-800 bg-blue-100/40 border-blue-200",
+  benefit_eligible_employee: "text-[#0C005F] bg-[#0C005F]/10 border-[#0C005F]/20",
 };
 
 const ACTION_TITLES = {

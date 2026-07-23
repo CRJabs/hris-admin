@@ -50,28 +50,33 @@ export default function HomeTab({ employee, leaveCredits = [], leaveApplications
     app.end_date >= todayStr
   );
 
+  const BLUE_SHADES = [
+    "bg-[#0C005F]",      // Primary dark project blue
+    "bg-blue-700",       // Medium blue
+    "bg-blue-500",       // Sky/royal blue
+    "bg-indigo-600",     // Indigo-blue
+    "bg-blue-400",       // Light blue
+  ];
+
   const displayCredits = leaveCredits.length > 0 
-    ? leaveCredits.map(c => ({
+    ? leaveCredits.map((c, index) => ({
         type: `${c.leave_type} Leave${c.is_commutable ? ' (Comm)' : ' (Non-Comm)'}`,
         total: parseFloat(c.total_credits),
         used: parseFloat(c.used_credits),
-        color: c.leave_type === 'Vacation' ? 'bg-blue-500' :
-               c.leave_type === 'Sick' ? 'bg-rose-500' :
-               c.leave_type === 'Family' ? 'bg-emerald-500' :
-               c.leave_type === 'Force' ? 'bg-amber-500' : 'bg-slate-500'
+        color: BLUE_SHADES[index % BLUE_SHADES.length]
       }))
     : (employee.classification === "Teaching" ? [
-        { type: 'Vacation Leave', total: 7, used: 2, color: 'bg-blue-500' },
-        { type: 'Family Leave', total: 4, used: 1, color: 'bg-emerald-500' },
+        { type: 'Vacation Leave', total: 7, used: 2, color: 'bg-blue-700' },
+        { type: 'Family Leave', total: 4, used: 1, color: 'bg-blue-500' },
       ] : [
-        { type: 'Vacation Leave (Comm)', total: 10, used: 3, color: 'bg-blue-500' },
-        { type: 'Vacation Leave (Non-Comm)', total: 5, used: 0, color: 'bg-cyan-500' },
-        { type: 'Family Leave', total: 4, used: 0, color: 'bg-emerald-500' },
+        { type: 'Vacation Leave (Comm)', total: 10, used: 3, color: 'bg-[#0C005F]' },
+        { type: 'Vacation Leave (Non-Comm)', total: 5, used: 0, color: 'bg-blue-700' },
+        { type: 'Family Leave', total: 4, used: 0, color: 'bg-blue-500' },
       ]).concat([
-        { type: 'Sick Leave', total: 15, used: 5, color: 'bg-rose-500' },
-        { type: 'Bereavement Leave', total: 3, used: 0, color: 'bg-slate-500' },
-        { type: 'Force Leave (Comm)', total: 5, used: 0, color: 'bg-amber-500' },
-        { type: 'Force Leave (Non-Comm)', total: 5, used: 0, color: 'bg-orange-500' },
+        { type: 'Sick Leave', total: 15, used: 5, color: 'bg-[#0C005F]/80' },
+        { type: 'Bereavement Leave', total: 3, used: 0, color: 'bg-blue-600' },
+        { type: 'Force Leave (Comm)', total: 5, used: 0, color: 'bg-indigo-500' },
+        { type: 'Force Leave (Non-Comm)', total: 5, used: 0, color: 'bg-sky-500' },
       ]);
 
   const getTenureLength = (hireDate) => {

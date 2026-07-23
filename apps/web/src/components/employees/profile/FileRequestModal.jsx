@@ -81,6 +81,16 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
     return Math.max(0, years);
   };
 
+  const getApproverDetails = (id, fallbackRole) => {
+    if (!id) return { name: "_____", position: fallbackRole };
+    const found = allEmployees.find(e => e.id === id);
+    if (!found) return { name: "_____", position: fallbackRole };
+    return {
+      name: `${found.first_name} ${found.last_name}`,
+      position: found.position || fallbackRole
+    };
+  };
+
   const employeeAge = employee ? computeAge(employee.birthdate) : 0;
   const employeeYearsInService = employee ? computeYearsInService(employee.date_hired) : 0;
   const [dbRetirementEligible, setDbRetirementEligible] = useState(false);
@@ -123,17 +133,21 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
     }
   }, [open]);
 
+  const [resolvedApprovers, setResolvedApprovers] = useState(null);
+
   useEffect(() => {
     async function loadMetadata() {
-      if (open && activeForm === "commutation") {
+      if (open && activeForm === "commutation" && employee?.id) {
         setLoadingMetadata(true);
         try {
-          const [empRes, semRes] = await Promise.all([
+          const [empRes, semRes, apprvRes] = await Promise.all([
             supabase.from("employees").select("id, first_name, last_name, position, department"),
-            supabase.from("employee_semesters").select("*")
+            supabase.from("employee_semesters").select("*"),
+            supabase.rpc('resolve_commutation_approvers', { emp_id: employee.id })
           ]);
           if (empRes.data) setAllEmployees(empRes.data);
           if (semRes.data) setSemesters(semRes.data);
+          if (apprvRes.data) setResolvedApprovers(apprvRes.data);
         } catch (err) {
           console.error("Error loading commutation metadata", err);
         } finally {
@@ -142,7 +156,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
       }
     }
     loadMetadata();
-  }, [open, activeForm]);
+  }, [open, activeForm, employee?.id]);
 
   useEffect(() => {
     async function checkOverlap() {
@@ -412,22 +426,42 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                   <SelectValue placeholder="Select leave type" />
                 </SelectTrigger>
                 <SelectContent className="bg-white text-slate-800 border-slate-200 rounded-[8px]">
-                  <SelectGroup>
-                    <SelectLabel className="text-slate-400">Available Leaves</SelectLabel>
-                    {leaveCredits.map((credit) => {
-                      const remaining = credit.total_credits - credit.used_credits;
-                      return (
-                        <SelectItem 
-                          key={credit.id} 
-                          value={`${credit.id}`}
-                          disabled={remaining <= 0}
-                          className="text-slate-800 focus:bg-slate-100 focus:text-slate-900"
-                        >
-                          {credit.leave_type} Leave ({credit.is_commutable ? "Commutable" : "Non-commutable"}) — {remaining} left
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectGroup>
+                  {leaveCredits.some(c => c.is_commutable) && (
+                    <SelectGroup>
+                      <SelectLabel className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Commutable Leaves</SelectLabel>
+                      {leaveCredits.filter(c => c.is_commutable).map((credit) => {
+                        const remaining = credit.total_credits - credit.used_credits;
+                        return (
+                          <SelectItem 
+                            key={credit.id} 
+                            value={`${credit.id}`}
+                            disabled={remaining <= 0}
+                            className="text-slate-800 focus:bg-slate-100 focus:text-slate-900"
+                          >
+                            {credit.leave_type} Leave — {remaining} left
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  )}
+                  {leaveCredits.some(c => !c.is_commutable) && (
+                    <SelectGroup className="mt-2 border-t border-slate-100 pt-2">
+                      <SelectLabel className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Non-Commutable Leaves</SelectLabel>
+                      {leaveCredits.filter(c => !c.is_commutable).map((credit) => {
+                        const remaining = credit.total_credits - credit.used_credits;
+                        return (
+                          <SelectItem 
+                            key={credit.id} 
+                            value={`${credit.id}`}
+                            disabled={remaining <= 0}
+                            className="text-slate-800 focus:bg-slate-100 focus:text-slate-900"
+                          >
+                            {credit.leave_type} Leave — {remaining} left
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -466,7 +500,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                 value={leavePurpose}
                 onChange={(e) => setLeavePurpose(e.target.value)}
                 placeholder="Briefly explain the reason for your leave request..."
-                className="min-h-[90px] bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 rounded-[8px] shadow-none focus-visible:ring-[#0C005F]"
+                className="min-h-[90px] resize-none bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 rounded-[8px] shadow-none focus-visible:ring-[#0C005F]"
               />
             </div>
 
@@ -663,22 +697,60 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
                   )}
 
                   {/* Signature Blocks Preview */}
-                  <div className="pt-4 border-t border-slate-200 flex flex-wrap justify-between items-end gap-6 text-[11px] text-slate-600 font-medium">
+                  <div className="pt-4 border-t border-slate-200 flex flex-wrap gap-6 text-[11px] text-slate-600 font-medium justify-between items-end">
                     {!isPresident && (
-                      <div className="text-center">
-                        <div className="w-40 border-b border-slate-300 mb-1 pb-1 font-bold text-slate-800">
+                      <div className="text-center shrink-0">
+                        <div className="w-40 border-b border-slate-300 mb-1 pb-1 font-bold text-slate-800 text-xs">
                           {employee.first_name} {employee.last_name}
                         </div>
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Employee's Signature</span>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Employee's Signature</span>
                       </div>
                     )}
-                    <div className="text-center ml-auto">
-                      <div className="w-48 border-b border-slate-300 mb-1 pb-1 font-bold text-slate-800">
-                        {isPresident ? "University President" : "Pending Approval"}
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-                        {isPresident ? "Approved: University President" : "Final Approver"}
-                      </span>
+                    <div className="flex flex-wrap gap-6 ml-auto justify-end text-center">
+                      {resolvedApprovers?.ra_id && (() => {
+                        const approver = getApproverDetails(resolvedApprovers.ra_id, "Dean / Office Head");
+                        return (
+                          <div className="shrink-0">
+                            <div className="w-44 border-b border-slate-300 mb-1 pb-1 font-bold text-slate-800 text-xs">
+                              {approver.name}
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                              {approver.position}
+                            </span>
+                            <span className="text-[9px] text-[#0C005F] font-bold uppercase tracking-wider block">(Recommending Approval)</span>
+                          </div>
+                        );
+                      })()}
+
+                      {resolvedApprovers?.noted_by_id && (() => {
+                        const approver = getApproverDetails(resolvedApprovers.noted_by_id, "VP for Administration");
+                        return (
+                          <div className="shrink-0">
+                            <div className="w-44 border-b border-slate-300 mb-1 pb-1 font-bold text-slate-800 text-xs">
+                              {approver.name}
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                              {approver.position}
+                            </span>
+                            <span className="text-[9px] text-[#0C005F] font-bold uppercase tracking-wider block">(Noted By)</span>
+                          </div>
+                        );
+                      })()}
+
+                      {resolvedApprovers?.approved_by_id && (() => {
+                        const approver = getApproverDetails(resolvedApprovers.approved_by_id, "University President");
+                        return (
+                          <div className="shrink-0">
+                            <div className="w-44 border-b border-slate-300 mb-1 pb-1 font-bold text-slate-800 text-xs">
+                              {approver.name}
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                              {approver.position}
+                            </span>
+                            <span className="text-[9px] text-[#0C005F] font-bold uppercase tracking-wider block">(Approved By)</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </>
@@ -728,7 +800,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
               </div>
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Final Work Day</Label>
-                <Input value={getFridayTwoWeeksAfter()} disabled className="h-9 bg-slate-50 border-slate-200 text-[#0C005F] font-bold rounded-[6px]" />
+                <Input value={getFridayTwoWeeksAfter()} disabled className="h-9 bg-slate-50 border-slate-200 text-slate-500 font-medium rounded-[6px]" />
               </div>
             </div>
 
@@ -785,7 +857,7 @@ export default function FileRequestModal({ open, onOpenChange, employee, leaveCr
               </div>
               <div className="space-y-1">
                 <Label className="font-bold text-slate-500 uppercase">Employee Age</Label>
-                <Input value={`${employeeAge} Years Old`} disabled className="h-9 bg-slate-50 border-slate-200 text-emerald-600 font-bold rounded-[6px]" />
+                <Input value={`${employeeAge} Years Old`} disabled className="h-9 bg-slate-50 border-slate-200 text-slate-500 font-medium rounded-[6px]" />
               </div>
             </div>
 

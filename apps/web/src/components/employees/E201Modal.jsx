@@ -41,9 +41,10 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
 
   const fetchLeaveData = async (targetId = employee?.id) => {
     if (!targetId) return;
+    const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
     const [creditsRes, appsRes, semRes] = await Promise.all([
       supabase.from('leave_credits').select('*').eq('employee_id', targetId),
-      supabase.from('leave_applications').select('*').eq('employee_id', targetId).order('created_at', { ascending: false }),
+      supabase.from('leave_applications').select('*').eq('employee_id', targetId).gte("created_at", oneYearAgo).order('created_at', { ascending: false }),
       supabase.from('employee_semesters').select('*').eq('employee_id', targetId).order('academic_year', { ascending: false })
     ]);
     if (creditsRes.data) setLeaveCredits(creditsRes.data);

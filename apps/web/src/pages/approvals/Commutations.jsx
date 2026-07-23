@@ -428,10 +428,13 @@ export default function Commutations() {
                       ) : (
                         <div className="h-12 flex items-center justify-center text-amber-600 font-bold italic text-[10px]">Awaiting Recommending Approval</div>
                       )}
-                      <div className="border-t border-slate-400 w-64 pt-1 font-extrabold text-slate-900">
-                        {getApproverName(selectedReq.ra_id)}
+                      <div className="border-t border-slate-400 w-72 pt-1 font-extrabold text-slate-900 text-xs">
+                        {raSigner 
+                          ? `${raSigner.position || "Dean / Office Head"} - ${raSigner.first_name} ${raSigner.last_name}`
+                          : "Dean / Office Head - _____"
+                        }
                       </div>
-                      <div className="text-[10px] text-slate-600 font-semibold">Dean / Office Head (Recommending Approval)</div>
+                      <div className="text-[10px] text-slate-500 font-semibold">Recommending Approval</div>
                     </div>
                   )}
                 </div>
@@ -451,10 +454,13 @@ export default function Commutations() {
                       ) : (
                         <div className="h-12 flex items-center justify-center text-amber-600 font-bold italic text-[10px]">Awaiting Noting</div>
                       )}
-                      <div className="border-t border-slate-400 w-64 pt-1 font-extrabold text-slate-900">
-                        {getApproverName(selectedReq.noted_by_id)}
+                      <div className="border-t border-slate-400 w-72 pt-1 font-extrabold text-slate-900 text-xs">
+                        {notedSigner
+                          ? `${notedSigner.position || "VP for Administration"} - ${notedSigner.first_name} ${notedSigner.last_name}`
+                          : "VP for Administration - _____"
+                        }
                       </div>
-                      <div className="text-[10px] text-slate-600 font-semibold">Vice President for Administration (Noted By)</div>
+                      <div className="text-[10px] text-slate-500 font-semibold">Noted By</div>
                     </div>
                   )}
 
@@ -471,10 +477,13 @@ export default function Commutations() {
                     ) : (
                       <div className="h-12 flex items-center justify-center text-amber-600 font-bold italic text-[10px]">Awaiting Final Approval</div>
                     )}
-                    <div className="border-t border-slate-400 w-64 pt-1 font-extrabold text-slate-900">
-                      {getApproverName(selectedReq.approved_by_id)}
+                    <div className="border-t border-slate-400 w-72 pt-1 font-extrabold text-slate-900 text-xs">
+                      {approvedSigner
+                        ? `${approvedSigner.position || "University President"} - ${approvedSigner.first_name} ${approvedSigner.last_name}`
+                        : "University President - _____"
+                      }
                     </div>
-                    <div className="text-[10px] text-slate-600 font-semibold">Approved By</div>
+                    <div className="text-[10px] text-slate-500 font-semibold">Approved By</div>
                   </div>
                 </div>
               </div>

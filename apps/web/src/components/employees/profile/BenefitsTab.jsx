@@ -124,7 +124,7 @@ export default function BenefitsTab({ employee }) {
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                       : (!record ? 'text-amber-700 border-amber-200 bg-amber-50' : 'bg-slate-100 text-slate-600 border-slate-200')
                   }`}>
-                    {isEligible ? "Eligible" : (!record ? "Pending Eval" : "Not Eligible")}
+                    {isEligible ? "Eligible" : (!record ? "Pending Approval" : "Not Eligible")}
                   </Badge>
                 </div>
 

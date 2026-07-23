@@ -173,7 +173,7 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
                 </div>
               }
               sideContent={
-                <Badge variant="outline" className="text-[10px] bg-white whitespace-nowrap">{train.start_date || '—'} - {train.end_date || '—'}</Badge>
+                <Badge className="text-[10px] bg-[#0C005F] text-white font-bold whitespace-nowrap border-none hover:bg-[#0C005F]/90">{train.start_date || '—'} - {train.end_date || '—'}</Badge>
               }
             >
               <div className="flex flex-wrap gap-x-6 gap-y-3 pt-3 mt-1 border-t text-[11px] text-muted-foreground">
@@ -221,7 +221,7 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
                 </div>
               }
               sideContent={
-                <Badge variant="outline" className="text-[10px] bg-white whitespace-nowrap">{train.start_date || '—'} - {train.end_date || '—'}</Badge>
+                <Badge className="text-[10px] bg-[#0C005F] text-white font-bold whitespace-nowrap border-none hover:bg-[#0C005F]/90">{train.start_date || '—'} - {train.end_date || '—'}</Badge>
               }
             >
               <div className="flex flex-wrap gap-x-6 gap-y-3 pt-3 mt-1 border-t text-[11px] text-muted-foreground">
@@ -286,7 +286,7 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
                   <p className="text-[10px] text-primary uppercase font-bold tracking-tighter">{work.type} • {work.status}</p>
                   <p className="text-sm font-bold leading-tight uppercase underline underline-offset-2">{work.title}</p>
                 </div>
-                <Badge className="text-[10px] uppercase">{work.date}</Badge>
+                <Badge className="text-[10px] bg-[#0C005F] text-white font-bold uppercase border-none hover:bg-[#0C005F]/90">{work.date}</Badge>
               </div>
             </div>
           )}

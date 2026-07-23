@@ -16,20 +16,20 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, Cake, AlertTriangle } from "lucide-react";
 
 const ACTION_CONFIG = {
-  employee_submitted_update: { icon: RefreshCw, color: "bg-amber-50 text-amber-600", label: "Profile Update Request" },
-  employee_submitted_registration: { icon: UserPlus, color: "bg-blue-50 text-blue-600", label: "New Registration" },
-  admin_approved_update: { icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600", label: "Update Approved" },
-  admin_rejected_update: { icon: XCircle, color: "bg-red-50 text-red-600", label: "Update Rejected" },
-  admin_approved_registration: { icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600", label: "Registration Approved" },
-  admin_rejected_registration: { icon: XCircle, color: "bg-red-50 text-red-600", label: "Registration Rejected" },
-  admin_edited_employee: { icon: Edit3, color: "bg-purple-50 text-purple-600", label: "Employee Edited" },
-  admin_added_employee: { icon: UserPlus, color: "bg-blue-50 text-blue-600", label: "Employee Added" },
-  admin_assigned_leave_credits: { icon: CalendarDays, color: "bg-purple-50 text-purple-600", label: "Leave Credits" },
-  admin_toggled_employee_status: { icon: ToggleRight, color: "bg-slate-100 text-slate-600", label: "Status Changed" },
-  employee_filed_leave: { icon: CalendarDays, color: "bg-amber-50 text-amber-600", label: "Leave Filed" },
-  admin_approved_leave: { icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600", label: "Leave Approved" },
-  admin_rejected_leave: { icon: XCircle, color: "bg-red-50 text-red-600", label: "Leave Rejected" },
-  benefit_eligible_employee: { icon: Gift, color: "bg-pink-50 text-pink-600", label: "Benefit Eligible" },
+  employee_submitted_update: { icon: RefreshCw, color: "bg-blue-50/50 text-[#0C005F]", label: "Profile Update Request" },
+  employee_submitted_registration: { icon: UserPlus, color: "bg-blue-50/50 text-[#0C005F]", label: "New Registration" },
+  admin_approved_update: { icon: CheckCircle2, color: "bg-blue-50 text-blue-700", label: "Update Approved" },
+  admin_rejected_update: { icon: XCircle, color: "bg-blue-100/50 text-blue-800", label: "Update Rejected" },
+  admin_approved_registration: { icon: CheckCircle2, color: "bg-blue-50 text-blue-700", label: "Registration Approved" },
+  admin_rejected_registration: { icon: XCircle, color: "bg-blue-100/50 text-blue-800", label: "Registration Rejected" },
+  admin_edited_employee: { icon: Edit3, color: "bg-blue-50 text-[#0C005F]", label: "Employee Edited" },
+  admin_added_employee: { icon: UserPlus, color: "bg-blue-50 text-blue-700", label: "Employee Added" },
+  admin_assigned_leave_credits: { icon: CalendarDays, color: "bg-blue-50 text-[#0C005F]", label: "Leave Credits" },
+  admin_toggled_employee_status: { icon: ToggleRight, color: "bg-blue-50/30 text-blue-600", label: "Status Changed" },
+  employee_filed_leave: { icon: CalendarDays, color: "bg-blue-50/50 text-[#0C005F]", label: "Leave Filed" },
+  admin_approved_leave: { icon: CheckCircle2, color: "bg-blue-50 text-blue-700", label: "Leave Approved" },
+  admin_rejected_leave: { icon: XCircle, color: "bg-blue-100/50 text-blue-800", label: "Leave Rejected" },
+  benefit_eligible_employee: { icon: Gift, color: "bg-blue-50 text-[#0C005F]", label: "Benefit Eligible" },
 };
 
 export default function Home() {
@@ -278,8 +278,9 @@ export default function Home() {
                     const [, textClass] = config.color.split(' ');
                     const isAdmin = activity.actor_type === 'admin' || activity.actor_name?.toLowerCase().includes('admin') || activity.actor_name?.includes('@');
                     const displayName = isAdmin ? 'Administrator' : (activity.actor_name || 'System');
+                    const isSystem = activity.actor_type === 'system' || displayName === 'System';
                     const empPhoto = Array.isArray(activity.employees) ? activity.employees[0]?.photo_url : activity.employees?.photo_url;
-                    const photoUrl = isAdmin ? '/assets/ub.png' : (empPhoto || null);
+                    const photoUrl = (isAdmin || isSystem) ? '/assets/ub.png' : (empPhoto || null);
                     const initials = displayName
                       .split(' ')
                       .map((n) => n[0])
@@ -288,14 +289,14 @@ export default function Home() {
                       .toUpperCase();
                     return (
                       <div key={activity.id} className="flex items-start gap-3 p-4 hover:bg-slate-50/50 transition-colors">
-                        {/* Avatar: ub.png for admin, employee photo or grey initials fallback */}
+                        {/* Avatar: ub.png for admin/system, employee photo or grey initials fallback */}
                         {photoUrl ? (
                           <img
                             src={photoUrl}
                             alt={displayName}
                             className={cn(
                               "w-8 h-8 rounded-full object-cover shrink-0",
-                              isAdmin ? "border border-[#0C005F]/20 bg-white p-0.5" : "border border-slate-100"
+                              (isAdmin || isSystem) ? "border border-[#0C005F]/20 bg-white p-0.5" : "border border-slate-100"
                             )}
                           />
                         ) : (
@@ -610,7 +611,7 @@ function MonthGridCalendar() {
       <div className="flex flex-1 min-h-0">
         {/* Legend Sidebar on Left (Collapsible) */}
         <div className={cn(
-          "shrink-0 border-r border-slate-100 bg-slate-50/40 transition-all duration-300 flex flex-col justify-start overflow-hidden",
+          "shrink-0 border-r border-slate-200 bg-slate-50/40 transition-all duration-300 flex flex-col justify-start overflow-hidden",
           legendCollapsed ? "w-10 p-2 items-center" : "w-36 p-3 space-y-2"
         )}>
           {legendCollapsed ? (
@@ -634,7 +635,7 @@ function MonthGridCalendar() {
             </>
           ) : (
             <>
-              <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+              <div className="flex items-center justify-between pb-1.5 border-b border-slate-200">
                 <p className="text-2xs font-black text-slate-400 uppercase tracking-widest">Legend</p>
                 <button
                   onClick={() => setLegendCollapsed(true)}
@@ -659,11 +660,11 @@ function MonthGridCalendar() {
         {/* Calendar Grid */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Day name headers */}
-          <div className="grid grid-cols-7 border-b border-slate-100 shrink-0">
+          <div className="grid grid-cols-7 border-b border-slate-200 shrink-0">
             {DAY_NAMES.map(day => (
               <div
                 key={day}
-                className="py-1.5 text-center text-2xs font-black uppercase tracking-widest text-slate-400 border-r border-slate-100 last:border-r-0"
+                className="py-1.5 text-center text-2xs font-black uppercase tracking-widest text-slate-400 border-r border-slate-200 last:border-r-0"
               >
                 {day.slice(0, 3)}
               </div>
@@ -687,7 +688,7 @@ function MonthGridCalendar() {
                     <div
                       key={di}
                       className={cn(
-                        'border-r border-b border-slate-100 last:border-r-0 p-1 relative flex flex-col gap-0.5 hover:bg-slate-50/80 transition-colors cursor-default',
+                        'border-r border-b border-slate-200 last:border-r-0 p-1 relative flex flex-col gap-0.5 hover:bg-slate-50/80 transition-colors cursor-default',
                         !inMonth && 'bg-slate-50/50',
                         todayFlag  && 'bg-blue-50/40'
                       )}

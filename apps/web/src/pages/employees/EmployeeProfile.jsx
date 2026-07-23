@@ -132,10 +132,12 @@ export default function EmployeeProfile() {
           setLeaveCredits(credits);
         }
 
+        const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
         const { data: apps, error: appsError } = await supabase
           .from("leave_applications")
           .select("*")
           .eq("employee_id", data.id)
+          .gte("created_at", oneYearAgo)
           .order("created_at", { ascending: false });
         
         if (!appsError) {
@@ -410,9 +412,10 @@ export default function EmployeeProfile() {
 
   const refreshLeaveData = async () => {
     if (!employeeData?.id) return;
+    const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
     const [creditsRes, appsRes] = await Promise.all([
       supabase.from("leave_credits").select("*").eq("employee_id", employeeData.id),
-      supabase.from("leave_applications").select("*").eq("employee_id", employeeData.id).order("created_at", { ascending: false })
+      supabase.from("leave_applications").select("*").eq("employee_id", employeeData.id).gte("created_at", oneYearAgo).order("created_at", { ascending: false })
     ]);
     if (creditsRes.data) setLeaveCredits(creditsRes.data);
     if (appsRes.data) setLeaveApplications(appsRes.data);
@@ -644,45 +647,45 @@ export default function EmployeeProfile() {
       <div className="flex-1 overflow-hidden p-4">
         <div className="w-full h-full flex flex-col">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <div className="overflow-x-auto shrink-0 mb-3">
+            <div className="overflow-x-auto scrollbar-none shrink-0 mb-3">
               <TabsList className="flex w-max min-w-full bg-white border border-slate-200 shadow-none rounded-[8px] h-10 p-1 gap-1">
-                <TabsTrigger value="home" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                <TabsTrigger value="home" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none whitespace-nowrap transition-all">
                   <Home className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden md:inline">Home</span>
+                  <span>Home</span>
                 </TabsTrigger>
-                <TabsTrigger value="profiling" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                <TabsTrigger value="profiling" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none whitespace-nowrap transition-all">
                   <User className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden md:inline">Personal Data</span>
+                  <span>Personal Data</span>
                 </TabsTrigger>
-                <TabsTrigger value="education" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                <TabsTrigger value="education" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none whitespace-nowrap transition-all">
                   <GraduationCap className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden md:inline">Educational Record</span>
+                  <span>Educational Record</span>
                 </TabsTrigger>
-                <TabsTrigger value="training" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                <TabsTrigger value="training" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none whitespace-nowrap transition-all">
                   <Award className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden md:inline">Trainings</span>
+                  <span>Trainings</span>
                 </TabsTrigger>
-                <TabsTrigger value="employment" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                <TabsTrigger value="employment" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none whitespace-nowrap transition-all">
                   <Briefcase className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden md:inline">Employment Info</span>
+                  <span>Employment Info</span>
                 </TabsTrigger>
                 {(() => {
                   const isTeaching = employeeData?.employment_classification?.toLowerCase() === "teaching";
                   const showSemestral = isTeaching || hasTeachingLoad;
                   return showSemestral ? (
-                    <TabsTrigger value="semestral" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                    <TabsTrigger value="semestral" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none whitespace-nowrap transition-all">
                       <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                      <span className="hidden md:inline">Semestral Records</span>
+                      <span>Semestral Records</span>
                     </TabsTrigger>
                   ) : null;
                 })()}
-                <TabsTrigger value="leave" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                <TabsTrigger value="leave" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none whitespace-nowrap transition-all">
                   <CalendarDays className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden md:inline">Leave Credits</span>
+                  <span>Leave Credits</span>
                 </TabsTrigger>
-                <TabsTrigger value="benefits" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none min-w-[40px] transition-all">
+                <TabsTrigger value="benefits" className="flex-1 gap-1.5 text-xs h-8 px-3 font-semibold rounded-[6px] data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none whitespace-nowrap transition-all">
                   <Gift className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden md:inline">Benefits</span>
+                  <span>Benefits</span>
                 </TabsTrigger>
               </TabsList>
             </div>

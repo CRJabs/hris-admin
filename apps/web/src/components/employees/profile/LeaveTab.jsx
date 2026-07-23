@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Plus, Activity, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
+import { CalendarDays, Plus, Activity, ChevronDown, ChevronUp, AlertTriangle, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useEffect } from "react";
@@ -54,7 +54,7 @@ function LeaveBalanceCard({ id, title, total, used, isCommutable, isReadOnly, on
               </Badge>
             )}
             {isExhausted && (
-              <Badge variant="secondary" className="bg-red-50 text-red-500 text-[9px] font-bold px-1.5 py-0 border-none">
+              <Badge className="bg-rose-600 text-white font-black text-[9px] px-2 py-0.5 rounded-full border-none shadow-sm hover:bg-rose-600">
                 Exhausted
               </Badge>
             )}
@@ -71,7 +71,7 @@ function LeaveBalanceCard({ id, title, total, used, isCommutable, isReadOnly, on
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Allocation</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Allocation</label>
             {isReadOnly ? (
               <div className="h-9 w-full rounded-md border border-slate-100 bg-slate-50/50 px-3 py-2 text-sm font-bold text-slate-700 flex items-center">
                 {localTotal}
@@ -86,7 +86,7 @@ function LeaveBalanceCard({ id, title, total, used, isCommutable, isReadOnly, on
             )}
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Used Credits</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Used Credits</label>
             {isReadOnly ? (
               <div className="h-9 w-full rounded-md border border-slate-100 bg-slate-50/50 px-3 py-2 text-sm font-bold text-slate-400 flex items-center">
                 {localUsed}
@@ -150,6 +150,22 @@ export default function LeaveTab({ employee, isReadOnly = false, onChange, reque
     }
   };
 
+  const handleDeleteLeave = async (appId) => {
+    const confirm = window.confirm("Are you sure you want to permanently delete this leave record?");
+    if (!confirm) return;
+    try {
+      const { error } = await supabase
+        .from('leave_applications')
+        .delete()
+        .eq('id', appId);
+      if (error) throw error;
+      toast.success("Leave record deleted.");
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      toast.error("Failed to delete record: " + err.message);
+    }
+  };
+
   const discardChanges = () => {
     setDirtyCredits({});
     toast.info("Changes discarded.");
@@ -192,6 +208,19 @@ export default function LeaveTab({ employee, isReadOnly = false, onChange, reque
         {/* Left: Credits Breakdown */}
         <div className="lg:col-span-4 space-y-8">
           <div className="flex flex-col gap-6">
+            {leaveCredits.length === 0 && (
+              <Card className="border-amber-200 bg-amber-50/50 rounded-xl shadow-none">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-extrabold text-sm text-amber-800">Pending Initialization</h4>
+                    <p className="text-xs text-amber-700/95 mt-1 leading-relaxed">
+                      This employee's leave credits have not been initialized yet. {isAdminView ? "Please use the 'Manage Leave Credits' dashboard to allocate their credits." : "Please contact HR to initialize your leave credits."}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {commutable.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-l-4 border-amber-400 pl-3 bg-amber-50/30 py-1 rounded-r-md">
@@ -330,9 +359,20 @@ export default function LeaveTab({ employee, isReadOnly = false, onChange, reque
                             </p>
                             <p className="text-xs text-slate-400 mt-1 truncate">{app.purpose}</p>
                           </div>
-                          <span className="text-[10px] text-slate-400 font-medium shrink-0">
-                            {format(new Date(app.created_at), "MMM d")}
-                          </span>
+                          <div className="flex flex-col items-end gap-2 shrink-0">
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              {format(new Date(app.created_at), "MMM d")}
+                            </span>
+                            {!isReadOnly && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteLeave(app.id); }}
+                                className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-all"
+                                title="Delete Leave Record"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}

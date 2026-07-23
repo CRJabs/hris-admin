@@ -300,7 +300,7 @@ export default function Retirements() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="font-bold text-slate-800 uppercase text-[11px]">Employee Age</Label>
-                  <Input value={`${empAge} Years Old`} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-emerald-700 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-emerald-700" />
+                  <Input value={`${empAge} Years Old`} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-slate-500 font-medium text-sm opacity-100 disabled:opacity-100 disabled:text-slate-500" />
                 </div>
               </div>
 

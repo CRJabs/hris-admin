@@ -266,7 +266,7 @@ export default function Resignations() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="font-bold text-slate-800 uppercase text-[11px]">Final Work Day</Label>
-                  <Input value={finalWorkDayStr} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-indigo-700 font-bold text-sm opacity-100 disabled:opacity-100 disabled:text-indigo-700" />
+                  <Input value={finalWorkDayStr} disabled readOnly className="h-9 bg-slate-50 border-slate-200 text-slate-500 font-medium text-sm opacity-100 disabled:opacity-100 disabled:text-slate-500" />
                 </div>
               </div>
 

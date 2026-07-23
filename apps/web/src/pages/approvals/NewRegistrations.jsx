@@ -22,19 +22,14 @@ export default function NewRegistrations() {
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      // Fetch all employment statuses to support filtering
-      let query = supabase
+      const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: regData, error: regError } = await supabase
         .from('employees')
         .select('*')
+        .or(`employment_status.eq.Pending,created_at.gte.${oneYearAgo}`)
         .order('created_at', { ascending: false });
 
-      // Only filter by Pending when "all" to include Pending + recently processed
-      // We fetch all and let client-side filtering handle the rest
-      const { data: regData, error: regError } = await query;
-
       if (!regError) {
-        // Only show employees that were registrations (Pending, Probationary that were recently approved, or ones that could be filtered)
-        // For a clean approach: show Pending registrations plus any we want to track
         setRegistrations(regData || []);
       }
     } catch (err) {
@@ -105,7 +100,16 @@ export default function NewRegistrations() {
 
         toast.success(`Registration for ${emp.first_name} approved.`);
       } else {
-        // Log rejection before delete
+        const { error } = await supabase
+          .from('employees')
+          .update({
+            employment_status: 'Rejected',
+            is_active: false
+          })
+          .eq('id', emp.id);
+        if (error) throw error;
+
+        // Log rejection
         await supabase.from('admin_activity_log').insert({
           actor_type: 'admin',
           actor_name: 'Administrator',
@@ -113,15 +117,8 @@ export default function NewRegistrations() {
           description: `Rejected registration for ${emp.first_name} ${emp.last_name}`,
           employee_id: emp.id
         });
-
-        const { error } = await supabase
-          .from('employees')
-          .delete()
-          .eq('id', emp.id);
-        if (error) throw error;
         toast.success(`Registration for ${emp.first_name} rejected.`);
       }
-      setRegistrations(prev => prev.filter(r => r.id !== emp.id));
       setModalOpen(false);
       window.dispatchEvent(new CustomEvent('pending_counts_changed'));
       fetchRequests();
@@ -182,18 +179,13 @@ export default function NewRegistrations() {
   // Determine registration status label
   const getStatusLabel = (emp) => {
     if (emp.employment_status === 'Pending') return 'pending';
-    // If they were approved, they'll have a non-Pending status and is_active = true
-    if (emp.is_active) return 'approved';
-    return 'rejected';
+    if (emp.employment_status === 'Rejected') return 'rejected';
+    return 'approved';
   };
 
-  // Filter: only show registrations that are Pending, or if "all" show just Pending
-  // Since rejected ones get deleted, we only really have Pending ones for this page
   const registrationPool = statusFilter === 'all'
-    ? registrations.filter(emp => emp.employment_status === 'Pending')
-    : statusFilter === 'pending'
-    ? registrations.filter(emp => emp.employment_status === 'Pending')
-    : []; // approved/rejected registrations don't persist in this table's design
+    ? registrations
+    : registrations.filter(emp => getStatusLabel(emp) === statusFilter);
 
   const filteredRegistrations = registrationPool.filter(emp => {
     const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.toLowerCase();
@@ -242,7 +234,15 @@ export default function NewRegistrations() {
                     <div>
                       <CardTitle className="text-sm font-black text-slate-900 flex items-center gap-2 flex-wrap">
                          {emp.first_name} {emp.last_name}
-                         <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 text-2xs font-bold uppercase tracking-wider">Pending Registration</Badge>
+                         {getStatusLabel(emp) === 'pending' && (
+                           <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 text-2xs font-bold uppercase tracking-wider">Pending Registration</Badge>
+                         )}
+                         {getStatusLabel(emp) === 'approved' && (
+                           <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 text-2xs font-bold uppercase tracking-wider">Approved</Badge>
+                         )}
+                         {getStatusLabel(emp) === 'rejected' && (
+                           <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 text-2xs font-bold uppercase tracking-wider">Rejected</Badge>
+                         )}
                       </CardTitle>
                       <CardDescription className="mt-0.5 text-xs text-slate-500 font-medium">
                          {emp.contact_email || emp.email || "No email"} • {emp.department || "No Department"}
@@ -269,12 +269,16 @@ export default function NewRegistrations() {
                          <Button size="sm" variant="outline" onClick={() => handleViewRegistrant(emp)} className="h-8 text-xs gap-1.5 border-slate-200 rounded-lg font-bold shadow-none">
                             <Eye className="w-3.5 h-3.5" /> View Details
                          </Button>
-                         <Button size="sm" onClick={() => handleRegistrationAction(emp, 'approved')} className="h-8 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-none">
-                            <Check className="w-3.5 h-3.5" /> Approve
-                         </Button>
-                         <Button size="sm" variant="outline" onClick={() => handleRegistrationAction(emp, 'rejected')} className="h-8 text-xs gap-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-slate-200 rounded-lg font-bold shadow-none">
-                            <X className="w-3.5 h-3.5" /> Reject
-                         </Button>
+                         {getStatusLabel(emp) === 'pending' && (
+                           <>
+                             <Button size="sm" onClick={() => handleRegistrationAction(emp, 'approved')} className="h-8 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-none">
+                                <Check className="w-3.5 h-3.5" /> Approve
+                             </Button>
+                             <Button size="sm" variant="outline" onClick={() => handleRegistrationAction(emp, 'rejected')} className="h-8 text-xs gap-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-slate-200 rounded-lg font-bold shadow-none">
+                                <X className="w-3.5 h-3.5" /> Reject
+                             </Button>
+                           </>
+                         )}
                          <Button size="sm" variant="outline" onClick={() => handleDelete(emp)} className="h-8 text-xs gap-1.5 text-rose-600 border-rose-200 hover:text-white hover:bg-rose-600 rounded-lg font-bold shadow-none">
                             <Trash2 className="w-3.5 h-3.5" /> Delete
                          </Button>

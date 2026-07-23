@@ -31,7 +31,7 @@ export default function AssignLeaveCredits() {
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.from('employees').select('*');
+      const { data, error } = await supabase.from('employees').select('*, leave_credits (id)');
       if (error) throw error;
       setEmployees(data || []);
     } catch (err) {
@@ -140,6 +140,7 @@ export default function AssignLeaveCredits() {
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to assign leave credits');
 
       fetchLeaveCredits(selectedEmployee.id);
+      fetchEmployees();
 
       // Log to admin activity
       await supabase.from('admin_activity_log').insert({
@@ -289,9 +290,16 @@ export default function AssignLeaveCredits() {
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold truncate leading-tight">
-                          {emp.last_name}, {emp.first_name}
-                        </p>
+                        <div className="flex items-center justify-between gap-1.5">
+                          <p className="text-sm font-bold truncate leading-tight">
+                            {emp.last_name}, {emp.first_name}
+                          </p>
+                          {(!emp.leave_credits || emp.leave_credits.length === 0) && (
+                            <Badge className="bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-bold px-1.5 py-0 border-none shrink-0 rounded-full">
+                              Pending Init
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-2xs text-muted-foreground truncate uppercase tracking-wider">
                           {emp.employee_id} • {emp.employment_classification}
                         </p>

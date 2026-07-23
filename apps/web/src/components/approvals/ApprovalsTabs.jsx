@@ -16,9 +16,9 @@ export default function ApprovalsTabs({ counts, searchQuery, setSearchQuery, sta
 
   return (
     <div className="flex flex-col md:flex-row items-stretch gap-3 w-full select-none">
-      <div className="flex items-center border border-slate-200 bg-white rounded-xl shadow-none h-12 px-3 flex-1 min-w-0">
+      <div className="flex items-center border border-slate-200 bg-white rounded-xl shadow-none h-12 px-3 flex-1 min-w-0 overflow-x-auto scrollbar-none">
         <Tabs value={activeTab} onValueChange={(val) => navigate(`/approvals/${val}`)} className="w-full">
-          <TabsList className="bg-transparent p-0 h-8 gap-2 flex flex-row border-none shadow-none w-full">
+          <TabsList className="bg-transparent p-0 h-8 gap-2 flex flex-row border-none shadow-none w-max min-w-full">
             <TabsTrigger 
               value="updates" 
               className="flex-1 justify-center gap-2 px-3 h-8 border bg-white text-xs font-semibold text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:border-[#0C005F] rounded-lg shadow-none whitespace-nowrap border-slate-200"
