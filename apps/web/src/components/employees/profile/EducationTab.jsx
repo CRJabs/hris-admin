@@ -70,7 +70,9 @@ export default function EducationTab({ employee, isReadOnly = false, isEditing =
                              <p className="text-[11px] text-muted-foreground">{edu.address}</p>
                            </div>
                            <div className="flex items-center gap-3">
-                             <Badge className="text-[10px] bg-[#0C005F] text-white font-bold h-5 border-none hover:bg-[#0C005F]/90">{edu.inclusive}</Badge>
+                             {edu.inclusive && edu.inclusive !== 'N/A' && edu.inclusive !== 'n/a' && (
+                               <Badge className="text-[10px] bg-[#0C005F] text-white font-bold h-5 border-none hover:bg-[#0C005F]/90">{edu.inclusive}</Badge>
+                             )}
                              <Button 
                                variant="ghost" 
                                size="sm" 

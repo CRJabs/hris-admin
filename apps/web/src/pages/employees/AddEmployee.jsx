@@ -14,6 +14,7 @@ import PersonalDetailsTab from "@/components/employees/profile/PersonalDetailsTa
 import EducationTab from "@/components/employees/profile/EducationTab";
 import TrainingDevTab from "@/components/employees/profile/TrainingDevTab";
 import EmploymentInfoTab from "@/components/employees/profile/EmploymentInfoTab";
+import { sanitizeByFieldName, validateUniversityEmail } from "@/utils/inputValidation";
 
 const defaultEmployee = {
   first_name: "", middle_name: "", last_name: "", titles: "", gender: "Male", birthdate: "",
@@ -93,7 +94,8 @@ export default function AddEmployee() {
   }, []);
 
   const handleFieldChange = (field, value) => {
-    setEmployeeData(prev => ({ ...prev, [field]: value }));
+    const sanitized = sanitizeByFieldName(field, value);
+    setEmployeeData(prev => ({ ...prev, [field]: sanitized }));
     if (errors[field]) {
       setErrors(prev => {
         const next = { ...prev };
@@ -122,6 +124,11 @@ export default function AddEmployee() {
     setInlineAccountError("");
     if (!accountData.first_name?.trim() || !accountData.last_name?.trim() || !accountData.email?.trim() || !accountData.password) {
       setInlineAccountError("First name, last name, email, and password are required.");
+      return;
+    }
+
+    if (!validateUniversityEmail(accountData.email)) {
+      setInlineAccountError("Email must be in the format: [user]@universityofbohol.edu.ph");
       return;
     }
 
@@ -313,7 +320,7 @@ export default function AddEmployee() {
                   placeholder="First Name" 
                   className="h-10 text-xs border-slate-200"
                   value={accountData.first_name}
-                  onChange={(e) => setAccountData(prev => ({ ...prev, first_name: e.target.value }))}
+                  onChange={(e) => setAccountData(prev => ({ ...prev, first_name: sanitizeByFieldName('first_name', e.target.value) }))}
                 />
               </div>
               <div className="space-y-1.5">
@@ -323,7 +330,7 @@ export default function AddEmployee() {
                   placeholder="Middle Name" 
                   className="h-10 text-xs border-slate-200"
                   value={accountData.middle_name}
-                  onChange={(e) => setAccountData(prev => ({ ...prev, middle_name: e.target.value }))}
+                  onChange={(e) => setAccountData(prev => ({ ...prev, middle_name: sanitizeByFieldName('middle_name', e.target.value) }))}
                 />
               </div>
               <div className="space-y-1.5">
@@ -333,7 +340,7 @@ export default function AddEmployee() {
                   placeholder="Last Name" 
                   className="h-10 text-xs border-slate-200"
                   value={accountData.last_name}
-                  onChange={(e) => setAccountData(prev => ({ ...prev, last_name: e.target.value }))}
+                  onChange={(e) => setAccountData(prev => ({ ...prev, last_name: sanitizeByFieldName('last_name', e.target.value) }))}
                 />
               </div>
             </div>
@@ -345,7 +352,7 @@ export default function AddEmployee() {
                 placeholder="Titles (e.g. PhD, LPT)" 
                 className="h-10 text-xs border-slate-200"
                 value={accountData.titles}
-                onChange={(e) => setAccountData(prev => ({ ...prev, titles: e.target.value }))}
+                onChange={(e) => setAccountData(prev => ({ ...prev, titles: sanitizeByFieldName('titles', e.target.value) }))}
               />
             </div>
 

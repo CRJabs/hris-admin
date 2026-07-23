@@ -35,6 +35,46 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
     return { ...baselineEmployee, ...requestedChanges };
   };
 
+  const getTabHasChanges = (tabName) => {
+    if (!requestedChanges) return false;
+    const keys = Object.keys(requestedChanges);
+    if (keys.length === 0) return false;
+
+    switch (tabName) {
+      case 'profiling':
+        const personalKeys = [
+          'first_name', 'last_name', 'middle_name', 'suffix', 'birthdate', 'birthplace', 'gender',
+          'civil_status', 'religion', 'citizenship', 'phone', 'contact_email', 'blood_type',
+          'sss_no', 'tin_no', 'philhealth_no', 'pagibig_no', 'emergency_contact_name', 'emergency_contact_phone',
+          'spouse_name', 'spouse_occupation', 'father_name', 'father_occupation', 'mother_name',
+          'mother_occupation', 'residential_address', 'permanent_address', 'children'
+        ];
+        return keys.some(k => personalKeys.includes(k));
+
+      case 'education':
+        return keys.includes('educational_record');
+
+      case 'training':
+        const trainingKeys = [
+          'internal_trainings', 'external_trainings', 'awards_citations',
+          'scholarships_research', 'extra_activities', 'licenses',
+          'exams_taken', 'skills', 'group_affiliations'
+        ];
+        return keys.some(k => trainingKeys.includes(k));
+
+      case 'employment':
+        const employmentKeys = [
+          'department', 'position', 'employment_status', 'employment_tenure',
+          'employment_classification', 'employment_classification_ii', 'employment_classification_iii',
+          'employment_history', 'date_hired'
+        ];
+        return keys.some(k => employmentKeys.includes(k));
+
+      default:
+        return false;
+    }
+  };
+
   const [leaveApps, setLeaveApps] = useState([]);
   const [localSemesters, setLocalSemesters] = useState([]);
   const [baselineSemesters, setBaselineSemesters] = useState([]);
@@ -359,18 +399,20 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {!isEditMode ? (
-              <Button onClick={() => setIsEditMode(true)} className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white px-4 border border-slate-200">
-                 <Edit3 className="w-3.5 h-3.5" /> Edit Details
-              </Button>
-            ) : (
-              <>
-                <Button variant="outline" onClick={() => { setIsEditMode(false); setEditedEmployee(getReviewEmployee()); }} className="h-8 text-xs font-bold rounded-lg shadow-none border-slate-200">Cancel</Button>
-                <Button onClick={handleSaveAll} disabled={isSaving} className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white px-4 border border-slate-200">
-                   <Save className="w-3.5 h-3.5" />
-                   {isSaving ? "Saving..." : (baselineEmployee && !baselineEmployee.is_active ? "Reactivate & Save" : "Save Admin Changes")}
+            {pendingRequests.length === 0 && (
+              !isEditMode ? (
+                <Button onClick={() => setIsEditMode(true)} className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white px-4 border border-slate-200">
+                   <Edit3 className="w-3.5 h-3.5" /> Edit Details
                 </Button>
-              </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => { setIsEditMode(false); setEditedEmployee(getReviewEmployee()); }} className="h-8 text-xs font-bold rounded-lg shadow-none border-slate-200">Cancel</Button>
+                  <Button onClick={handleSaveAll} disabled={isSaving} className="h-8 text-xs font-bold rounded-lg shadow-none gap-1.5 bg-[#0C005F] hover:bg-[#0C005F]/90 text-white px-4 border border-slate-200">
+                     <Save className="w-3.5 h-3.5" />
+                     {isSaving ? "Saving..." : (baselineEmployee && !baselineEmployee.is_active ? "Reactivate & Save" : "Save Admin Changes")}
+                  </Button>
+                </>
+              )
             )}
           </div>
         </DialogHeader>
@@ -378,21 +420,33 @@ export default function E201Modal({ employee, open, onOpenChange, onToggleActive
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="px-6 py-2 shrink-0 bg-slate-50/50 border-b border-slate-100">
             <TabsList className="w-full flex bg-slate-100/80 border border-slate-200 rounded-xl p-1 gap-1 h-auto shrink-0 shadow-none">
-              <TabsTrigger value="profiling" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+              <TabsTrigger value="profiling" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5 relative">
                 <User className="w-3.5 h-3.5" />
                 Personal Details
+                {getTabHasChanges('profiling') && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse" />
+                )}
               </TabsTrigger>
-              <TabsTrigger value="education" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+              <TabsTrigger value="education" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5 relative">
                 <GraduationCap className="w-3.5 h-3.5" />
                 Educational Record
+                {getTabHasChanges('education') && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse" />
+                )}
               </TabsTrigger>
-              <TabsTrigger value="training" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+              <TabsTrigger value="training" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5 relative">
                 <Award className="w-3.5 h-3.5" />
                 Trainings and Development
+                {getTabHasChanges('training') && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse" />
+                )}
               </TabsTrigger>
-              <TabsTrigger value="employment" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
+              <TabsTrigger value="employment" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5 relative">
                 <Briefcase className="w-3.5 h-3.5" />
                 Employment Info
+                {getTabHasChanges('employment') && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse" />
+                )}
               </TabsTrigger>
               <TabsTrigger value="semestral" className="flex-1 justify-center py-2 text-xs font-bold rounded-lg text-slate-600 data-[state=active]:bg-[#0C005F] data-[state=active]:text-white data-[state=active]:shadow-none transition-all gap-1.5">
                 <BookOpen className="w-3.5 h-3.5" />

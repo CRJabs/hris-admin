@@ -447,7 +447,7 @@ export default function EmploymentInfoTab({ employee, isReadOnly = false, isAdmi
                               <p className="text-[10px] text-muted-foreground italic mb-1">{item.address}</p>
                               <p className="text-xs text-primary font-medium">{item.position} • {item.status}</p>
                            </div>
-                           <Badge variant="outline" className="text-[10px] bg-white">{item.start || '—'} — {item.end || '—'}</Badge>
+                           <Badge className="text-[10px] bg-[#0C005F] text-white font-bold whitespace-nowrap border-none hover:bg-[#0C005F]/90">{item.start || '—'} — {item.end || '—'}</Badge>
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 py-2 border-y border-border/50 text-[11px]">
                            <div><p className="text-muted-foreground uppercase">Department</p><p className="font-medium">{item.dept}</p></div>

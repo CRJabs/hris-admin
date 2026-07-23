@@ -265,7 +265,7 @@ export default function TrainingDevTab({ employee, isReadOnly = false, isEditing
                   <p className="text-[10px] text-primary uppercase font-bold tracking-tighter">{award.type}</p>
                   <p className="text-sm font-bold leading-tight">{award.name}</p>
                 </div>
-                <Badge className="text-[10px] bg-[#0C005F]">{award.date}</Badge>
+                <Badge className="text-[10px] bg-[#0C005F] text-white font-bold whitespace-nowrap border-none hover:bg-[#0C005F]/90">{award.date}</Badge>
               </div>
             </div>
           )}

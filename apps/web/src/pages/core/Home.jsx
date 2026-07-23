@@ -375,6 +375,37 @@ function MonthGridCalendar() {
   const [overflowDay, setOverflowDay] = useState(null); // dateStr of open overflow popover
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null); // event detail modal
+  const [greetingText, setGreetingText] = useState("");
+  const [isSendingGreeting, setIsSendingGreeting] = useState(false);
+
+  useEffect(() => {
+    if (selectedEvent && selectedEvent.type === 'birthday') {
+      setGreetingText(`Happy Birthday, ${selectedEvent.firstName || 'Cliff'}! Wishing you a wonderful year ahead! - UB HR Department`);
+    } else {
+      setGreetingText("");
+    }
+  }, [selectedEvent]);
+
+  const handleSendGreeting = async () => {
+    if (!selectedEvent?.employeeId || !greetingText.trim()) return;
+    setIsSendingGreeting(true);
+    try {
+      const { error } = await supabase.from('notifications').insert({
+        employee_id: selectedEvent.employeeId,
+        type: 'birthday',
+        title: "Happy Birthday!",
+        message: greetingText.trim()
+      });
+      if (error) throw error;
+      toast.success(`Birthday greeting sent to ${selectedEvent.employeeName}!`);
+      setGreetingText("");
+      setSelectedEvent(null);
+    } catch (err) {
+      toast.error("Failed to send greeting: " + err.message);
+    } finally {
+      setIsSendingGreeting(false);
+    }
+  };
 
   const currentYear = new Date().getFullYear();
 
@@ -391,10 +422,9 @@ function MonthGridCalendar() {
         const [leavesRes, employeesRes, customRes] = await Promise.all([
           supabase
             .from('leave_applications')
-            .select('start_date, leave_type, status, employees(first_name, last_name)')
+            .select('id, start_date, end_date, leave_type, status, purpose, employees(id, first_name, last_name)')
             .in('status', ['pending', 'approved'])
-            .gte('start_date', monthStartStr)
-            .lte('start_date', monthEndStr),
+            .or(`and(start_date.gte.${monthStartStr},start_date.lte.${monthEndStr}),and(end_date.gte.${monthStartStr},end_date.lte.${monthEndStr})`),
           supabase
             .from('employees')
             .select('id, first_name, last_name, birthdate, licenses')
@@ -412,18 +442,35 @@ function MonthGridCalendar() {
           map[dateStr].push(event);
         };
 
-        // Leave events — start date only
+        // Leave events — span start_date to end_date
         (leavesRes.data || []).forEach(leave => {
           const empName = `${leave.employees?.first_name || ''} ${leave.employees?.last_name || ''}`.trim() || 'Employee';
-          addEvent(leave.start_date, {
-            type:  leave.status === 'pending' ? 'pending_leave' : 'approved_leave',
-            label: `${leave.employees?.first_name || '?'} – ${leave.leave_type} Leave`,
-            title: `${leave.leave_type} Leave Application`,
-            employeeName: empName,
-            leaveType: leave.leave_type,
-            status: leave.status,
-            date: format(new Date(leave.start_date + 'T00:00:00'), 'MMMM d, yyyy'),
-          });
+          try {
+            const start = new Date(leave.start_date + 'T00:00:00');
+            const end = new Date(leave.end_date + 'T00:00:00');
+            if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && start <= end) {
+              const days = eachDayOfInterval({ start, end });
+              days.forEach(day => {
+                const dayStr = format(day, 'yyyy-MM-dd');
+                addEvent(dayStr, {
+                  id: leave.id,
+                  type:  leave.status === 'pending' ? 'pending_leave' : 'approved_leave',
+                  cellLabel: leave.status === 'pending' ? 'Pending Leave' : 'Approved Leave',
+                  label: `${leave.employees?.first_name || '?'} – ${leave.leave_type} Leave`,
+                  title: `${leave.leave_type} Leave Application`,
+                  employeeName: empName,
+                  leaveType: leave.leave_type,
+                  status: leave.status,
+                  startDate: leave.start_date,
+                  endDate: leave.end_date,
+                  purpose: leave.purpose || '—',
+                  date: `${format(start, 'MMM d, yyyy')} – ${format(end, 'MMM d, yyyy')}`,
+                });
+              });
+            }
+          } catch (e) {
+            console.error('Error mapping leave interval event:', e);
+          }
         });
 
         // Birthday events — year-agnostic (match by month/day in the viewed month)
@@ -437,9 +484,13 @@ function MonthGridCalendar() {
               const empName = `${emp.first_name} ${emp.last_name}`;
               addEvent(dateStr, {
                 type:  'birthday',
+                cellLabel: 'Birthday',
                 label: `${empName}'s Birthday`,
                 title: 'Birthday Celebration',
+                employeeId: emp.id,
                 employeeName: empName,
+                firstName: emp.first_name,
+                birthdate: format(bdate, 'MMMM d, yyyy'),
                 date: format(thisYearBirthday, 'MMMM d'),
               });
             }
@@ -460,6 +511,7 @@ function MonthGridCalendar() {
               const empName = `${emp.first_name} ${emp.last_name}`;
               addEvent(dateStr, {
                 type:  'expiring_license',
+                cellLabel: 'Expiring License',
                 label: `${emp.first_name} – ${lic.name || 'License'} Expires`,
                 title: 'License Expiry Warning',
                 employeeName: empName,
@@ -474,12 +526,12 @@ function MonthGridCalendar() {
         (customRes.data || []).forEach(evt => {
           addEvent(evt.event_date, {
             type:  'custom',
+            cellLabel: 'Event',
             label: evt.title,
             title: evt.title,
             date: format(new Date(evt.event_date + 'T00:00:00'), 'MMMM d, yyyy'),
           });
         });
-
         setEventMap(map);
       } catch (err) {
         console.error('Error fetching calendar data:', err);
@@ -716,7 +768,7 @@ function MonthGridCalendar() {
                             onClick={(e) => { e.stopPropagation(); setSelectedEvent(evt); }}
                             className={cn('text-2xs font-bold px-1 py-0.5 rounded truncate leading-tight cursor-pointer hover:opacity-85 transition-opacity', s.bg)}
                           >
-                            {evt.label}
+                            {evt.cellLabel || evt.label}
                           </div>
                         );
                       })}
@@ -750,7 +802,7 @@ function MonthGridCalendar() {
                                   onClick={(e) => { e.stopPropagation(); setOverflowDay(null); setSelectedEvent(evt); }}
                                   className={cn('text-xs font-bold px-2 py-1 rounded-md truncate cursor-pointer hover:opacity-85 transition-opacity', s.bg)}
                                 >
-                                  {evt.label}
+                                  {evt.cellLabel || evt.label}
                                 </div>
                               );
                             })}
@@ -845,45 +897,113 @@ function MonthGridCalendar() {
             {/* Modal body */}
             <div className="p-6 space-y-4">
               <div>
-                <h3 className="text-base font-black text-slate-800 tracking-tight">{selectedEvent.label}</h3>
+                <h3 className="text-base font-black text-slate-800 tracking-tight">
+                  {selectedEvent.type === 'birthday' 
+                    ? `${selectedEvent.employeeName}'s Birthday` 
+                    : selectedEvent.type === 'expiring_license'
+                      ? `License Expiry: ${selectedEvent.licenseName}`
+                      : selectedEvent.type === 'pending_leave' || selectedEvent.type === 'approved_leave'
+                        ? `${selectedEvent.employeeName} – ${selectedEvent.leaveType} Leave`
+                        : selectedEvent.title || selectedEvent.label
+                  }
+                </h3>
                 {selectedEvent.date && (
                   <p className="text-xs font-semibold text-slate-400 mt-1">{selectedEvent.date}</p>
                 )}
               </div>
 
               <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-2.5 text-xs text-slate-600">
+                <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                  <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Category</span>
+                  <span className="font-extrabold text-slate-800">{EVENT_STYLES[selectedEvent.type]?.label || 'Event'}</span>
+                </div>
+
                 {selectedEvent.employeeName && (
                   <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
                     <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Employee</span>
                     <span className="font-extrabold text-slate-800">{selectedEvent.employeeName}</span>
                   </div>
                 )}
-                {selectedEvent.leaveType && (
-                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
-                    <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Leave Type</span>
-                    <span className="font-extrabold text-slate-800">{selectedEvent.leaveType}</span>
-                  </div>
+
+                {/* Conditional Fields for Leave */}
+                {(selectedEvent.type === 'pending_leave' || selectedEvent.type === 'approved_leave') && (
+                  <>
+                    <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                      <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Leave Type</span>
+                      <span className="font-extrabold text-slate-800">{selectedEvent.leaveType}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                      <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Duration</span>
+                      <span className="font-extrabold text-slate-800">{selectedEvent.startDate} to {selectedEvent.endDate}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 border-b border-slate-200/60 pb-2">
+                      <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Reason / Purpose</span>
+                      <span className="font-medium text-slate-700 bg-white p-2 rounded border border-slate-150 mt-0.5 whitespace-pre-wrap">{selectedEvent.purpose}</span>
+                    </div>
+                    <div className="flex items-center justify-between pb-0">
+                      <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Status</span>
+                      <Badge variant="secondary" className={cn("text-2xs font-extrabold uppercase px-2 py-0.5",
+                        selectedEvent.status === 'approved' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200")}>
+                        {selectedEvent.status}
+                      </Badge>
+                    </div>
+                  </>
                 )}
-                {selectedEvent.status && (
-                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
-                    <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Status</span>
-                    <Badge variant="secondary" className={cn("text-2xs font-extrabold uppercase px-2 py-0.5",
-                      selectedEvent.status === 'approved' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200")}>
-                      {selectedEvent.status}
-                    </Badge>
-                  </div>
+
+                {/* Conditional Fields for Expiring License */}
+                {selectedEvent.type === 'expiring_license' && (
+                  <>
+                    <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                      <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">License Name</span>
+                      <span className="font-extrabold text-slate-800">{selectedEvent.licenseName}</span>
+                    </div>
+                    <div className="flex items-center justify-between pb-0">
+                      <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Expiry Date</span>
+                      <span className="font-extrabold text-slate-800">{selectedEvent.date}</span>
+                    </div>
+                  </>
                 )}
-                {selectedEvent.licenseName && (
-                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
-                    <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">License Name</span>
-                    <span className="font-extrabold text-slate-800">{selectedEvent.licenseName}</span>
-                  </div>
+
+                {/* Conditional Fields for Birthday */}
+                {selectedEvent.type === 'birthday' && (
+                  <>
+                    <div className="flex items-center justify-between pb-0">
+                      <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Date of Birth</span>
+                      <span className="font-extrabold text-slate-800">{selectedEvent.birthdate || selectedEvent.date}</span>
+                    </div>
+                  </>
                 )}
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-400 uppercase tracking-wider text-2xs">Category</span>
-                  <span className="font-extrabold text-slate-800">{EVENT_STYLES[selectedEvent.type]?.label}</span>
-                </div>
               </div>
+
+              {/* Birthday Greeting Panel */}
+              {selectedEvent.type === 'birthday' && (
+                <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+                  <Label className="text-xs font-black text-slate-700 uppercase tracking-wider">Send Birthday Greeting</Label>
+                  <textarea
+                    value={greetingText}
+                    onChange={(e) => setGreetingText(e.target.value)}
+                    placeholder="Type birthday message here..."
+                    className="w-full h-24 p-3 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#0C005F]/20 focus:border-[#0C005F]/40 transition-all placeholder:text-slate-300 font-medium resize-none"
+                  />
+                  <Button
+                    onClick={handleSendGreeting}
+                    disabled={isSendingGreeting || !greetingText.trim()}
+                    className="w-full bg-[#0C005F] hover:bg-[#0C005F]/90 text-white font-bold text-xs h-9 rounded-xl flex items-center justify-center gap-1.5 shadow-sm shadow-[#0C005F]/10 border-none"
+                  >
+                    {isSendingGreeting ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Sending Greeting...
+                      </>
+                    ) : (
+                      <>
+                        <Gift className="w-3.5 h-3.5" />
+                        Send Greeting
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Modal footer */}
