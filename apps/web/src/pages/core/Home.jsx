@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, Cake, AlertTriangle } from "lucide-react";
 
 const ACTION_CONFIG = {
@@ -424,7 +425,8 @@ function MonthGridCalendar() {
             .from('leave_applications')
             .select('id, start_date, end_date, leave_type, status, purpose, employees(id, first_name, last_name)')
             .in('status', ['pending', 'approved'])
-            .or(`and(start_date.gte.${monthStartStr},start_date.lte.${monthEndStr}),and(end_date.gte.${monthStartStr},end_date.lte.${monthEndStr})`),
+            .gte('start_date', monthStartStr)
+            .lte('start_date', monthEndStr),
           supabase
             .from('employees')
             .select('id, first_name, last_name, birthdate, licenses')
@@ -442,34 +444,28 @@ function MonthGridCalendar() {
           map[dateStr].push(event);
         };
 
-        // Leave events — span start_date to end_date
+        // Leave events — start date only
         (leavesRes.data || []).forEach(leave => {
           const empName = `${leave.employees?.first_name || ''} ${leave.employees?.last_name || ''}`.trim() || 'Employee';
           try {
             const start = new Date(leave.start_date + 'T00:00:00');
             const end = new Date(leave.end_date + 'T00:00:00');
-            if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && start <= end) {
-              const days = eachDayOfInterval({ start, end });
-              days.forEach(day => {
-                const dayStr = format(day, 'yyyy-MM-dd');
-                addEvent(dayStr, {
-                  id: leave.id,
-                  type:  leave.status === 'pending' ? 'pending_leave' : 'approved_leave',
-                  cellLabel: leave.status === 'pending' ? 'Pending Leave' : 'Approved Leave',
-                  label: `${leave.employees?.first_name || '?'} – ${leave.leave_type} Leave`,
-                  title: `${leave.leave_type} Leave Application`,
-                  employeeName: empName,
-                  leaveType: leave.leave_type,
-                  status: leave.status,
-                  startDate: leave.start_date,
-                  endDate: leave.end_date,
-                  purpose: leave.purpose || '—',
-                  date: `${format(start, 'MMM d, yyyy')} – ${format(end, 'MMM d, yyyy')}`,
-                });
-              });
-            }
+            addEvent(leave.start_date, {
+              id: leave.id,
+              type:  leave.status === 'pending' ? 'pending_leave' : 'approved_leave',
+              cellLabel: leave.status === 'pending' ? 'Pending Leave' : 'Approved Leave',
+              label: `${leave.employees?.first_name || '?'} – ${leave.leave_type} Leave`,
+              title: `${leave.leave_type} Leave Application`,
+              employeeName: empName,
+              leaveType: leave.leave_type,
+              status: leave.status,
+              startDate: leave.start_date,
+              endDate: leave.end_date,
+              purpose: leave.purpose || '—',
+              date: `${format(start, 'MMM d, yyyy')} – ${format(end, 'MMM d, yyyy')}`,
+            });
           } catch (e) {
-            console.error('Error mapping leave interval event:', e);
+            console.error('Error mapping leave event:', e);
           }
         });
 
